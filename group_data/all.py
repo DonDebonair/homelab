@@ -1,0 +1,7 @@
+ssh_public_key = "/Users/daan/.ssh/id_ed25519.pub"
+firstname = "Daan"
+lastname = "Debie"
+email = "daan@dv.email"
+user = "daan"
+nas_ip = "192.168.1.21"
+proxmox_ip = "192.168.1.22"
