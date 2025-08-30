@@ -1,6 +1,14 @@
-from pyinfra.api import operation
+from enum import StrEnum
+
 from pyinfra import host
-from facts.proxmox import ProxmoxGroups, ProxmoxUsers, ProxmoxAcls, ProxmoxAclType
+from pyinfra.api import operation
+
+from facts.proxmox import ProxmoxGroups, ProxmoxUsers, ProxmoxAcls, ProxmoxContainers
+from models.proxmox import (
+    ProxmoxAclType,
+    ProxmoxContainerArch, ProxmoxContainerOSType, ProxmoxContainerFeatures, ProxmoxConsoleMode,
+    ProxmoxContainerNetworkInterface
+)
 
 
 @operation()
@@ -124,3 +132,204 @@ def user(
             host.noop(f"User '{user_id}' already exists with the same attributes.")
             return
     yield " ".join(cmd)
+
+
+@operation()
+def container(
+        vmid: int,
+        os_template: str,
+        present: bool = True,
+        arch: ProxmoxContainerArch | None = None,
+        cores: int | None = None,
+        memory: int | None = None,
+        swap: int | None = None,
+        rootfs: str | None = None,
+        storage: str | None = None,
+        hostname: str | None = None,
+        unprivileged: bool | None = None,
+        os_type: ProxmoxContainerOSType | None = None,
+        nameserver: str | None = None,
+        searchdomain: str | None = None,
+        description: str | None = None,
+        on_boot: bool | None = None,
+        start: bool | None = None,
+        template: bool | None = None,
+        protection: bool | None = None,
+        console: bool | None = None,
+        cmode: ProxmoxConsoleMode | None = None,
+        tty: int | None = None,
+        cpu_limit: float | None = None,
+        cpu_units: int | None = None,
+        features: ProxmoxContainerFeatures | None = None,
+        networks: dict[int, ProxmoxContainerNetworkInterface] | list[ProxmoxContainerNetworkInterface] | None = None,
+        pool: str | None = None,
+        tags: str | None = None,
+        timezone: str | None = None,
+        ssh_public_keys: str | None = None,
+        force: bool = False,
+):
+    """
+    Create or remove a Proxmox container.
+
+    Args:
+        vmid: The (unique) ID of the VM (100-999999999)
+        os_template: The OS template or backup file
+        present: Whether the container should exist (True) or not (False)
+        features: ProxmoxContainerFeatures object for container features
+        networks: Dict mapping network interface numbers to ProxmoxContainerNetworkInterface objects,
+                 or list of ProxmoxContainerNetworkInterface objects (auto-assigned to net0, net1, etc.)
+        force: Allow overwriting existing container
+        ... (other parameters as documented in pct create help)
+    """
+    containers = host.get_fact(ProxmoxContainers, _sudo=True)
+    container_info = containers.get(vmid) if containers else None
+    is_present = container_info is not None
+
+    def _build_create_command():
+        """Helper function to build the pct create command"""
+        cmd = ["pct", "create", str(vmid), os_template]
+
+        # Add optional parameters
+        if arch is not None:
+            cmd.extend(["--arch", arch.value])
+        if cores is not None:
+            cmd.extend(["--cores", str(cores)])
+        if memory is not None:
+            cmd.extend(["--memory", str(memory)])
+        if swap is not None:
+            cmd.extend(["--swap", str(swap)])
+        if rootfs is not None:
+            cmd.extend(["--rootfs", rootfs])
+        if storage is not None:
+            cmd.extend(["--storage", storage])
+        if hostname is not None:
+            cmd.extend(["--hostname", hostname])
+        if unprivileged is not None:
+            cmd.extend(["--unprivileged", str(int(unprivileged))])
+        if os_type is not None:
+            cmd.extend(["--ostype", os_type.value])
+        if nameserver is not None:
+            cmd.extend(["--nameserver", nameserver])
+        if searchdomain is not None:
+            cmd.extend(["--searchdomain", searchdomain])
+        if description is not None:
+            cmd.extend(["--description", f"'{description}'"])
+        if on_boot is not None:
+            cmd.extend(["--onboot", str(int(on_boot))])
+        if start is not None:
+            cmd.extend(["--start", str(int(start))])
+        if template is not None:
+            cmd.extend(["--template", str(int(template))])
+        if protection is not None:
+            cmd.extend(["--protection", str(int(protection))])
+        if console is not None:
+            cmd.extend(["--console", str(int(console))])
+        if cmode is not None:
+            cmd.extend(["--cmode", cmode.value])
+        if tty is not None:
+            cmd.extend(["--tty", str(tty)])
+        if cpu_limit is not None:
+            cmd.extend(["--cpulimit", str(cpu_limit)])
+        if cpu_units is not None:
+            cmd.extend(["--cpuunits", str(cpu_units)])
+        if pool is not None:
+            cmd.extend(["--pool", pool])
+        if tags is not None:
+            cmd.extend(["--tags", tags])
+        if timezone is not None:
+            cmd.extend(["--timezone", timezone])
+        if ssh_public_keys is not None:
+            cmd.extend(["--ssh-public-keys", ssh_public_keys])
+
+        # Handle features using ProxmoxContainerFeatures class
+        if features is not None:
+            features_parts = []
+            if features.force_rw_sys is not None:
+                features_parts.append(f"force_rw_sys={int(features.force_rw_sys)}")
+            if features.fuse is not None:
+                features_parts.append(f"fuse={int(features.fuse)}")
+            if features.keyctl is not None:
+                features_parts.append(f"keyctl={int(features.keyctl)}")
+            if features.mknod is not None:
+                features_parts.append(f"mknod={int(features.mknod)}")
+            if features.nesting is not None:
+                features_parts.append(f"nesting={int(features.nesting)}")
+            if features.mount is not None:
+                features_parts.append(f"mount={';'.join(features.mount)}")
+
+            if features_parts:
+                cmd.extend(["--features", ",".join(features_parts)])
+
+        # Handle network interfaces
+        if networks is not None:
+            # Convert list to dict with auto-incrementing IDs if needed
+            if isinstance(networks, list):
+                networks_dict = {i: net_interface for i, net_interface in enumerate(networks)}
+            else:
+                networks_dict = networks
+
+            for net_id, net_interface in networks_dict.items():
+                net_parts = [f"name={net_interface.name}"]
+
+                if net_interface.bridge is not None:
+                    net_parts.append(f"bridge={net_interface.bridge}")
+                if net_interface.firewall is not None:
+                    net_parts.append(f"firewall={int(net_interface.firewall)}")
+                if net_interface.gw is not None:
+                    net_parts.append(f"gw={net_interface.gw}")
+                if net_interface.gw6 is not None:
+                    net_parts.append(f"gw6={net_interface.gw6}")
+                if net_interface.hwaddr is not None:
+                    net_parts.append(f"hwaddr={net_interface.hwaddr}")
+                if net_interface.ip is not None:
+                    net_parts.append(f"ip={net_interface.ip}")
+                if net_interface.ip6 is not None:
+                    net_parts.append(f"ip6={net_interface.ip6}")
+                if net_interface.link_down is not None:
+                    net_parts.append(f"link_down={int(net_interface.link_down)}")
+                if net_interface.mtu is not None:
+                    net_parts.append(f"mtu={net_interface.mtu}")
+                if net_interface.rate is not None:
+                    net_parts.append(f"rate={net_interface.rate}")
+                if net_interface.tag is not None:
+                    net_parts.append(f"tag={net_interface.tag}")
+                if net_interface.trunks is not None:
+                    net_parts.append(f"trunks={';'.join(map(str, net_interface.trunks))}")
+                if net_interface.type is not None:
+                    net_parts.append(f"type={net_interface.type}")
+
+                cmd.extend([f"--net{net_id}", ",".join(net_parts)])
+
+        return cmd
+
+    if not present and is_present:
+        # Remove container
+        cmd = ["pct", "destroy", str(vmid)]
+        if force:
+            cmd.extend(["--force"])
+        yield " ".join(cmd)
+    elif present and not is_present:
+        # Create container
+        cmd = _build_create_command()
+        if force:
+            cmd.extend(["--force"])
+        yield " ".join(cmd)
+    elif present and is_present:
+        # Container exists and should exist
+        if force:
+            # Recreate container if force is True
+            cmd = ["pct", "destroy", str(vmid)]
+            cmd.extend(["--force"])  # Force destroy even if running
+            yield " ".join(cmd)
+
+            # Then create it again
+            cmd = _build_create_command()
+            cmd.extend(["--force"])
+            yield " ".join(cmd)
+        else:
+            host.noop(f"Container '{vmid}' already exists. Use force=True to recreate.")
+            return
+    else:
+        # Container doesn't exist and shouldn't exist
+        host.noop(f"Container '{vmid}' does not exist and 'present' is False.")
+        return

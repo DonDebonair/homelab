@@ -18,3 +18,8 @@ dependencies = [
 # pyinfra = { git = "https://github.com/DonDebonair/pyinfra", branch = "feat/docker-network-aux-addresses" }
 pyinfra = { path = "/Users/daan/code/pyinfra", editable = true }
 
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
+

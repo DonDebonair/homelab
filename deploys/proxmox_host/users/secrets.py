@@ -1,4 +1,3 @@
-import asyncio
 from op_secrets import SecretString
 
 user_password = SecretString("op://Homelab/Proxmox VE daan/password")

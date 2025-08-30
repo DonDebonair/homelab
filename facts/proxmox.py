@@ -1,43 +1,23 @@
-from dataclasses import dataclass
-from enum import StrEnum
 import json
-from typing import override
+from typing import override, Union
 
 from pyinfra.api import FactBase
 
-
-@dataclass
-class ProxmoxGroupInfo:
-    group_id: str
-    comment: str | None
-    users: list[str]
-
-@dataclass
-class ProxmoxUserInfo:
-    user_id: str
-    enabled: bool
-    expire: int | None
-    firstname: str | None
-    lastname: str | None
-    email: str | None
-    comment: str | None
-    groups: list[str]
-    realm_type: str
-
-
-class ProxmoxAclType(StrEnum):
-    USER = "user"
-    GROUP = "group"
-    TOKEN = "token"
-
-
-@dataclass
-class ProxmoxAclInfo:
-    path: str
-    propagate: bool
-    role_id: str
-    subject: str
-    type: ProxmoxAclType  # 'user' or 'group'
+from models.proxmox import (
+    ProxmoxGroupInfo,
+    ProxmoxUserInfo,
+    ProxmoxAclType,
+    ProxmoxAclInfo,
+    ProxmoxContainerArch,
+    ProxmoxContainerOSType,
+    ProxmoxContainerNetworkInterface,
+    ProxmoxContainerRootFS,
+    ProxmoxContainerFeatures,
+    ProxmoxContainerConfig,
+    ProxmoxContainerStatus,
+    ProxmoxContainerLock,
+    ProxmoxContainerSummary,
+)
 
 
 class ProxmoxGroups(FactBase[dict[str, ProxmoxGroupInfo]]):
@@ -104,7 +84,7 @@ class ProxmoxAcls(FactBase[dict[tuple[str, str, str], ProxmoxAclInfo]]):
         return "pveum acl list --output-format json"
 
     @override
-    def process(self, output: str) -> dict[tuple[str, str, str], ProxmoxAclInfo]:
+    def process(self, output: list[str]) -> dict[tuple[str, str, str], ProxmoxAclInfo]:
         acls_data = json.loads("\n".join(output))
 
         acls = {}
@@ -118,3 +98,209 @@ class ProxmoxAcls(FactBase[dict[tuple[str, str, str], ProxmoxAclInfo]]):
                 type=ProxmoxAclType(acl["type"]),
             )
         return acls
+
+
+class ProxmoxContainers(FactBase[dict[int, ProxmoxContainerSummary]]):
+
+    @override
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "pct"
+
+    @override
+    def command(self) -> str:
+        return "pct list"
+
+    @override
+    def process(self, output: list[str]) -> dict[int, ProxmoxContainerSummary]:
+        containers = {}
+        if not output or len(output) < 2:
+            return containers
+
+        # Use header to determine column positions
+        header = output[0]
+        vmid_start = header.find("VMID")
+        status_start = header.find("Status")
+        lock_start = header.find("Lock")
+        name_start = header.find("Name")
+
+        for line in output[1:]:
+            if not line.strip():
+                continue
+            # Extract fields by slicing using header positions
+            vmid_str = line[vmid_start:status_start].strip()
+            status_str = line[status_start:lock_start].strip()
+            lock_str = line[lock_start:name_start].strip()
+            name_str = line[name_start:].strip()
+
+            if not vmid_str or not status_str:
+                continue
+            try:
+                vmid = int(vmid_str)
+            except ValueError:
+                continue
+            try:
+                status = ProxmoxContainerStatus(status_str)
+            except ValueError:
+                status = ProxmoxContainerStatus.UNKNOWN
+
+            if lock_str:
+                try:
+                    lock = ProxmoxContainerLock(lock_str)
+                except ValueError:
+                    lock = ProxmoxContainerLock.UNKNOWN
+            else:
+                lock = None
+
+            containers[vmid] = ProxmoxContainerSummary(
+                vmid=vmid,
+                status=status,
+                lock=lock,
+                name=name_str
+            )
+        return containers
+
+
+class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
+
+    @override
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "pct"
+
+    @override
+    def command(self, ctid: int) -> str:
+        return f"pct config {ctid}"
+
+    @override
+    def process(self, output: list[str]) -> ProxmoxContainerConfig | None:
+        if not output:
+            return None
+
+        config_dict = {}
+
+        # Parse the output into key-value pairs
+        for line in output:
+            if ':' not in line:
+                continue
+            key, value = line.split(':', 1)
+            config_dict[key.strip()] = value.strip()
+
+        # Extract required fields
+        try:
+            arch = ProxmoxContainerArch(config_dict['arch'])
+            cores = int(config_dict['cores'])
+            hostname = config_dict['hostname']
+            memory = int(config_dict['memory'])
+            ostype = ProxmoxContainerOSType(config_dict['ostype'])
+            swap = int(config_dict['swap'])
+            unprivileged = bool(int(config_dict['unprivileged']))
+        except (KeyError, ValueError):
+            # If any required field is missing or invalid, return None
+            return None
+
+        # Parse rootfs
+        rootfs_raw = config_dict.get('rootfs', '')
+        rootfs = self._parse_rootfs(rootfs_raw)
+        if not rootfs:
+            return None
+
+        # Parse optional features
+        features = None
+        if 'features' in config_dict:
+            features = self._parse_features(config_dict['features'])
+
+        # Parse network interfaces
+        network_interfaces = {}
+        for key, value in config_dict.items():
+            if key.startswith('net') and key[3:].isdigit():
+                net_num = int(key[3:])
+                net_interface = self._parse_network_interface(value)
+                if net_interface:
+                    network_interfaces[net_num] = net_interface
+
+        return ProxmoxContainerConfig(
+            arch=arch,
+            cores=cores,
+            hostname=hostname,
+            memory=memory,
+            ostype=ostype,
+            rootfs=rootfs,
+            swap=swap,
+            unprivileged=unprivileged,
+            features=features,
+            network_interfaces=network_interfaces if network_interfaces else None
+        )
+
+    def _parse_rootfs(self, rootfs_str: str) -> ProxmoxContainerRootFS | None:
+        if not rootfs_str:
+            return None
+
+        parts = rootfs_str.split(',')
+        if not parts:
+            return None
+
+        volume = parts[0]
+        rootfs_config = {'volume': volume}
+
+        # Parse additional options
+        for part in parts[1:]:
+            if '=' in part:
+                key, value = part.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+                if key in ['acl', 'quota', 'replicate', 'ro', 'shared']:
+                    rootfs_config[key] = bool(int(value))
+                elif key == 'mountoptions':
+                    rootfs_config[key] = value.split(';')
+                else:
+                    rootfs_config[key] = value
+
+        return ProxmoxContainerRootFS(**rootfs_config)
+
+    def _parse_features(self, features_str: str) -> ProxmoxContainerFeatures:
+        features = ProxmoxContainerFeatures()
+        parts = features_str.split(',')
+
+        for part in parts:
+            if '=' in part:
+                key, value = part.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+                # Convert 1|0 to boolean for known boolean features
+                if key in ['force_rw_sys', 'fuse', 'keyctl', 'mknod', 'nesting'] and value in ['0', '1']:
+                    setattr(features, key, bool(int(value)))
+                elif key == 'mount':
+                    # Parse mount as list of filesystem types
+                    setattr(features, key, value.split(';'))
+                else:
+                    # For other features, set as string (though there shouldn't be any others)
+                    setattr(features, key, value)
+
+        return features
+
+    def _parse_network_interface(self, net_str: str) -> ProxmoxContainerNetworkInterface | None:
+        parts = net_str.split(',')
+        net_config = {}
+
+        for part in parts:
+            if '=' in part:
+                key, value = part.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+                if key == 'name':
+                    net_config['name'] = value
+                elif key in ['firewall', 'link_down'] and value in ['0', '1']:
+                    net_config[key] = bool(int(value))
+                elif key in ['mtu', 'rate', 'tag'] and value.isdigit():
+                    net_config[key] = int(value)
+                elif key == 'trunks':
+                    net_config[key] = [int(x) for x in value.split(';') if x.isdigit()]
+                else:
+                    net_config[key] = value
+
+        if 'name' not in net_config:
+            return None
+
+        return ProxmoxContainerNetworkInterface(**net_config)
