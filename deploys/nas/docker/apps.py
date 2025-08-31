@@ -1,4 +1,4 @@
-from deploys.docker_compose.models import ComposeApp, DockerVolume, TemplateFile
+from deploys.common.docker_compose.models import ComposeApp, DockerVolume, TemplateFile
 
 apps = [
     ComposeApp(

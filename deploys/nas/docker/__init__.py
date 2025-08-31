@@ -4,7 +4,7 @@ from pyinfra import host
 from pyinfra.api import deploy
 from pyinfra.operations import files, docker
 
-from deploys.docker_compose import docker_compose
+from deploys.common.docker_compose import docker_compose
 from deploys.nas.docker.apps import apps
 from deploys.nas.docker import vars
 from operations import synology

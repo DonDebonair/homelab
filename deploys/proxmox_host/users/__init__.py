@@ -3,7 +3,7 @@ from pyinfra.api import deploy
 from pyinfra.operations import apt, server
 
 from deploys.proxmox_host.users import secrets
-from facts.proxmox import ProxmoxGroups, ProxmoxUsers, ProxmoxAcls, ProxmoxAclType
+from facts.proxmox import ProxmoxAclType
 from operations import proxmox
 
 
@@ -17,7 +17,7 @@ def users_and_groups():
     """
     apt.packages(
         name="Ensure 'sudo' is installed",
-        packages=["sudo"],
+        packages=["sudo", "zsh"],
         _sudo=True
     )
     server.user(
@@ -26,16 +26,10 @@ def users_and_groups():
         groups=["sudo"],
         create_home=True,
         password=secrets.user_password.encrypted(secrets.user_password_salt),
-        shell="/bin/bash",
+        shell="/usr/bin/zsh",
         public_keys=host.data.ssh_public_key,
         _sudo=True
     )
-    groups = host.get_fact(ProxmoxGroups, _sudo=True)
-    print(f"Existing groups: {groups}")
-    users = host.get_fact(ProxmoxUsers, _sudo=True)
-    print(f"Existing users: {users}")
-    acls = host.get_fact(ProxmoxAcls, _sudo=True)
-    print(f"Existing ACLs: {acls}")
 
     proxmox.group(
         name="Ensure 'admins' group exists",
