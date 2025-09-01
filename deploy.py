@@ -3,7 +3,7 @@ from pyinfra.facts.server import LinuxName
 
 from deploys.nas import docker_setup, networking
 from deploys.proxmox_host import prepare_proxmox_host, users_and_groups, setup_lxc_containers
-from deploys.postgres_lxc.users import users
+from deploys.postgres_lxc import users, setup_postgres
 from deploys.common.debian import common_debian_setup
 
 
@@ -21,3 +21,6 @@ if "postgres_lxc" in host.groups:
 
 if host.get_fact(LinuxName) == "Debian":
     common_debian_setup()
+
+if "postgres_lxc" in host.groups:
+    setup_postgres()
