@@ -30,7 +30,9 @@ def setup_lxc_containers():
         swap=2048,
         cores=2,
         networks=[
-            ProxmoxContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="dhcp", firewall=True)
+            # ip6 is static because setting it as dhcp causes the container to loose its ipv4 address after while
+            # see: https://forum.proxmox.com/threads/debian-lxc-container-not-getting-an-ip.65719/
+            ProxmoxContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="static", firewall=True)
         ],
         rootfs="vm-pool:8",
         features=ProxmoxContainerFeatures(nesting=True),
