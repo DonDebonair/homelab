@@ -1,6 +1,4 @@
-from pyinfra import host
 from pyinfra.api import deploy
-from pyinfra.facts.files import Directory
 from pyinfra.operations import files, server, apt
 
 

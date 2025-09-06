@@ -7,16 +7,13 @@ authors = [
 ]
 requires-python = "<4.0,>=3.13"
 dependencies = [
-    "cyclopts<4.0.0,>=3.22.5",
+    "cyclopts<4.0.0",
     "ansible-vault<5.0.0,>=4.1.0",
     "ruamel-yaml<1.0.0,>=0.18.15",
-    "pyinfra",
+    "pyinfra<4,>=3.5",
     "onepassword-sdk>=0.3.1",
     "libpass>=1.9.1.post0",
 ]
-[tool.uv.sources]
-# pyinfra = { git = "https://github.com/DonDebonair/pyinfra", branch = "feat/docker-network-aux-addresses" }
-pyinfra = { path = "/Users/daan/code/pyinfra", editable = true }
 
 [dependency-groups]
 dev = [
