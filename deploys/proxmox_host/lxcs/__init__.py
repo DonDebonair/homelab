@@ -38,5 +38,6 @@ def setup_lxc_containers():
         features=ProxmoxContainerFeatures(nesting=True),
         ssh_public_keys="/home/daan/.ssh/authorized_keys",
         start=True,
+        on_boot=True,
         _sudo=True,
     )

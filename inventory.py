@@ -2,6 +2,7 @@ from op_secrets import SecretString
 
 sudo_password_proxmox_ve_daan = SecretString("op://Homelab/Proxmox VE daan/password")
 sudo_password_postgres_lxc_daan = SecretString("op://Homelab/PostgreSQL LXC daan/password")
+sudo_password_docker_vm_daan = SecretString("op://Homelab/Docker VM daan/password")
 SecretString.populate_cache_sync()
 
 nas = [
@@ -21,4 +22,7 @@ proxmox_host = [
 postgres_lxc = [
     # First time running this, you need to set up SSH keys and allow root login. After that, you can change the user.
     ("192.168.1.41", {"ssh_user": "daan", "_sudo_password": str(sudo_password_postgres_lxc_daan)})
+]
+docker_vm = [
+    ("192.168.50.10", {"ssh_user": "daan", "_sudo_password": str(sudo_password_docker_vm_daan)})
 ]

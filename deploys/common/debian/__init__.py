@@ -43,3 +43,5 @@ def common_debian_setup():
         src="https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_linux_amd64.deb",
         _sudo=True,
     )
+    # After this deploy, run `chezmoi init git@github.com:DonDebonair/dotfiles.git` and `chezmoi apply` manually
+    # to set up the user's dotfiles and configurations.
