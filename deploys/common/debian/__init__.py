@@ -45,3 +45,19 @@ def common_debian_setup():
     )
     # After this deploy, run `chezmoi init git@github.com:DonDebonair/dotfiles.git` and `chezmoi apply` manually
     # to set up the user's dotfiles and configurations.
+
+    disable_root_login = files.line(
+        name="Disable root SSH login for security",
+        path="/etc/ssh/sshd_config",
+        line=".*PermitRootLogin.*",
+        replace="PermitRootLogin no",
+        _sudo=True,
+    )
+    server.service(
+        name="Restart SSH service to apply configuration changes",
+        service="ssh",
+        running=True,
+        restarted=True,
+        _sudo=True,
+        _if=disable_root_login.did_change
+    )

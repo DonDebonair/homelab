@@ -24,5 +24,6 @@ postgres_lxc = [
     ("192.168.1.41", {"ssh_user": "daan", "_sudo_password": str(sudo_password_postgres_lxc_daan)})
 ]
 docker_vm = [
+    # First time running this, you need to set up SSH keys and allow root login. After that, you can change the user.
     ("192.168.50.10", {"ssh_user": "daan", "_sudo_password": str(sudo_password_docker_vm_daan)})
 ]
