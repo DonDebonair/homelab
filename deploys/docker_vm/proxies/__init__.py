@@ -49,4 +49,12 @@ def setup_caddy_proxies():
         ip_range="172.102.0.0/24",
         gateway="172.102.0.1",
     )
+    docker.network(
+        name="Create authelia network",
+        network="authelia",
+        driver="bridge",
+        subnet="172.103.0.0/16",
+        ip_range="172.103.0.0/24",
+        gateway="172.103.0.1",
+    )
     docker_compose(apps=apps, template_dir=template_dir, variables=vars)

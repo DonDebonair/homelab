@@ -10,6 +10,7 @@ services:
       macvlan:
         ipv4_address: [[ host.data.internal_reverse_proxy_ip ]]
       caddy-internal:
+      authelia:
     volumes:[[ vol.service_volumes(app) ]]
     restart: unless-stopped
     expose:
@@ -23,6 +24,10 @@ services:
       caddy_internal_[[ loop.index ]]: [[ domain.domain ]]
       caddy_internal_[[ loop.index ]].reverse_proxy: [[ domain.ip | default(host.data.nas_ip, true) ]]:[[ domain.port ]]
       [% endfor -%]
+      caddy_internal_90: (secure)
+      caddy_internal_90.forward_auth: '{args[0]} authelia:9091'
+      caddy_internal_90.forward_auth.uri: /api/verify?rd=https://auth.dv.zone
+      caddy_internal_90.forward_auth.copy_headers: Remote-User Remote-Groups Remote-Name Remote-Email
       caddy_internal.layer4.:22.@git: ssh
       caddy_internal.layer4.:22.route: "@git"
       caddy_internal.layer4.:22.route.proxy: "forgejo:22"
@@ -34,5 +39,7 @@ networks:
   caddy-internal:
     external: true
   macvlan:
+    external: true
+  authelia:
     external: true
 [[ vol.top_level_volumes(app) ]]

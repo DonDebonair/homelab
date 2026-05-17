@@ -1,0 +1,101 @@
+# Miscellaneous https://www.authelia.com/configuration/miscellaneous/introduction/
+# Set also AUTHELIA_JWT_SECRET_FILE
+theme: auto
+
+authentication_backend:
+  ldap:
+    implementation: custom
+    address: ldap://[[ host.data.nas_ip ]]
+    start_tls: false
+    base_dn: dc=dv,dc=zone
+    additional_users_dn: cn=users
+    users_filter:
+      (&(|({username_attribute}={input})({mail_attribute}={input}))(objectClass=posixAccount)(shadowExpire=-1)(mail=*))
+    additional_groups_dn: cn=groups
+    groups_filter: (&(memberUid={username})(objectClass=posixGroup))
+    user: uid=[[ authelia_ldap_username ]],cn=users,dc=dv,dc=zone
+    attributes:
+      username: uid
+
+# Second Factor https://www.authelia.com/configuration/second-factor/introduction/
+totp:
+  issuer: dv.zone
+
+# Security https://www.authelia.com/configuration/security/access-control/
+access_control:
+  default_policy: two_factor
+  rules:
+    - domain:
+        - nzb.dv.zone
+        - torrent.dv.zone
+        - docs.dv.zone
+      policy: bypass
+      resources:
+        - ^/api$
+        - ^/api.*
+    - domain:
+        - rss.dv.zone
+      policy: bypass
+      resources:
+        - ^/reader/api/.*
+
+# Session https://www.authelia.com/configuration/session/introduction/
+# Set also AUTHELIA_SESSION_SECRET_FILE
+session:
+  name: authelia
+  cookies:
+    - domain: dv.zone
+      authelia_url: https://auth.dv.zone
+
+  # https://www.authelia.com/configuration/session/redis/
+  # Set also AUTHELIA_SESSION_REDIS_PASSWORD_FILE if appropriate
+  redis:
+    host: redis
+    port: 6379
+
+# Storage https://www.authelia.com/configuration/storage/postgres/
+# Set also AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE
+# Set also AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE
+storage:
+  postgres:
+    address: [[ host.data.postgres_lxc_ip ]]:5432
+    database: authelia
+    username: authelia
+
+# SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
+# Set also AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE
+notifier:
+  disable_startup_check: true
+  smtp:
+    address: smtp://[[ smtp_server ]]:[[ smtp_port ]]
+    username: [[ authelia_smtp_username ]]
+    sender: Authelia <authelia@dv.zone>
+
+identity_providers:
+  oidc:
+    jwks:
+      - key: {{secret "/config/secrets/jwks/private.pem" | mindent 10 "|" | msquote}}
+    clients:
+[%- for c in oidc_clients %]
+      - client_id: [[ c.id ]]
+        client_name: [[ c.name ]]
+        client_secret:
+          [[ c.secret_hash ]]
+        public: false
+        authorization_policy: [[ c.policy ]]
+        consent_mode: implicit
+        redirect_uris:
+[%-   for uri in c.redirect_uris %]
+          - [[ uri ]]
+[%-   endfor %]
+        scopes:
+[%-   for s in c.scopes %]
+          - [[ s ]]
+[%-   endfor %]
+        token_endpoint_auth_method: [[ c.auth_method ]]
+        userinfo_signed_response_alg: none
+[%-   if c.get('require_pkce') %]
+        require_pkce: true
+        pkce_challenge_method: '[[ c.pkce_challenge_method ]]'
+[%-   endif %]
+[%- endfor %]

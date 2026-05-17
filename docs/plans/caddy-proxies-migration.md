@@ -127,35 +127,39 @@ SecretString.populate_cache_sync()
 
 **Goal:** add Authelia (+ redis) and re-introduce the forward_auth labels on both Caddys.
 
-### Files to create
+### Files to modify
 
-`deploys/docker_vm/proxies/secrets.py`:
+`deploys/docker_vm/proxies/secrets.py` (already exists from stage 1 with `cloudflare_api_token`) — extend with the Authelia references. All but the LDAP creds and DB password live in a single shared 1P item `Authelia Secrets`; LDAP creds are in their own `Authelia LDAP client` item; the JWKS pair are *file attachments* on `Authelia Secrets` (referenceable directly by filename in the `op://` path).
 
 ```python
 from op_secrets import SecretString
 
-authelia_redis_password     = SecretString("op://Homelab/Authelia Redis/password")
-authelia_ldap_password      = SecretString("op://Homelab/Authelia LDAP/password")
-authelia_smtp_password      = SecretString("op://Homelab/Authelia SMTP/password")
-authelia_jwt_secret         = SecretString("op://Homelab/Authelia/JWT_SECRET")
-authelia_session_secret     = SecretString("op://Homelab/Authelia/SESSION_SECRET")
-authelia_storage_encryption = SecretString("op://Homelab/Authelia/STORAGE_ENCRYPTION_KEY")
-authelia_hmac_secret        = SecretString("op://Homelab/Authelia/HMAC_SECRET")
-authelia_jwks_private_pem   = SecretString("op://Homelab/Authelia OIDC JWKS/private.pem")
-authelia_jwks_public_pem    = SecretString("op://Homelab/Authelia OIDC JWKS/public.pem")
-authelia_db_password        = SecretString("op://Homelab/PostgreSQL Authelia user/password")  # already exists
+# stage 1
+cloudflare_api_token        = SecretString("op://Homelab/Cloudflare/apikey")
+
+# stage 2 — authelia
+authelia_redis_password     = SecretString("op://Homelab/Authelia Secrets/redis-password")
+authelia_smtp_password      = SecretString("op://Homelab/Authelia Secrets/smtp-password")
+authelia_smtp_username      = SecretString("op://Homelab/Authelia Secrets/smtp-username")
+authelia_jwt_secret         = SecretString("op://Homelab/Authelia Secrets/jwt-secret")
+authelia_session_secret     = SecretString("op://Homelab/Authelia Secrets/session-secret")
+authelia_storage_encryption = SecretString("op://Homelab/Authelia Secrets/storage-encryption-key")
+authelia_hmac_secret        = SecretString("op://Homelab/Authelia Secrets/hmac-secret")
+authelia_jwks_private_pem   = SecretString("op://Homelab/Authelia Secrets/oidc-jwks-private.pem")
+authelia_jwks_public_pem    = SecretString("op://Homelab/Authelia Secrets/oidc-jwks-public.pem")
+authelia_ldap_username      = SecretString("op://Homelab/Authelia LDAP client/name")
+authelia_ldap_password      = SecretString("op://Homelab/Authelia LDAP client/password")
+authelia_db_password        = SecretString("op://Homelab/PostgreSQL Authelia user/password")
 
 SecretString.populate_cache_sync()
 ```
 
-(1Password item names are placeholders the user adjusts to match the vault.)
-
-### Files to modify
+Note: `op://Homelab/Authelia Secrets/smtp-username` requires that the field be renamed from its current `smpt-username` (typo) in 1P before this runs.
 
 `deploys/docker_vm/proxies/vars.py`:
 - Add `oidc_clients` — a list of dicts (id, name, secret_hash, policy, redirect_uris, scopes, auth_method, signed_alg, require_pkce). The hashed `client_secret` values from `roles/proxies/templates/configuration.yml.j2` are pbkdf2 hashes (not raw secrets) so they live in code; this just parameterises the loop instead of inlining.
-- Re-export the secrets from `secrets.py` and the host_data values needed by templates (`smtp_server`, `smtp_port`, etc.).
-- Add SMTP constants: `smtp_server = "smtp.eu.mailgun.org"`, `smtp_port = 587`, `authelia_ldap_username = "authelia-ldap-client"`, `authelia_smtp_username = "authelia@dv.zone"`.
+- Re-export the new Authelia secrets from `secrets.py` so the templates can reference them.
+- Add SMTP server constants (these are non-secret config, not user identity): `smtp_server = "smtp.eu.mailgun.org"`, `smtp_port = 587`. The LDAP and SMTP usernames now come from 1P via `authelia_ldap_username` / `authelia_smtp_username` and are no longer hardcoded in `vars.py`.
 
 `deploys/docker_vm/proxies/apps.py`:
 - Add `authelia` ComposeApp:
@@ -170,19 +174,33 @@ SecretString.populate_cache_sync()
 - The shared `docker_compose` call now sees three apps.
 
 `deploys/docker_vm/proxies/templates/`:
-- New: `authelia.yaml.j2` — port from `roles/proxies/templates/authelia.yml.j2`. Networks: `caddy-internal`, `caddy-external`, `authelia`. **Note:** `postgres` network is dropped — Authelia talks to PostgreSQL in the LXC at `postgres_lxc_ip` (192.168.1.41) directly. The compose file gets `extra_hosts: ["postgres-db:192.168.1.41"]` so the existing `address: postgres-db:5432` in `configuration.yml` resolves correctly without a Docker network.
-- New: `configuration.yml.j2` — port from `roles/proxies/templates/configuration.yml.j2`. The hardcoded OIDC client list gets replaced by a `[% for c in oidc_clients %]` loop. `nas_ip`, `authelia.ldap.username`, `authelia.smtp.username`, `smtp.server`, `smtp.port` come through `host.data` / `vars`.
+- New: `authelia.yaml.j2` — port from `roles/proxies/templates/authelia.yml.j2`. Networks: `caddy-internal`, `caddy-external`, `authelia`. **Note:** the original `postgres` Docker network is dropped — Authelia now talks directly to the PostgreSQL LXC via its IP (`host.data.postgres_lxc_ip`), so no Docker-level networking to Postgres is needed.
+- New: `configuration.yml.j2` — port from `roles/proxies/templates/configuration.yml.j2`. Changes from the original: storage.postgres.address now resolves to `[[ host.data.postgres_lxc_ip ]]:5432` (was the Docker hostname `postgres-db:5432`); the hardcoded OIDC client list is replaced by a `[% for c in oidc_clients %]` loop; `nas_ip`, `authelia_ldap_username`, `authelia_smtp_username`, `smtp_server`, `smtp_port` come through `host.data` / `vars`.
 - New: `STORAGE_PASSWORD.j2`, `REDIS_PASSWORD.j2`, `SMTP_PASSWORD.j2`, `LDAP_PASSWORD.j2`, `JWT_SECRET.j2`, `SESSION_SECRET.j2`, `STORAGE_ENCRYPTION_KEY.j2`, `HMAC_SECRET.j2` — each a one-liner: `[[ secret_var ]]`.
 - New: `jwks/private.pem.j2`, `jwks/public.pem.j2` — also one-liners emitting the SecretString PEM content. (PEM is multi-line text; SecretString resolves to the full content as a string.)
 - **Modify** `caddy-internal.yaml.j2` — re-add the `caddy_internal_90: (secure)` forward_auth snippet that points to `authelia:9091`. Add `authelia` to its networks list so it can reach Authelia.
 - **Modify** `caddy-external.yaml.j2` — re-add the `(trusted_proxy_list)` snippet (since forward_auth imports it) and the `(secure)` forward_auth snippet. Add `authelia` to its networks list. (Still no `tunnel`.)
 
-### 1Password prerequisite (must be uploaded before stage 2 runs live)
-1. authelia redis/ldap/smtp passwords — currently `!vault` in `roles/proxies/vars/main.yml`.
-2. JWT_SECRET, SESSION_SECRET, STORAGE_ENCRYPTION_KEY, HMAC_SECRET — currently in `roles/proxies/files/`.
-3. JWKS public.pem and private.pem — currently in `roles/proxies/files/jwks/`.
+### 1Password prerequisite (must be in place before stage 2 runs live)
 
-The PostgreSQL Authelia password reuses the existing `op://Homelab/PostgreSQL Authelia user/password` entry.
+All Authelia material lives in three existing 1P items in the `Homelab` vault:
+
+**`Authelia Secrets`** — fields:
+- `redis-password` (CONCEALED) — was `!vault` in `roles/proxies/vars/main.yml`
+- `smtp-password` (CONCEALED) — was `!vault` in `roles/proxies/vars/main.yml`
+- `smtp-username` (STRING) — currently labeled `smpt-username` in 1P; **rename to `smtp-username` before running stage 2**
+- `jwt-secret` (CONCEALED) — was in `roles/proxies/files/JWT_SECRET`
+- `session-secret` (CONCEALED) — was in `roles/proxies/files/SESSION_SECRET`
+- `storage-encryption-key` (CONCEALED) — was in `roles/proxies/files/STORAGE_ENCRYPTION_KEY`
+- `hmac-secret` (CONCEALED) — was in `roles/proxies/files/HMAC_SECRET`
+- File attachment `oidc-jwks-private.pem` — was in `roles/proxies/files/jwks/`
+- File attachment `oidc-jwks-public.pem` — was in `roles/proxies/files/jwks/`
+
+**`Authelia LDAP client`** — fields:
+- `name` (STRING) — the LDAP bind UID (was hardcoded as `authelia-ldap-client` in `roles/proxies/vars/main.yml`). Note: the `username` field (label `email`) on this item holds the user's contact email, not the LDAP UID; the bind UID lives in `name`.
+- `password` (CONCEALED) — was `!vault` in `roles/proxies/vars/main.yml`
+
+**`PostgreSQL Authelia user`** (unchanged from existing usage) — field `password`.
 
 ### Verification
 - `uv run pyinfra inventory.py --limit docker_vm deploy.py --dry` should plan out: an extra network create (`authelia`), the four authelia volume dirs, all the secret/config template renders, the authelia + redis compose stack up, plus updated Caddy compose files (forward_auth labels back). No errors.
