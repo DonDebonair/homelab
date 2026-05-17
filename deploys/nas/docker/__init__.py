@@ -52,12 +52,12 @@ def docker_setup():
     )
     files.directory(
         name="Create directory for compose files",
-        path=f"{host.data.home}/docker/compose",
+        path=host.data.docker_compose_base,
         mode=755
     )
     files.directory(
         name="Create directory for Docker builds",
-        path=f"{host.data.home}/docker/build",
+        path=host.data.docker_build_base,
         mode=755
     )
     docker.plugin(

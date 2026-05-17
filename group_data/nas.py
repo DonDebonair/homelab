@@ -3,6 +3,8 @@ from models.docker import DockerNetwork
 user = "daanadmin"
 home = f"/var/services/homes/{user}"
 docker_volumes_base = "/volume2/docker"
+docker_compose_base = f"{home}/docker/compose"
+docker_build_base = f"{home}/docker/build"
 docker_user = "dockerlimited"
 docker_group = "docker"
 default_group = "users"

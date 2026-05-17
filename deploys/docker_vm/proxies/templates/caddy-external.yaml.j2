@@ -1,0 +1,41 @@
+services:
+  caddy-external:
+    image: caddy-custom:[[ caddy_version ]]
+    container_name: caddy-external
+    environment:
+      - CADDY_INGRESS_NETWORKS=caddy-external
+      - CADDY_DOCKER_LABEL_PREFIX=caddy_external
+    networks:
+      macvlan:
+        ipv4_address: [[ host.data.external_reverse_proxy_ip ]]
+      caddy-external:
+    volumes:
+    [%- for v in app.volumes %]
+      [%- if v.kind == 'bind' %]
+      - [% if v.is_managed %][[ host.data.docker_volumes_base ]]/[% endif %][[ v.source ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
+      [%- else %]
+      - [[ v.name ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
+      [%- endif %]
+    [%- endfor %]
+    restart: unless-stopped
+    labels:
+      caddy_external_0.email: [[ host.data.email ]]
+      caddy_external_0.acme_dns: cloudflare [[ cloudflare_api_token ]]
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+
+networks:
+  caddy-external:
+    external: true
+  macvlan:
+    external: true
+[% set named = app.volumes | selectattr('kind', 'equalto', 'named') | list -%]
+[% if named %]
+volumes:
+  [%- for v in named %]
+  [[ v.name ]]:[% if v.external %]
+    external: true
+  [%- endif %]
+  [%- endfor %]
+[% endif %]

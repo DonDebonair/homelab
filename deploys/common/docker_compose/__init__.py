@@ -4,9 +4,9 @@ from typing import Any
 
 from pyinfra.api import deploy
 from pyinfra import host
-from pyinfra.operations import files
+from pyinfra.operations import files, docker
 
-from .models import ComposeApp
+from .models import ComposeApp, BindMount, NamedVolume
 from utils.variables import normalize_vars
 
 
@@ -18,36 +18,52 @@ def docker_compose(
 ):
     cleaned_vars = normalize_vars(variables) if variables else {}
     create_docker_volume_dirs(apps)
-    # copy_templates(apps, template_dir, cleaned_vars)
+    create_external_named_volumes(apps)
+    copy_templates(apps, template_dir, cleaned_vars)
     copy_files(apps)
+    create_compose_dirs(apps)
     copy_compose_files(apps, template_dir, cleaned_vars)
+    deploy_compose_files(apps)
 
 
 def create_docker_volume_dirs(apps: list[ComposeApp]):
     for app in apps:
         if app.volumes:
             for volume in app.volumes:
-                files.directory(
-                    name=f"Create directory for Docker volume {app.name} - {volume.directory}",
-                    path=f"{host.data.docker_volumes_base}/{volume.directory}",
-                    user=volume.uid if volume.uid is not None else host.data.docker_user,
-                    group=volume.gid if volume.gid is not None else host.data.default_group,
-                    _sudo=True
-                )
+                if isinstance(volume, BindMount) and volume.is_managed:
+                    files.directory(
+                        name=f"Create directory for Docker volume {app.name} - {volume.source}",
+                        path=f"{host.data.docker_volumes_base}/{volume.source}",
+                        user=str(volume.uid) if volume.uid is not None else host.data.docker_user,
+                        group=str(volume.gid) if volume.gid is not None else host.data.default_group,
+                        _sudo=True
+                    )
+
+
+def create_external_named_volumes(apps: list[ComposeApp]):
+    for app in apps:
+        if app.volumes:
+            for volume in app.volumes:
+                if isinstance(volume, NamedVolume) and volume.external:
+                    docker.volume(
+                        name=f"Ensure external named volume {volume.name} exists for {app.name}",
+                        volume=volume.name,
+                        present=True,
+                    )
 
 
 def copy_templates(apps: list[ComposeApp], template_dir: Path, variables: dict[str, Any] | None = None):
     for app in apps:
         if app.templates:
             for template in app.templates:
-                src = template_dir / f"{template.src}.j2"
+                src = str(template_dir / f"{template.src}.j2")
                 dest = f"{host.data.docker_volumes_base}/{template.dest}"
                 files.template(
                     name=f"Copy template {src} to {dest} for app {app.name}",
                     src=src,
                     dest=dest,
-                    user=template.uid if template.uid is not None else host.data.docker_user,
-                    group=template.gid if template.gid is not None else host.data.default_group,
+                    user=str(template.uid) if template.uid is not None else host.data.docker_user,
+                    group=str(template.gid) if template.gid is not None else host.data.default_group,
                     jinja_env_kwargs={
                         "variable_start_string": "[[",
                         "variable_end_string": "]]",
@@ -76,20 +92,20 @@ def copy_files(apps: list[ComposeApp]):
 def create_compose_dirs(apps: list[ComposeApp]):
     files.directory(
         name="Create directory for Docker Compose files",
-        path=f"{host.data.home}/docker/compose",
+        path=host.data.docker_compose_base,
         mode=755,
         _sudo=True
     )
     files.directory(
         name="Create directory for Docker builds",
-        path=f"{host.data.home}/docker/build",
+        path=host.data.docker_build_base,
         mode=755,
         _sudo=True
     )
     for app in apps:
         files.directory(
             name=f"Create directory for app {app.name} compose file",
-            path=f"{host.data.home}/docker/compose/{app.name}",
+            path=f"{host.data.docker_compose_base}/{app.name}",
             mode=755,
             _sudo=True
         )
@@ -99,8 +115,8 @@ def copy_compose_files(apps: list[ComposeApp], template_dir: Path, variables: di
     for app in apps:
         files.template(
             name=f"Copy Docker Compose file for app {app.name}",
-            src=template_dir / f"{app.name}.yaml.j2",
-            dest=f"{host.data.home}/docker/compose/{app.name}/compose.yaml",
+            src=str(template_dir / f"{app.name}.yaml.j2"),
+            dest=f"{host.data.docker_compose_base}/{app.name}/compose.yaml",
             user=host.data.docker_user,
             group=host.data.default_group,
             jinja_env_kwargs={
@@ -109,6 +125,16 @@ def copy_compose_files(apps: list[ComposeApp], template_dir: Path, variables: di
                 "block_start_string": "[%",
                 "block_end_string": "%]",
             },
+            app=app,
             **variables,
             _sudo=True
+        )
+
+
+def deploy_compose_files(apps: list[ComposeApp]):
+    for app in apps:
+        docker.compose(
+            name=f"Deploy {app.name} compose stack",
+            project_directory=f"{host.data.docker_compose_base}/{app.name}",
+            project_name=app.name,
         )

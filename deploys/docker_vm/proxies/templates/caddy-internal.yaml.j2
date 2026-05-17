@@ -1,0 +1,52 @@
+services:
+  caddy-internal:
+    image: caddy-custom:[[ caddy_version ]]
+    container_name: caddy-internal
+    environment:
+      - CADDY_INGRESS_NETWORKS=caddy-internal
+      - CADDY_DOCKER_LABEL_PREFIX=caddy_internal
+    networks:
+      macvlan:
+        ipv4_address: [[ host.data.internal_reverse_proxy_ip ]]
+      caddy-internal:
+    volumes:
+    [%- for v in app.volumes %]
+      [%- if v.kind == 'bind' %]
+      - [% if v.is_managed %][[ host.data.docker_volumes_base ]]/[% endif %][[ v.source ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
+      [%- else %]
+      - [[ v.name ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
+      [%- endif %]
+    [%- endfor %]
+    restart: unless-stopped
+    expose:
+      - "80"
+      - "443"
+      - "22"
+    labels:
+      caddy_internal_0.email: [[ host.data.email ]]
+      caddy_internal_0.acme_dns: cloudflare [[ cloudflare_api_token ]]
+      [% for domain in host.data.extra_proxied_domains -%]
+      caddy_internal_[[ loop.index ]]: [[ domain.domain ]]
+      caddy_internal_[[ loop.index ]].reverse_proxy: [[ domain.ip | default(host.data.nas_ip, true) ]]:[[ domain.port ]]
+      [% endfor -%]
+      caddy_internal.layer4.:22.@git: ssh
+      caddy_internal.layer4.:22.route: "@git"
+      caddy_internal.layer4.:22.route.proxy: "forgejo:22"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+
+networks:
+  caddy-internal:
+    external: true
+  macvlan:
+    external: true
+[% set named = app.volumes | selectattr('kind', 'equalto', 'named') | list -%]
+[% if named %]
+volumes:
+  [%- for v in named %]
+  [[ v.name ]]:[% if v.external %]
+    external: true
+  [%- endif %]
+  [%- endfor %]
+[% endif %]

@@ -1,6 +1,6 @@
 from pyinfra import host
 from pyinfra.api import deploy, DeployError
-from pyinfra.facts.server import Kernel, KernelVersion, Arch, OsRelease
+from pyinfra.facts.server import Arch, OsRelease
 from pyinfra.operations import apt, files, server, docker
 
 
