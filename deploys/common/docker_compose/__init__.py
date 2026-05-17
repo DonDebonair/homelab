@@ -2,12 +2,15 @@ import types
 from pathlib import Path
 from typing import Any
 
+from jinja2 import ChoiceLoader, FileSystemLoader
 from pyinfra.api import deploy
 from pyinfra import host
 from pyinfra.operations import files, docker
 
 from .models import ComposeApp, BindMount, NamedVolume
 from utils.variables import normalize_vars
+
+COMMON_TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 
 
 @deploy("Run Docker Compose")
@@ -112,6 +115,10 @@ def create_compose_dirs(apps: list[ComposeApp]):
 
 
 def copy_compose_files(apps: list[ComposeApp], template_dir: Path, variables: dict[str, Any] | None = None):
+    loader = ChoiceLoader([
+        FileSystemLoader(str(template_dir)),
+        FileSystemLoader(str(COMMON_TEMPLATE_DIR)),
+    ])
     for app in apps:
         files.template(
             name=f"Copy Docker Compose file for app {app.name}",
@@ -124,6 +131,7 @@ def copy_compose_files(apps: list[ComposeApp], template_dir: Path, variables: di
                 "variable_end_string": "]]",
                 "block_start_string": "[%",
                 "block_end_string": "%]",
+                "loader": loader,
             },
             app=app,
             **variables,

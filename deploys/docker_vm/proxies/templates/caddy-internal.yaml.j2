@@ -1,3 +1,4 @@
+[%- import '_volumes.j2' as vol with context -%]
 services:
   caddy-internal:
     image: caddy-custom:[[ caddy_version ]]
@@ -9,14 +10,7 @@ services:
       macvlan:
         ipv4_address: [[ host.data.internal_reverse_proxy_ip ]]
       caddy-internal:
-    volumes:
-    [%- for v in app.volumes %]
-      [%- if v.kind == 'bind' %]
-      - [% if v.is_managed %][[ host.data.docker_volumes_base ]]/[% endif %][[ v.source ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
-      [%- else %]
-      - [[ v.name ]]:[[ v.mount_path ]][% if v.read_only %]:ro[% endif %]
-      [%- endif %]
-    [%- endfor %]
+    volumes:[[ vol.service_volumes(app) ]]
     restart: unless-stopped
     expose:
       - "80"
@@ -41,12 +35,4 @@ networks:
     external: true
   macvlan:
     external: true
-[% set named = app.volumes | selectattr('kind', 'equalto', 'named') | list -%]
-[% if named %]
-volumes:
-  [%- for v in named %]
-  [[ v.name ]]:[% if v.external %]
-    external: true
-  [%- endif %]
-  [%- endfor %]
-[% endif %]
+[[ vol.top_level_volumes(app) ]]
