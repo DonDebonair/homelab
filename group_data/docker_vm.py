@@ -1,4 +1,3 @@
-from group_data.all import nas_ip
 from models.docker import DockerNetwork
 
 docker_user = "dockerlimited"
@@ -12,12 +11,12 @@ main_network_interface = "ens18"
 
 internal_reverse_proxy_ip = "192.168.50.20"
 external_reverse_proxy_ip = "192.168.50.21"
+dns_ip = "192.168.50.30"
 
 extra_proxied_domains = [
     {"domain": "tv.dv.zone",       "port": 8989},
     {"domain": "movies.dv.zone",   "port": 8310},
     {"domain": "plex.dv.zone",     "port": 32400},
-    {"domain": "dns.dv.zone",      "port": 8080},
     {"domain": "indexers.dv.zone", "port": 9696},
     {"domain": "cmd.dv.zone",      "port": 1337},
 ]

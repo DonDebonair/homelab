@@ -28,6 +28,8 @@ services:
       AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE: /config/secrets/LDAP_PASSWORD
       AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE: /config/secrets/HMAC_SECRET
       X_AUTHELIA_CONFIG_FILTERS: template
+    extra_hosts:
+      dns.[[ host.data.domain ]]: "[[ host.data.internal_reverse_proxy_ip ]]"
 
   redis:
     image: redis:7

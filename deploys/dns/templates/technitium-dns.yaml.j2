@@ -1,0 +1,42 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  technitium-dns:
+    image: technitium/dns-server:[[ technitium_version ]]
+    container_name: technitium-dns
+    hostname: technitium-dns
+    networks:
+      macvlan:
+        ipv4_address: [[ host.data.dns_ip ]]
+      caddy-internal:
+    environment:
+      - DNS_SERVER_DOMAIN=dns.[[ host.data.domain ]]
+      - DNS_SERVER_ADMIN_PASSWORD_FILE=/run/secrets/ADMIN_PASSWORD
+      - DNS_SERVER_FORWARDERS=[[ dns_forwarders ]]
+      - DNS_SERVER_RECURSION=AllowOnlyForPrivateNetworks
+      - DNS_SERVER_ENABLE_BLOCKING=true
+      - DNS_SERVER_BLOCK_LIST_URLS=[[ dns_blocklist_urls ]]
+      - DNS_SERVER_LOG_FOLDER_PATH=/var/log/technitium/dns
+      - DNS_SERVER_LOG_USING_LOCAL_TIME=true
+      - DNS_SERVER_SSO_ENABLED=true
+      - DNS_SERVER_SSO_AUTHORITY=https://auth.[[ host.data.domain ]]
+      - DNS_SERVER_SSO_CLIENT_ID=technitium-dns
+      - DNS_SERVER_SSO_CLIENT_SECRET_FILE=/run/secrets/SSO_CLIENT_SECRET
+      - DNS_SERVER_SSO_SCOPES=openid,groups,profile,email
+      - DNS_SERVER_SSO_ALLOW_SIGNUP=true
+    volumes:[[ vol.service_volumes(app) ]]
+    restart: unless-stopped
+    sysctls:
+      - net.ipv4.ip_local_port_range=1024 65535
+    labels:
+      caddy_internal: dns.[[ host.data.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 5380}}"
+      caddy_internal.reverse_proxy.header_up: "X-Forwarded-Proto {scheme}"
+    extra_hosts:
+      auth.[[ host.data.domain ]]: "[[ host.data.external_reverse_proxy_ip ]]"
+
+networks:
+  macvlan:
+    external: true
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]
