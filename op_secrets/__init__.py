@@ -73,6 +73,14 @@ class SecretString(str):
     def _get_value(self):
         return self._lookup_table.get(self._reference, f"<unknown:{self._reference}>")
 
+    @classmethod
+    def get_pending_references(cls):
+        return cls._pending_references
+
+    @classmethod
+    def get_lookup_table(cls):
+        return cls._lookup_table
+
     def __str__(self):
         return self._get_value()
 
