@@ -30,7 +30,6 @@ services:
     labels:
       caddy_internal: dns.[[ host.data.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 5380}}"
-      caddy_internal.reverse_proxy.header_up: "X-Forwarded-Proto {scheme}"
     extra_hosts:
       auth.[[ host.data.domain ]]: "[[ host.data.external_reverse_proxy_ip ]]"
 

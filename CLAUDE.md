@@ -15,6 +15,7 @@ Both systems coexist; do not assume one replaces the other unless the task says 
 
 - Python `>=3.14`. Dependencies managed with `uv` (see `uv.lock`, `pyproject.toml`).
 - `pyinfra` is installed as an **editable path dependency from `../pyinfra`** (sibling checkout). Changes there affect this repo at runtime; if a pyinfra import or behavior looks wrong, check the sibling source.
+   More information on how pyinfra works can be found at https://docs.pyinfra.com/en/latest/llms.txt
 - `OP_SERVICE_ACCOUNT_TOKEN` must be set in the environment for any pyinfra run that imports `op_secrets` — secret resolution happens at import time via `SecretString.populate_cache_sync()`.
 
 ## Common commands

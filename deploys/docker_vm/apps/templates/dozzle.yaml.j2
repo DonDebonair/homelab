@@ -1,0 +1,22 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:[[ vol.service_volumes(app) ]]
+    networks:
+      - caddy-internal
+    environment:
+      DOZZLE_AUTH_PROVIDER: forward-proxy
+    labels:
+      caddy_internal: dozzle.[[ host.data.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8080}}"
+      caddy_internal.import: secure *
+    expose:
+      - 8080
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]
