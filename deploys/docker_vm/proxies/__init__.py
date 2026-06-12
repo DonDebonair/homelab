@@ -57,4 +57,12 @@ def setup_caddy_proxies():
         ip_range="172.103.0.0/24",
         gateway="172.103.0.1",
     )
+    docker.network(
+        name="Create tunnel network",
+        network="tunnel",
+        driver="bridge",
+        subnet="172.104.0.0/16",
+        ip_range="172.104.0.0/24",
+        gateway="172.104.0.1",
+    )
     docker_compose(apps=apps, template_dir=template_dir, variables=vars)

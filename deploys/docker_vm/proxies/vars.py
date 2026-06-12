@@ -12,12 +12,18 @@ from deploys.docker_vm.proxies.secrets import (
     authelia_ldap_username,
     authelia_ldap_password,
     authelia_db_password,
+    cloudflare_tunnel_id,
+    cloudflared_credentials_json,
 )
 
 caddy_version = "2.11.3"
 
 smtp_server = "smtp.eu.mailgun.org"
 smtp_port = 587
+
+# cloudflared image's built-in nonroot user
+CLOUDFLARE_UID = 65532
+CLOUDFLARE_GID = 65532
 
 oidc_clients = [
     {

@@ -1,0 +1,15 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: tunnel --no-autoupdate run
+    networks:
+      - tunnel
+    volumes:[[ vol.service_volumes(app) ]]
+    restart: unless-stopped
+
+networks:
+  tunnel:
+    external: true
+[[ vol.top_level_volumes(app) ]]

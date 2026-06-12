@@ -11,6 +11,7 @@ services:
         ipv4_address: [[ host.data.external_reverse_proxy_ip ]]
       caddy-external:
       authelia:
+      tunnel:
     volumes:[[ vol.service_volumes(app) ]]
     restart: unless-stopped
     labels:
@@ -33,5 +34,7 @@ networks:
   macvlan:
     external: true
   authelia:
+    external: true
+  tunnel:
     external: true
 [[ vol.top_level_volumes(app) ]]

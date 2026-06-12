@@ -1,0 +1,17 @@
+tunnel: [[ cloudflare_tunnel_id ]]
+credentials-file: /etc/cloudflared/[[ cloudflare_tunnel_id ]].json
+
+ingress:
+  - hostname: auth.dv.zone
+    service: https://caddy-external:443
+    originRequest:
+      originServerName: auth.dv.zone
+  - hostname: whoami.dv.zone
+    service: https://caddy-external:443
+    originRequest:
+      originServerName: whoami.dv.zone
+  - hostname: rss.dv.zone
+    service: https://caddy-external:443
+    originRequest:
+      originServerName: rss.dv.zone
+  - service: http_status:404

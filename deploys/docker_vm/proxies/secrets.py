@@ -17,4 +17,8 @@ authelia_ldap_username      = SecretString("op://Homelab/Authelia LDAP client/na
 authelia_ldap_password      = SecretString("op://Homelab/Authelia LDAP client/password")
 authelia_db_password        = SecretString("op://Homelab/PostgreSQL Authelia user/password")
 
+# stage 3 — cloudflare tunnel
+cloudflare_tunnel_id         = SecretString("op://Homelab/Cloudflare Tunnel/id")
+cloudflared_credentials_json = SecretString("op://Homelab/Cloudflare Tunnel/credentials.json")
+
 SecretString.populate_cache_sync()
