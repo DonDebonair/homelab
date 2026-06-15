@@ -1,26 +1,26 @@
 import json
 from typing import override, Union
 
-from pyinfra.api import FactBase
+from pyinfra.api import FactBase, QuoteString, StringCommand
 
 from models.proxmox import (
-    ProxmoxGroupInfo,
-    ProxmoxUserInfo,
-    ProxmoxAclType,
-    ProxmoxAclInfo,
-    ProxmoxContainerArch,
-    ProxmoxContainerOSType,
-    ProxmoxContainerNetworkInterface,
-    ProxmoxContainerRootFS,
-    ProxmoxContainerFeatures,
-    ProxmoxContainerConfig,
-    ProxmoxContainerStatus,
-    ProxmoxContainerLock,
-    ProxmoxContainerSummary,
+    PVEGroupInfo,
+    PVEUserInfo,
+    PVEAclType,
+    PVEAclInfo,
+    PVEContainerArch,
+    PVEContainerOSType,
+    PVEContainerNetworkInterface,
+    PVEContainerRootFS,
+    PVEContainerFeatures,
+    PVEContainerConfig,
+    PVEContainerStatus,
+    PVEContainerLock,
+    PVEContainerSummary,
 )
 
 
-class ProxmoxGroups(FactBase[dict[str, ProxmoxGroupInfo]]):
+class PVEGroups(FactBase[dict[str, PVEGroupInfo]]):
 
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
@@ -31,12 +31,12 @@ class ProxmoxGroups(FactBase[dict[str, ProxmoxGroupInfo]]):
         return "pveum group list --output-format json"
 
     @override
-    def process(self, output: str) -> dict[str, ProxmoxGroupInfo]:
+    def process(self, output: str) -> dict[str, PVEGroupInfo]:
         groups_data = json.loads("\n".join(output))
 
         groups = {}
         for group in groups_data:
-            groups[group["groupid"]] = ProxmoxGroupInfo(
+            groups[group["groupid"]] = PVEGroupInfo(
                 group_id=group["groupid"],
                 comment=group.get("comment"),
                 users=group["users"].split(",") if group["users"] else [],
@@ -44,7 +44,7 @@ class ProxmoxGroups(FactBase[dict[str, ProxmoxGroupInfo]]):
         return groups
 
 
-class ProxmoxUsers(FactBase[dict[str, ProxmoxUserInfo]]):
+class PVEUsers(FactBase[dict[str, PVEUserInfo]]):
 
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
@@ -55,12 +55,12 @@ class ProxmoxUsers(FactBase[dict[str, ProxmoxUserInfo]]):
         return "pveum user list --full --output-format json"
 
     @override
-    def process(self, output: str) -> dict[str, ProxmoxUserInfo]:
+    def process(self, output: str) -> dict[str, PVEUserInfo]:
         users_data = json.loads("\n".join(output))
 
         users = {}
         for user in users_data:
-            users[user["userid"]] = ProxmoxUserInfo(
+            users[user["userid"]] = PVEUserInfo(
                 user_id=user["userid"],
                 enabled=bool(user["enable"]),
                 expire=user["expire"] if user["expire"] != 0 else None,
@@ -74,7 +74,7 @@ class ProxmoxUsers(FactBase[dict[str, ProxmoxUserInfo]]):
         return users
 
 
-class ProxmoxAcls(FactBase[dict[tuple[str, str, str], ProxmoxAclInfo]]):
+class PVEAcls(FactBase[dict[tuple[str, str, str], PVEAclInfo]]):
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
         return "pveum"
@@ -84,23 +84,23 @@ class ProxmoxAcls(FactBase[dict[tuple[str, str, str], ProxmoxAclInfo]]):
         return "pveum acl list --output-format json"
 
     @override
-    def process(self, output: list[str]) -> dict[tuple[str, str, str], ProxmoxAclInfo]:
+    def process(self, output: list[str]) -> dict[tuple[str, str, str], PVEAclInfo]:
         acls_data = json.loads("\n".join(output))
 
         acls = {}
         for acl in acls_data:
             key = (acl["path"], acl["type"], acl["ugid"])
-            acls[key] = ProxmoxAclInfo(
+            acls[key] = PVEAclInfo(
                 path=acl["path"],
                 propagate=bool(acl["propagate"]),
                 role_id=acl["roleid"],
                 subject=acl["ugid"],
-                type=ProxmoxAclType(acl["type"]),
+                type=PVEAclType(acl["type"]),
             )
         return acls
 
 
-class ProxmoxContainers(FactBase[dict[int, ProxmoxContainerSummary]]):
+class PVEContainers(FactBase[dict[int, PVEContainerSummary]]):
 
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
@@ -111,7 +111,7 @@ class ProxmoxContainers(FactBase[dict[int, ProxmoxContainerSummary]]):
         return "pct list"
 
     @override
-    def process(self, output: list[str]) -> dict[int, ProxmoxContainerSummary]:
+    def process(self, output: list[str]) -> dict[int, PVEContainerSummary]:
         containers = {}
         if not output or len(output) < 2:
             return containers
@@ -139,19 +139,19 @@ class ProxmoxContainers(FactBase[dict[int, ProxmoxContainerSummary]]):
             except ValueError:
                 continue
             try:
-                status = ProxmoxContainerStatus(status_str)
+                status = PVEContainerStatus(status_str)
             except ValueError:
-                status = ProxmoxContainerStatus.UNKNOWN
+                status = PVEContainerStatus.UNKNOWN
 
             if lock_str:
                 try:
-                    lock = ProxmoxContainerLock(lock_str)
+                    lock = PVEContainerLock(lock_str)
                 except ValueError:
-                    lock = ProxmoxContainerLock.UNKNOWN
+                    lock = PVEContainerLock.UNKNOWN
             else:
                 lock = None
 
-            containers[vmid] = ProxmoxContainerSummary(
+            containers[vmid] = PVEContainerSummary(
                 vmid=vmid,
                 status=status,
                 lock=lock,
@@ -160,18 +160,18 @@ class ProxmoxContainers(FactBase[dict[int, ProxmoxContainerSummary]]):
         return containers
 
 
-class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
+class PVEContainer(FactBase[Union[PVEContainerConfig, None]]):
 
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
         return "pct"
 
     @override
-    def command(self, ctid: int) -> str:
-        return f"pct config {ctid}"
+    def command(self, ctid: int) -> StringCommand:
+        return StringCommand("pct", "config", QuoteString(str(ctid)))
 
     @override
-    def process(self, output: list[str]) -> ProxmoxContainerConfig | None:
+    def process(self, output: list[str]) -> PVEContainerConfig | None:
         if not output:
             return None
 
@@ -186,11 +186,11 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
 
         # Extract required fields
         try:
-            arch = ProxmoxContainerArch(config_dict['arch'])
+            arch = PVEContainerArch(config_dict['arch'])
             cores = int(config_dict['cores'])
             hostname = config_dict['hostname']
             memory = int(config_dict['memory'])
-            ostype = ProxmoxContainerOSType(config_dict['ostype'])
+            ostype = PVEContainerOSType(config_dict['ostype'])
             swap = int(config_dict['swap'])
             unprivileged = bool(int(config_dict['unprivileged']))
         except (KeyError, ValueError):
@@ -217,7 +217,7 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
                 if net_interface:
                     network_interfaces[net_num] = net_interface
 
-        return ProxmoxContainerConfig(
+        return PVEContainerConfig(
             arch=arch,
             cores=cores,
             hostname=hostname,
@@ -230,7 +230,7 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
             network_interfaces=network_interfaces if network_interfaces else None
         )
 
-    def _parse_rootfs(self, rootfs_str: str) -> ProxmoxContainerRootFS | None:
+    def _parse_rootfs(self, rootfs_str: str) -> PVEContainerRootFS | None:
         if not rootfs_str:
             return None
 
@@ -255,10 +255,10 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
                 else:
                     rootfs_config[key] = value
 
-        return ProxmoxContainerRootFS(**rootfs_config)
+        return PVEContainerRootFS(**rootfs_config)
 
-    def _parse_features(self, features_str: str) -> ProxmoxContainerFeatures:
-        features = ProxmoxContainerFeatures()
+    def _parse_features(self, features_str: str) -> PVEContainerFeatures:
+        features = PVEContainerFeatures()
         parts = features_str.split(',')
 
         for part in parts:
@@ -279,7 +279,7 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
 
         return features
 
-    def _parse_network_interface(self, net_str: str) -> ProxmoxContainerNetworkInterface | None:
+    def _parse_network_interface(self, net_str: str) -> PVEContainerNetworkInterface | None:
         parts = net_str.split(',')
         net_config = {}
 
@@ -303,4 +303,4 @@ class ProxmoxContainer(FactBase[Union[ProxmoxContainerConfig, None]]):
         if 'name' not in net_config:
             return None
 
-        return ProxmoxContainerNetworkInterface(**net_config)
+        return PVEContainerNetworkInterface(**net_config)

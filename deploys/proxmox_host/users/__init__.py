@@ -3,8 +3,8 @@ from pyinfra.api import deploy
 from pyinfra.operations import apt, server
 
 from deploys.proxmox_host.users import secrets
-from facts.proxmox import ProxmoxAclType
-from operations import proxmox
+from facts.proxmox.pve import PVEAclType
+from operations.proxmox import pve
 
 
 @deploy("Ensure users and groups exist")
@@ -31,22 +31,22 @@ def users_and_groups():
         _sudo=True
     )
 
-    proxmox.group(
+    pve.group(
         name="Ensure 'admins' group exists",
         group_id="admins",
         comment="System Administrators",
         _sudo=True
     )
-    proxmox.acl(
+    pve.acl(
         name="Ensure 'admins' group has 'Administrator' role on root path",
         path="/",
         role_id="Administrator",
         subject="admins",
-        acl_type=ProxmoxAclType.GROUP,
+        acl_type=PVEAclType.GROUP,
         propagate=True,
         _sudo=True
     )
-    proxmox.user(
+    pve.user(
         name=f"Ensure '{host.data.user}' user exists in Proxmox",
         user_id=f"{host.data.user}@pam",
         enabled=True,

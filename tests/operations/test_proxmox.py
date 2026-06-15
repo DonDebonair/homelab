@@ -1,17 +1,17 @@
 """Tests for Proxmox operations."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from operations.proxmox import container
+from operations.proxmox.pve import container
 from models.proxmox import (
-    ProxmoxContainerArch, ProxmoxContainerOSType, ProxmoxContainerFeatures,
-    ProxmoxConsoleMode, ProxmoxContainerSummary, ProxmoxContainerStatus
+    PVEContainerArch, PVEContainerOSType, PVEContainerFeatures,
+    PVEConsoleMode, PVEContainerSummary, PVEContainerStatus
 )
 
 
 def test_container_create_minimal():
     """Test container creation with minimal parameters."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
@@ -22,7 +22,7 @@ def test_container_create_minimal():
             present=True
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify the correct command is yielded
         expected_cmd = "pct create 100 ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
@@ -32,12 +32,12 @@ def test_container_create_minimal():
 
 def test_container_create_full_options():
     """Test container creation with full parameter set."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
         # Create features object
-        features = ProxmoxContainerFeatures(
+        features = PVEContainerFeatures(
             nesting=True,
             fuse=True,
             mount=["nfs", "cifs"]
@@ -47,7 +47,7 @@ def test_container_create_full_options():
             vmid=200,
             os_template="debian-12-standard_12.2-1_amd64.tar.zst",
             present=True,
-            arch=ProxmoxContainerArch.AMD64,
+            arch=PVEContainerArch.AMD64,
             cores=4,
             memory=4096,
             swap=2048,
@@ -55,7 +55,7 @@ def test_container_create_full_options():
             storage="vm-pool",
             hostname="test-container",
             unprivileged=True,
-            os_type=ProxmoxContainerOSType.DEBIAN,
+            os_type=PVEContainerOSType.DEBIAN,
             nameserver="1.1.1.1",
             searchdomain="example.com",
             description="Test container",
@@ -64,7 +64,7 @@ def test_container_create_full_options():
             template=False,
             protection=False,
             console=True,
-            cmode=ProxmoxConsoleMode.TTY,
+            cmode=PVEConsoleMode.TTY,
             tty=2,
             cpu_limit=2.5,
             cpu_units=2000,
@@ -75,7 +75,7 @@ def test_container_create_full_options():
             ssh_public_keys="/root/.ssh/authorized_keys"
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify the command contains all expected parameters
         assert len(commands) == 1
@@ -121,7 +121,7 @@ def test_container_create_full_options():
 
 def test_container_create_with_force():
     """Test container creation with force flag."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
@@ -132,7 +132,7 @@ def test_container_create_with_force():
             force=True
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify force flag is added
         assert len(commands) == 1
@@ -141,11 +141,11 @@ def test_container_create_with_force():
 
 def test_container_destroy():
     """Test container destruction."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container exists
-        existing_container = ProxmoxContainerSummary(
+        existing_container = PVEContainerSummary(
             vmid=100,
-            status=ProxmoxContainerStatus.STOPPED,
+            status=PVEContainerStatus.STOPPED,
             lock=None,
             name="test-container"
         )
@@ -157,7 +157,7 @@ def test_container_destroy():
             present=False
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify destroy command
         assert len(commands) == 1
@@ -166,11 +166,11 @@ def test_container_destroy():
 
 def test_container_recreate_with_force():
     """Test container recreation when force=True and container exists."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container exists
-        existing_container = ProxmoxContainerSummary(
+        existing_container = PVEContainerSummary(
             vmid=150,
-            status=ProxmoxContainerStatus.RUNNING,
+            status=PVEContainerStatus.RUNNING,
             lock=None,
             name="existing-container"
         )
@@ -184,7 +184,7 @@ def test_container_recreate_with_force():
             force=True
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Should yield destroy command first, then create command
         assert len(commands) == 2
@@ -196,11 +196,11 @@ def test_container_recreate_with_force():
 
 def test_container_exists_no_force_noop():
     """Test no-op when container exists and force=False."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container exists
-        existing_container = ProxmoxContainerSummary(
+        existing_container = PVEContainerSummary(
             vmid=175,
-            status=ProxmoxContainerStatus.RUNNING,
+            status=PVEContainerStatus.RUNNING,
             lock=None,
             name="existing-container"
         )
@@ -213,7 +213,7 @@ def test_container_exists_no_force_noop():
             force=False
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Should not yield any commands
         assert len(commands) == 0
@@ -223,7 +223,7 @@ def test_container_exists_no_force_noop():
 
 def test_container_not_exists_present_false_noop():
     """Test no-op when container doesn't exist and present=False."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
@@ -233,7 +233,7 @@ def test_container_not_exists_present_false_noop():
             present=False
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Should not yield any commands
         assert len(commands) == 0
@@ -243,11 +243,11 @@ def test_container_not_exists_present_false_noop():
 
 def test_container_features_boolean_conversion():
     """Test that boolean features are correctly converted to 1/0."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        features = ProxmoxContainerFeatures(
+        features = PVEContainerFeatures(
             force_rw_sys=True,
             fuse=False,
             keyctl=True,
@@ -262,7 +262,7 @@ def test_container_features_boolean_conversion():
             features=features
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify boolean conversion in features
         assert len(commands) == 1
@@ -272,11 +272,11 @@ def test_container_features_boolean_conversion():
 
 def test_container_features_mount_list():
     """Test that mount features are correctly formatted as semicolon-separated list."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        features = ProxmoxContainerFeatures(
+        features = PVEContainerFeatures(
             mount=["nfs", "cifs", "fuse"]
         )
 
@@ -287,21 +287,22 @@ def test_container_features_mount_list():
             features=features
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
-        # Verify mount list formatting
+        # Verify mount list formatting. The value contains ';' so it must be
+        # shell-quoted as a single argument.
         assert len(commands) == 1
         cmd = commands[0]
-        assert "--features mount=nfs;cifs;fuse" in cmd
+        assert "--features 'mount=nfs;cifs;fuse'" in cmd
 
 
 def test_container_mixed_features():
     """Test container with mixed feature types (booleans and mount list)."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        features = ProxmoxContainerFeatures(
+        features = PVEContainerFeatures(
             nesting=True,
             fuse=False,
             mount=["nfs", "cifs"]
@@ -314,7 +315,7 @@ def test_container_mixed_features():
             features=features
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify mixed features formatting - be flexible about order
         assert len(commands) == 1
@@ -328,7 +329,7 @@ def test_container_mixed_features():
 
 def test_container_no_features():
     """Test container creation without features parameter."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
@@ -338,7 +339,7 @@ def test_container_no_features():
             present=True
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify no features parameter is added
         assert len(commands) == 1
@@ -348,11 +349,11 @@ def test_container_no_features():
 
 def test_container_empty_features():
     """Test container creation with empty features object."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        features = ProxmoxContainerFeatures()  # All None values
+        features = PVEContainerFeatures()  # All None values
 
         result = container.__wrapped__(
             vmid=800,
@@ -361,7 +362,7 @@ def test_container_empty_features():
             features=features
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify no features parameter is added when all features are None
         assert len(commands) == 1
@@ -371,13 +372,13 @@ def test_container_empty_features():
 
 def test_container_with_single_network():
     """Test container creation with a single network interface."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
         # Create a network interface
-        from models.proxmox import ProxmoxContainerNetworkInterface
-        network = ProxmoxContainerNetworkInterface(
+        from models.proxmox import PVEContainerNetworkInterface
+        network = PVEContainerNetworkInterface(
             name="eth0",
             bridge="vmbr0",
             firewall=True,
@@ -392,7 +393,7 @@ def test_container_with_single_network():
             networks={0: network}
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify network parameter is added correctly
         assert len(commands) == 1
@@ -407,21 +408,21 @@ def test_container_with_single_network():
 
 def test_container_with_multiple_networks():
     """Test container creation with multiple network interfaces."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        from models.proxmox import ProxmoxContainerNetworkInterface
+        from models.proxmox import PVEContainerNetworkInterface
 
         # Create multiple network interfaces
-        network0 = ProxmoxContainerNetworkInterface(
+        network0 = PVEContainerNetworkInterface(
             name="eth0",
             bridge="vmbr0",
             firewall=True,
             ip="dhcp"
         )
 
-        network1 = ProxmoxContainerNetworkInterface(
+        network1 = PVEContainerNetworkInterface(
             name="eth1",
             bridge="vmbr1",
             firewall=False,
@@ -437,7 +438,7 @@ def test_container_with_multiple_networks():
             networks={0: network0, 1: network1}
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify both network parameters are added correctly
         assert len(commands) == 1
@@ -457,14 +458,14 @@ def test_container_with_multiple_networks():
 
 def test_container_with_complex_network():
     """Test container creation with a network interface using all options."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
-        from models.proxmox import ProxmoxContainerNetworkInterface
+        from models.proxmox import PVEContainerNetworkInterface
 
         # Create a complex network interface with all possible options
-        network = ProxmoxContainerNetworkInterface(
+        network = PVEContainerNetworkInterface(
             name="eth0",
             bridge="vmbr0",
             firewall=True,
@@ -488,7 +489,7 @@ def test_container_with_complex_network():
             networks={0: network}
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify all network options are included
         assert len(commands) == 1
@@ -522,7 +523,7 @@ def test_container_with_complex_network():
 
 def test_container_no_networks():
     """Test container creation without networks parameter."""
-    with patch('operations.proxmox.host') as mock_host:
+    with patch('operations.proxmox.pve.host') as mock_host:
         # Mock that container doesn't exist
         mock_host.get_fact.return_value = {}
 
@@ -532,7 +533,7 @@ def test_container_no_networks():
             present=True
         )
 
-        commands = list(result)
+        commands = [str(cmd) for cmd in result]
 
         # Verify no network parameters are added
         assert len(commands) == 1

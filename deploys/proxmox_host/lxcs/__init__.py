@@ -1,8 +1,8 @@
 from pyinfra.api import deploy
 from pyinfra.operations import files
 
-from models.proxmox import ProxmoxContainerArch, ProxmoxContainerNetworkInterface, ProxmoxContainerFeatures
-from operations import proxmox
+from models.proxmox import PVEContainerArch, PVEContainerNetworkInterface, PVEContainerFeatures
+from operations.proxmox import pve
 
 
 @deploy("Setup LXC Containers")
@@ -20,22 +20,22 @@ def setup_lxc_containers():
         mode="644",
         _sudo=True,
     )
-    proxmox.container(
+    pve.container(
         name="Create LXC container for PostgreSQL",
         vmid=100,
         os_template="local:vztmpl/debian-13-standard_13.0-0_amd64.tar.zst",
         hostname="postgres",
-        arch=ProxmoxContainerArch.AMD64,
+        arch=PVEContainerArch.AMD64,
         memory=4096,
         swap=2048,
         cores=2,
         networks=[
             # ip6 is static because setting it as dhcp causes the container to loose its ipv4 address after while
             # see: https://forum.proxmox.com/threads/debian-lxc-container-not-getting-an-ip.65719/
-            ProxmoxContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="static", firewall=True)
+            PVEContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="static", firewall=True)
         ],
         rootfs="vm-pool:8",
-        features=ProxmoxContainerFeatures(nesting=True),
+        features=PVEContainerFeatures(nesting=True),
         ssh_public_keys="/home/daan/.ssh/authorized_keys",
         start=True,
         on_boot=True,

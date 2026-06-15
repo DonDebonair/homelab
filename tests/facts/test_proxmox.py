@@ -1,13 +1,13 @@
-from facts.proxmox import ProxmoxContainers, ProxmoxContainer
+from facts.proxmox.pve import PVEContainers, PVEContainer
 from models.proxmox import (
-    ProxmoxContainerStatus, ProxmoxContainerLock, ProxmoxContainerConfig,
-    ProxmoxContainerArch, ProxmoxContainerOSType, ProxmoxContainerFeatures
+    PVEContainerStatus, PVEContainerLock, PVEContainerConfig,
+    PVEContainerArch, PVEContainerOSType, PVEContainerFeatures
 )
 
 
 def test_proxmox_containers_process():
     """Test ProxmoxContainers.process() correctly parses pct list output."""
-    fact = ProxmoxContainers()
+    fact = PVEContainers()
 
     # Sample output from pct list command
     output = [
@@ -30,7 +30,7 @@ def test_proxmox_containers_process():
     assert 100 in result
     container_100 = result[100]
     assert container_100.vmid == 100
-    assert container_100.status == ProxmoxContainerStatus.RUNNING
+    assert container_100.status == PVEContainerStatus.RUNNING
     assert container_100.lock is None
     assert container_100.name == "postgres"
 
@@ -38,7 +38,7 @@ def test_proxmox_containers_process():
     assert 101 in result
     container_101 = result[101]
     assert container_101.vmid == 101
-    assert container_101.status == ProxmoxContainerStatus.STOPPED
+    assert container_101.status == PVEContainerStatus.STOPPED
     assert container_101.lock is None
     assert container_101.name == "test1"
 
@@ -46,15 +46,15 @@ def test_proxmox_containers_process():
     assert 102 in result
     container_102 = result[102]
     assert container_102.vmid == 102
-    assert container_102.status == ProxmoxContainerStatus.RUNNING
-    assert container_102.lock == ProxmoxContainerLock.BACKUP
+    assert container_102.status == PVEContainerStatus.RUNNING
+    assert container_102.lock == PVEContainerLock.BACKUP
     assert container_102.name == "web-server"
 
     # Test container 103 with empty name
     assert 103 in result
     container_103 = result[103]
     assert container_103.vmid == 103
-    assert container_103.status == ProxmoxContainerStatus.STOPPED
+    assert container_103.status == PVEContainerStatus.STOPPED
     assert container_103.lock is None
     assert container_103.name == ""
 
@@ -62,14 +62,14 @@ def test_proxmox_containers_process():
     assert 104 in result
     container_104 = result[104]
     assert container_104.vmid == 104
-    assert container_104.status == ProxmoxContainerStatus.RUNNING
-    assert container_104.lock == ProxmoxContainerLock.MIGRATE
+    assert container_104.status == PVEContainerStatus.RUNNING
+    assert container_104.lock == PVEContainerLock.MIGRATE
     assert container_104.name == "db-server"
 
 
 def test_proxmox_container_process():
     """Test ProxmoxContainer.process() correctly parses pct config output."""
-    fact = ProxmoxContainer()
+    fact = PVEContainer()
 
     # Sample output from pct config command
     output = [
@@ -88,20 +88,20 @@ def test_proxmox_container_process():
     result = fact.process(output)
 
     # Verify the result structure
-    assert isinstance(result, ProxmoxContainerConfig)
+    assert isinstance(result, PVEContainerConfig)
 
     # Test basic configuration fields
-    assert result.arch == ProxmoxContainerArch.AMD64
+    assert result.arch == PVEContainerArch.AMD64
     assert result.cores == 2
     assert result.hostname == "postgres"
     assert result.memory == 4096
-    assert result.ostype == ProxmoxContainerOSType.UBUNTU
+    assert result.ostype == PVEContainerOSType.UBUNTU
     assert result.swap == 2048
     assert result.unprivileged is True
 
     # Test features parsing - now it's a ProxmoxContainerFeatures object
     assert result.features is not None
-    assert isinstance(result.features, ProxmoxContainerFeatures)
+    assert isinstance(result.features, PVEContainerFeatures)
     assert result.features.nesting is True  # Should be converted from "1" to boolean
 
     # Test network interface parsing
@@ -123,7 +123,7 @@ def test_proxmox_container_process():
 
 def test_proxmox_container_process_minimal():
     """Test ProxmoxContainer.process() with minimal required fields."""
-    fact = ProxmoxContainer()
+    fact = PVEContainer()
 
     # Minimal output with only required fields
     output = [
@@ -140,12 +140,12 @@ def test_proxmox_container_process_minimal():
     result = fact.process(output)
 
     # Verify the result
-    assert isinstance(result, ProxmoxContainerConfig)
-    assert result.arch == ProxmoxContainerArch.ARM64
+    assert isinstance(result, PVEContainerConfig)
+    assert result.arch == PVEContainerArch.ARM64
     assert result.cores == 1
     assert result.hostname == "minimal-test"
     assert result.memory == 512
-    assert result.ostype == ProxmoxContainerOSType.ALPINE
+    assert result.ostype == PVEContainerOSType.ALPINE
     assert result.swap == 0
     assert result.unprivileged is False
     assert result.features is None
@@ -156,7 +156,7 @@ def test_proxmox_container_process_minimal():
 
 def test_proxmox_container_process_complex_features():
     """Test ProxmoxContainer.process() with complex features."""
-    fact = ProxmoxContainer()
+    fact = PVEContainer()
 
     output = [
         "arch: amd64",
@@ -172,11 +172,11 @@ def test_proxmox_container_process_complex_features():
 
     result = fact.process(output)
 
-    assert isinstance(result, ProxmoxContainerConfig)
+    assert isinstance(result, PVEContainerConfig)
 
     # Test complex features parsing - now it's a ProxmoxContainerFeatures object
     assert result.features is not None
-    assert isinstance(result.features, ProxmoxContainerFeatures)
+    assert isinstance(result.features, PVEContainerFeatures)
     assert result.features.fuse is True
     assert result.features.keyctl is False
     assert result.features.mount == ["nfs", "cifs"]  # Should be parsed as list
@@ -191,7 +191,7 @@ def test_proxmox_container_process_complex_features():
 
 def test_proxmox_container_process_invalid_input():
     """Test ProxmoxContainer.process() with invalid/missing required fields."""
-    fact = ProxmoxContainer()
+    fact = PVEContainer()
 
     # Missing required field (hostname)
     output_missing_hostname = [
@@ -243,7 +243,7 @@ def test_proxmox_container_process_invalid_input():
 
 def test_proxmox_container_process_multiple_networks():
     """Test ProxmoxContainer.process() with multiple network interfaces."""
-    fact = ProxmoxContainer()
+    fact = PVEContainer()
 
     output = [
         "arch: amd64",
@@ -260,7 +260,7 @@ def test_proxmox_container_process_multiple_networks():
 
     result = fact.process(output)
 
-    assert isinstance(result, ProxmoxContainerConfig)
+    assert isinstance(result, PVEContainerConfig)
     assert result.network_interfaces is not None
     assert len(result.network_interfaces) == 2
 

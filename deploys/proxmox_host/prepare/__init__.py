@@ -17,14 +17,14 @@ def prepare_proxmox_host():
     )
     add_proxmox_repo = files.put(
         name="Copy Proxmox VE no-subscription repository file",
-        src=files_dir / "proxmox.sources",
+        src=str(files_dir / "proxmox.sources"),
         dest="/etc/apt/sources.list.d/proxmox.sources",
         mode=644,
         create_remote_dir=False,
     )
     add_ceph_repo = files.put(
         name="Copy Ceph no-subscription repository file",
-        src=files_dir / "ceph.sources",
+        src=str(files_dir / "ceph.sources"),
         dest="/etc/apt/sources.list.d/ceph.sources",
         mode=644,
         create_remote_dir=False

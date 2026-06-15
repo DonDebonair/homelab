@@ -1,64 +1,65 @@
-from enum import StrEnum
-
 from pyinfra import host
-from pyinfra.api import operation
+from pyinfra.api import HiddenValue, QuoteString, StringCommand, operation
 
-from facts.proxmox import ProxmoxGroups, ProxmoxUsers, ProxmoxAcls, ProxmoxContainers
+from facts.proxmox.pve import PVEGroups, PVEUsers, PVEAcls, PVEContainers
 from models.proxmox import (
-    ProxmoxAclType,
-    ProxmoxContainerArch, ProxmoxContainerOSType, ProxmoxContainerFeatures, ProxmoxConsoleMode,
-    ProxmoxContainerNetworkInterface
+    PVEAclType,
+    PVEContainerArch, PVEContainerOSType, PVEContainerFeatures, PVEConsoleMode,
+    PVEContainerNetworkInterface
 )
 
 
 @operation()
 def group(group_id: str, comment: str | None = None, present: bool = True):
-    groups = host.get_fact(ProxmoxGroups, _sudo=True)
+    groups = host.get_fact(PVEGroups, _sudo=True)
     group_info = groups.get(group_id) if groups else None
     is_present = group_info is not None
-    cmd = ["pveum", "group"]
+    cmd: list[str | QuoteString] = ["pveum", "group"]
 
     if not present and is_present:
-        cmd.extend(["delete", group_id])
+        cmd.extend(["delete", QuoteString(group_id)])
     elif present and not is_present:
-        cmd.extend(["add", group_id])
+        cmd.extend(["add", QuoteString(group_id)])
         if comment:
-            cmd.extend(["--comment", f"'{comment}'"])
+            cmd.extend(["--comment", QuoteString(comment)])
     elif present and is_present:
         if comment is not None and comment != group_info.comment:
-            cmd.extend(["modify", group_id, "--comment", f"'{comment}'"])
+            cmd.extend(["modify", QuoteString(group_id), "--comment", QuoteString(comment)])
         else:
             host.noop(f"Group '{group_id}' already exists with the same comment.")
             return
     else:
         host.noop(f"Group '{group_id}' does not exist and 'present' is False.")
         return
-    yield " ".join(cmd)
+    yield StringCommand(*cmd)
 
 
 @operation()
-def acl(path: str, role_id: str, subject: str, acl_type: ProxmoxAclType, propagate: bool = True, present: bool = True):
-    acls = host.get_fact(ProxmoxAcls, _sudo=True)
+def acl(path: str, role_id: str, subject: str, acl_type: PVEAclType, propagate: bool = True, present: bool = True):
+    acls = host.get_fact(PVEAcls, _sudo=True)
     acl_info = acls.get((path, acl_type, subject)) if acls else None
     is_present = acl_info is not None
-    cmd = ["pveum", "acl"]
+    cmd: list[str | QuoteString] = ["pveum", "acl"]
+    # acl_type is a PVEAclType enum member, so the "--<type>s" flag is from a fixed
+    # set of values and safe to interpolate; the subject it refers to is quoted.
+    subject_flag = "--" + acl_type + "s"
 
     if not present and is_present:
-        cmd.extend(["delete", path, "--" + acl_type + "s", subject])
+        cmd.extend(["delete", QuoteString(path), subject_flag, QuoteString(subject)])
     elif present and not is_present:
-        cmd.extend(["modify", path, "--roles", role_id, "--" + acl_type + "s", str(subject), "--propagate",
-                    str(int(propagate))])
+        cmd.extend(["modify", QuoteString(path), "--roles", QuoteString(role_id), subject_flag,
+                    QuoteString(subject), "--propagate", str(int(propagate))])
     elif present and is_present:
         if role_id != acl_info.role_id or propagate != acl_info.propagate:
-            cmd.extend(["modify", path, "--roles", role_id, "--" + acl_type + "s", subject, "--propagate",
-                        str(int(propagate))])
+            cmd.extend(["modify", QuoteString(path), "--roles", QuoteString(role_id), subject_flag,
+                        QuoteString(subject), "--propagate", str(int(propagate))])
         else:
             host.noop(f"ACL for '{subject}' on '{path}' already exists with the '{role_id}' role and propagation.")
             return
     else:
         host.noop(f"ACL for '{subject}' on '{path}' does not exist and 'present' is False.")
         return
-    yield " ".join(cmd)
+    yield StringCommand(*cmd)
 
 
 @operation()
@@ -75,35 +76,35 @@ def user(
         present: bool = True,
         append_groups: bool = False,
 ):
-    users = host.get_fact(ProxmoxUsers, _sudo=True)
+    users = host.get_fact(PVEUsers, _sudo=True)
     user_info = users.get(user_id) if users else None
     is_present = user_info is not None
-    cmd = ["pveum", "user"]
+    cmd: list[str | QuoteString] = ["pveum", "user"]
 
     if not present and is_present:
-        cmd.extend(["delete", user_id])
+        cmd.extend(["delete", QuoteString(user_id)])
     elif present and not is_present:
-        cmd.extend(["add", user_id])
+        cmd.extend(["add", QuoteString(user_id)])
         if password:
-            cmd.extend(["--password", f"'{password}'"])
+            cmd.extend(["--password", QuoteString(HiddenValue(str(password)))])
         if expire is not None:
             cmd.extend(["--expire", str(expire)])
         if firstname:
-            cmd.extend(["--firstname", f"'{firstname}'"])
+            cmd.extend(["--firstname", QuoteString(firstname)])
         if lastname:
-            cmd.extend(["--lastname", f"'{lastname}'"])
+            cmd.extend(["--lastname", QuoteString(lastname)])
         if email:
-            cmd.extend(["--email", f"'{email}'"])
+            cmd.extend(["--email", QuoteString(email)])
         if comment:
-            cmd.extend(["--comment", f"'{comment}'"])
+            cmd.extend(["--comment", QuoteString(comment)])
         if groups:
-            cmd.extend(["--groups", ",".join(groups)])
+            cmd.extend(["--groups", QuoteString(",".join(groups))])
         cmd.extend(["--enable", str(int(enabled))])
     elif present and is_present:
         modified = False
-        cmd.extend(["modify", user_id])
+        cmd.extend(["modify", QuoteString(user_id)])
         if password:
-            cmd.extend(["--password", f"'{password}'"])
+            cmd.extend(["--password", QuoteString(HiddenValue(str(password)))])
             modified = True
         if enabled != user_info.enabled:
             cmd.extend(["--enable", str(int(enabled))])
@@ -112,26 +113,26 @@ def user(
             cmd.extend(["--expire", str(expire) if expire is not None else "0"])
             modified = True
         if firstname != user_info.firstname and firstname is not None:
-            cmd.extend(["--firstname", f"'{firstname}'"])
+            cmd.extend(["--firstname", QuoteString(firstname)])
             modified = True
         if lastname != user_info.lastname and lastname is not None:
-            cmd.extend(["--lastname", f"'{lastname}'"])
+            cmd.extend(["--lastname", QuoteString(lastname)])
             modified = True
         if email != user_info.email and email is not None:
-            cmd.extend(["--email", f"'{email}'"])
+            cmd.extend(["--email", QuoteString(email)])
             modified = True
         if comment != user_info.comment and comment is not None:
-            cmd.extend(["--comment", f"'{comment}'"])
+            cmd.extend(["--comment", QuoteString(comment)])
             modified = True
         if groups is not None and set(groups) != set(user_info.groups):
-            cmd.extend(["--groups", ",".join(groups)])
+            cmd.extend(["--groups", QuoteString(",".join(groups))])
             if append_groups:
                 cmd.extend(["--append", "1"])
             modified = True
         if not modified:
             host.noop(f"User '{user_id}' already exists with the same attributes.")
             return
-    yield " ".join(cmd)
+    yield StringCommand(*cmd)
 
 
 @operation()
@@ -139,7 +140,7 @@ def container(
         vmid: int,
         os_template: str,
         present: bool = True,
-        arch: ProxmoxContainerArch | None = None,
+        arch: PVEContainerArch | None = None,
         cores: int | None = None,
         memory: int | None = None,
         swap: int | None = None,
@@ -147,7 +148,7 @@ def container(
         storage: str | None = None,
         hostname: str | None = None,
         unprivileged: bool | None = None,
-        os_type: ProxmoxContainerOSType | None = None,
+        os_type: PVEContainerOSType | None = None,
         nameserver: str | None = None,
         searchdomain: str | None = None,
         description: str | None = None,
@@ -156,12 +157,12 @@ def container(
         template: bool | None = None,
         protection: bool | None = None,
         console: bool | None = None,
-        cmode: ProxmoxConsoleMode | None = None,
+        cmode: PVEConsoleMode | None = None,
         tty: int | None = None,
         cpu_limit: float | None = None,
         cpu_units: int | None = None,
-        features: ProxmoxContainerFeatures | None = None,
-        networks: dict[int, ProxmoxContainerNetworkInterface] | list[ProxmoxContainerNetworkInterface] | None = None,
+        features: PVEContainerFeatures | None = None,
+        networks: dict[int, PVEContainerNetworkInterface] | list[PVEContainerNetworkInterface] | None = None,
         pool: str | None = None,
         tags: str | None = None,
         timezone: str | None = None,
@@ -181,15 +182,16 @@ def container(
         force: Allow overwriting existing container
         ... (other parameters as documented in pct create help)
     """
-    containers = host.get_fact(ProxmoxContainers, _sudo=True)
+    containers = host.get_fact(PVEContainers, _sudo=True)
     container_info = containers.get(vmid) if containers else None
     is_present = container_info is not None
 
     def _build_create_command():
-        """Helper function to build the pct create command"""
-        cmd = ["pct", "create", str(vmid), os_template]
+        """Helper function to build the pct create command bits"""
+        cmd = ["pct", "create", QuoteString(str(vmid)), QuoteString(os_template)]
 
-        # Add optional parameters
+        # Add optional parameters. Enum values come from a fixed, known set so they
+        # are safe; everything else originating from the caller is quoted.
         if arch is not None:
             cmd.extend(["--arch", arch.value])
         if cores is not None:
@@ -199,21 +201,21 @@ def container(
         if swap is not None:
             cmd.extend(["--swap", str(swap)])
         if rootfs is not None:
-            cmd.extend(["--rootfs", rootfs])
+            cmd.extend(["--rootfs", QuoteString(rootfs)])
         if storage is not None:
-            cmd.extend(["--storage", storage])
+            cmd.extend(["--storage", QuoteString(storage)])
         if hostname is not None:
-            cmd.extend(["--hostname", hostname])
+            cmd.extend(["--hostname", QuoteString(hostname)])
         if unprivileged is not None:
             cmd.extend(["--unprivileged", str(int(unprivileged))])
         if os_type is not None:
             cmd.extend(["--ostype", os_type.value])
         if nameserver is not None:
-            cmd.extend(["--nameserver", nameserver])
+            cmd.extend(["--nameserver", QuoteString(nameserver)])
         if searchdomain is not None:
-            cmd.extend(["--searchdomain", searchdomain])
+            cmd.extend(["--searchdomain", QuoteString(searchdomain)])
         if description is not None:
-            cmd.extend(["--description", f"'{description}'"])
+            cmd.extend(["--description", QuoteString(description)])
         if on_boot is not None:
             cmd.extend(["--onboot", str(int(on_boot))])
         if start is not None:
@@ -233,15 +235,16 @@ def container(
         if cpu_units is not None:
             cmd.extend(["--cpuunits", str(cpu_units)])
         if pool is not None:
-            cmd.extend(["--pool", pool])
+            cmd.extend(["--pool", QuoteString(pool)])
         if tags is not None:
-            cmd.extend(["--tags", tags])
+            cmd.extend(["--tags", QuoteString(tags)])
         if timezone is not None:
-            cmd.extend(["--timezone", timezone])
+            cmd.extend(["--timezone", QuoteString(timezone)])
         if ssh_public_keys is not None:
-            cmd.extend(["--ssh-public-keys", ssh_public_keys])
+            cmd.extend(["--ssh-public-keys", QuoteString(ssh_public_keys)])
 
-        # Handle features using ProxmoxContainerFeatures class
+        # Handle features using ProxmoxContainerFeatures class. The whole
+        # comma-separated value is quoted as a single argument.
         if features is not None:
             features_parts = []
             if features.force_rw_sys is not None:
@@ -258,9 +261,9 @@ def container(
                 features_parts.append(f"mount={';'.join(features.mount)}")
 
             if features_parts:
-                cmd.extend(["--features", ",".join(features_parts)])
+                cmd.extend(["--features", QuoteString(",".join(features_parts))])
 
-        # Handle network interfaces
+        # Handle network interfaces. Each --net<id> value is a single quoted argument.
         if networks is not None:
             # Convert list to dict with auto-incrementing IDs if needed
             if isinstance(networks, list):
@@ -298,34 +301,33 @@ def container(
                 if net_interface.type is not None:
                     net_parts.append(f"type={net_interface.type}")
 
-                cmd.extend([f"--net{net_id}", ",".join(net_parts)])
+                cmd.extend([f"--net{int(net_id)}", QuoteString(",".join(net_parts))])
 
         return cmd
 
     if not present and is_present:
         # Remove container
-        cmd = ["pct", "destroy", str(vmid)]
+        cmd = ["pct", "destroy", QuoteString(str(vmid))]
         if force:
-            cmd.extend(["--force"])
-        yield " ".join(cmd)
+            cmd.append("--force")
+        yield StringCommand(*cmd)
     elif present and not is_present:
         # Create container
         cmd = _build_create_command()
         if force:
-            cmd.extend(["--force"])
-        yield " ".join(cmd)
+            cmd.append("--force")
+        yield StringCommand(*cmd)
     elif present and is_present:
         # Container exists and should exist
         if force:
             # Recreate container if force is True
-            cmd = ["pct", "destroy", str(vmid)]
-            cmd.extend(["--force"])  # Force destroy even if running
-            yield " ".join(cmd)
+            cmd = ["pct", "destroy", QuoteString(str(vmid)), "--force"]  # Force destroy even if running
+            yield StringCommand(*cmd)
 
             # Then create it again
             cmd = _build_create_command()
-            cmd.extend(["--force"])
-            yield " ".join(cmd)
+            cmd.append("--force")
+            yield StringCommand(*cmd)
         else:
             host.noop(f"Container '{vmid}' already exists. Use force=True to recreate.")
             return

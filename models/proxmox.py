@@ -5,14 +5,14 @@ from enum import StrEnum
 
 
 @dataclass
-class ProxmoxGroupInfo:
+class PVEGroupInfo:
     group_id: str
     comment: str | None
     users: list[str]
 
 
 @dataclass
-class ProxmoxUserInfo:
+class PVEUserInfo:
     user_id: str
     enabled: bool
     expire: int | None
@@ -24,22 +24,22 @@ class ProxmoxUserInfo:
     realm_type: str
 
 
-class ProxmoxAclType(StrEnum):
+class PVEAclType(StrEnum):
     USER = "user"
     GROUP = "group"
     TOKEN = "token"
 
 
 @dataclass
-class ProxmoxAclInfo:
+class PVEAclInfo:
     path: str
     propagate: bool
     role_id: str
     subject: str
-    type: ProxmoxAclType
+    type: PVEAclType
 
 
-class ProxmoxContainerArch(StrEnum):
+class PVEContainerArch(StrEnum):
     AMD64 = "amd64"
     ARM64 = "arm64"
     ARMHF = "armhf"
@@ -48,7 +48,7 @@ class ProxmoxContainerArch(StrEnum):
     RISCV64 = "riscv64"
 
 
-class ProxmoxContainerOSType(StrEnum):
+class PVEContainerOSType(StrEnum):
     ALPINE = "alpine"
     ARCHLINUX = "archlinux"
     CENTOS = "centos"
@@ -63,7 +63,7 @@ class ProxmoxContainerOSType(StrEnum):
 
 
 @dataclass
-class ProxmoxContainerNetworkInterface:
+class PVEContainerNetworkInterface:
     name: str
     bridge: str | None = None
     firewall: bool | None = None
@@ -81,7 +81,7 @@ class ProxmoxContainerNetworkInterface:
 
 
 @dataclass
-class ProxmoxContainerRootFS:
+class PVEContainerRootFS:
     volume: str
     acl: bool | None = None
     mountoptions: list[str] | None = None
@@ -93,7 +93,7 @@ class ProxmoxContainerRootFS:
 
 
 @dataclass
-class ProxmoxContainerFeatures:
+class PVEContainerFeatures:
     force_rw_sys: bool | None = None
     fuse: bool | None = None
     keyctl: bool | None = None
@@ -103,26 +103,26 @@ class ProxmoxContainerFeatures:
 
 
 @dataclass
-class ProxmoxContainerConfig:
-    arch: ProxmoxContainerArch
+class PVEContainerConfig:
+    arch: PVEContainerArch
     cores: int
     hostname: str
     memory: int
-    ostype: ProxmoxContainerOSType
-    rootfs: ProxmoxContainerRootFS
+    ostype: PVEContainerOSType
+    rootfs: PVEContainerRootFS
     swap: int
     unprivileged: bool
-    features: ProxmoxContainerFeatures | None = None
-    network_interfaces: dict[int, ProxmoxContainerNetworkInterface] | None = None
+    features: PVEContainerFeatures | None = None
+    network_interfaces: dict[int, PVEContainerNetworkInterface] | None = None
 
 
-class ProxmoxContainerStatus(StrEnum):
+class PVEContainerStatus(StrEnum):
     RUNNING = "running"
     STOPPED = "stopped"
     UNKNOWN = "unknown"
 
 
-class ProxmoxContainerLock(StrEnum):
+class PVEContainerLock(StrEnum):
     BACKUP = "backup"
     CREATE = "create"
     DESTROYED = "destroyed"
@@ -137,14 +137,14 @@ class ProxmoxContainerLock(StrEnum):
 
 
 @dataclass
-class ProxmoxContainerSummary:
+class PVEContainerSummary:
     vmid: int
-    status: ProxmoxContainerStatus
-    lock: ProxmoxContainerLock | None
+    status: PVEContainerStatus
+    lock: PVEContainerLock | None
     name: str
 
 
-class ProxmoxConsoleMode(StrEnum):
+class PVEConsoleMode(StrEnum):
     CONSOLE = "console"
     SHELL = "shell"
     TTY = "tty"
