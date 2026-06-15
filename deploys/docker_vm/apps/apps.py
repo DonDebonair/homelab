@@ -7,4 +7,7 @@ apps = [
         name="dozzle",
         volumes=[DOCKER_SOCKET],
     ),
+    ComposeApp(
+        name="whoami",
+    ),
 ]

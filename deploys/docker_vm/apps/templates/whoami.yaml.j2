@@ -1,0 +1,16 @@
+services:
+  whoami:
+    container_name: whoami
+    image: traefik/whoami
+    networks:
+      - caddy-external
+    labels:
+      caddy_external: whoami.[[ host.data.domain ]]
+      caddy_external.reverse_proxy: "{{upstreams 80}}"
+      caddy_external.reverse_proxy.import: trusted_proxy_list
+      caddy_external.import: secure *
+    restart: unless-stopped
+
+networks:
+  caddy-external:
+    external: true
