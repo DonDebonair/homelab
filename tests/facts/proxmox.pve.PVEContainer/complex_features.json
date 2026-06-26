@@ -1,0 +1,49 @@
+{
+  "arg": [
+    300
+  ],
+  "command": "pct config 300",
+  "requires_command": "pct",
+  "output": [
+    "arch: amd64",
+    "cores: 4",
+    "features: fuse=1,keyctl=0,mount=nfs;cifs,nesting=1",
+    "hostname: complex-test",
+    "memory: 8192",
+    "ostype: debian",
+    "rootfs: storage:subvol-300-disk-0,acl=1,quota=1,size=20G",
+    "swap: 4096",
+    "unprivileged: 1"
+  ],
+  "fact": {
+    "arch": "amd64",
+    "cores": 4,
+    "hostname": "complex-test",
+    "memory": 8192,
+    "ostype": "debian",
+    "rootfs": {
+      "volume": "storage:subvol-300-disk-0",
+      "acl": true,
+      "mountoptions": null,
+      "quota": true,
+      "replicate": null,
+      "ro": null,
+      "shared": null,
+      "size": "20G"
+    },
+    "swap": 4096,
+    "unprivileged": true,
+    "features": {
+      "force_rw_sys": null,
+      "fuse": true,
+      "keyctl": false,
+      "mknod": null,
+      "mount": [
+        "nfs",
+        "cifs"
+      ],
+      "nesting": true
+    },
+    "network_interfaces": null
+  }
+}

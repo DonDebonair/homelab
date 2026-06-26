@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/",
+    "PVEAdmin",
+    "alice@pve"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "propagate": true,
+    "present": true
+  },
+  "facts": {
+    "pve.PVEAcls": {
+      "[\"/\", \"user\", \"alice@pve\"]": {
+        "path": "/",
+        "propagate": true,
+        "role_id": "PVEAdmin",
+        "subject": "alice@pve",
+        "type": "user"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "ACL for 'alice@pve' on '/' already exists with the 'PVEAdmin' role and propagation."
+}

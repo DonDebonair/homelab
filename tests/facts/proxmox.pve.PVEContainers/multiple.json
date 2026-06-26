@@ -1,0 +1,45 @@
+{
+  "command": "pct list",
+  "requires_command": "pct",
+  "output": [
+    "VMID       Status     Lock         Name",
+    "100        running                 postgres",
+    "101        stopped                 test1",
+    "102        running    backup       web-server",
+    "",
+    "103        stopped                 ",
+    "104        running    migrate      db-server"
+  ],
+  "fact": {
+    "100": {
+      "vmid": 100,
+      "status": "running",
+      "lock": null,
+      "name": "postgres"
+    },
+    "101": {
+      "vmid": 101,
+      "status": "stopped",
+      "lock": null,
+      "name": "test1"
+    },
+    "102": {
+      "vmid": 102,
+      "status": "running",
+      "lock": "backup",
+      "name": "web-server"
+    },
+    "103": {
+      "vmid": 103,
+      "status": "stopped",
+      "lock": null,
+      "name": ""
+    },
+    "104": {
+      "vmid": 104,
+      "status": "running",
+      "lock": "migrate",
+      "name": "db-server"
+    }
+  }
+}

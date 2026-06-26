@@ -1,0 +1,31 @@
+{
+  "args": [
+    950,
+    "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  ],
+  "kwargs": {
+    "present": true,
+    "networks": {
+      "0": {
+        "name": "eth0",
+        "bridge": "vmbr0",
+        "firewall": true,
+        "ip": "dhcp"
+      },
+      "1": {
+        "name": "eth1",
+        "bridge": "vmbr1",
+        "firewall": false,
+        "ip": "192.168.100.50/24",
+        "tag": 100,
+        "mtu": 1500
+      }
+    }
+  },
+  "facts": {
+    "pve.PVEContainers": {}
+  },
+  "commands": [
+    "pct create 950 ubuntu-22.04-standard_22.04-1_amd64.tar.zst --net0 name=eth0,bridge=vmbr0,firewall=1,ip=dhcp --net1 name=eth1,bridge=vmbr1,firewall=0,ip=192.168.100.50/24,mtu=1500,tag=100"
+  ]
+}

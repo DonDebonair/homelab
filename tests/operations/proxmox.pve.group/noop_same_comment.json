@@ -1,0 +1,20 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "comment": "Dev team",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEGroups": {
+      "devs": {
+        "group_id": "devs",
+        "comment": "Dev team",
+        "users": []
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Group 'devs' already exists with the same comment."
+}

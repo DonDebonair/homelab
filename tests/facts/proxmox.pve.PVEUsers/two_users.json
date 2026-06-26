@@ -1,0 +1,33 @@
+{
+  "command": "pveum user list --full --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[{\"userid\":\"root@pam\",\"enable\":1,\"expire\":0,\"firstname\":\"Root\",\"lastname\":null,\"email\":\"root@example.io\",\"comment\":\"superuser\",\"groups\":\"admins\",\"realm-type\":\"pam\"},{\"userid\":\"bob@pve\",\"enable\":0,\"expire\":1893456000,\"firstname\":null,\"lastname\":null,\"email\":null,\"comment\":null,\"groups\":\"\",\"realm-type\":\"pve\"}]"
+  ],
+  "fact": {
+    "root@pam": {
+      "user_id": "root@pam",
+      "enabled": true,
+      "expire": null,
+      "firstname": "Root",
+      "lastname": null,
+      "email": "root@example.io",
+      "comment": "superuser",
+      "groups": [
+        "admins"
+      ],
+      "realm_type": "pam"
+    },
+    "bob@pve": {
+      "user_id": "bob@pve",
+      "enabled": false,
+      "expire": 1893456000,
+      "firstname": null,
+      "lastname": null,
+      "email": null,
+      "comment": null,
+      "groups": [],
+      "realm_type": "pve"
+    }
+  }
+}

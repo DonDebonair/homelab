@@ -1,0 +1,23 @@
+{
+  "args": [
+    "carol@pve"
+  ],
+  "kwargs": {
+    "expire": 1893456000,
+    "firstname": "Carol",
+    "lastname": "Jones",
+    "email": "carol@example.io",
+    "comment": "VIP",
+    "groups": [
+      "admins",
+      "ops"
+    ],
+    "present": true
+  },
+  "facts": {
+    "pve.PVEUsers": {}
+  },
+  "commands": [
+    "pveum user add carol@pve --expire 1893456000 --firstname Carol --lastname Jones --email carol@example.io --comment VIP --groups admins,ops --enable 1"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pve.PVEGroups": {
+      "devs": {
+        "group_id": "devs",
+        "comment": "Dev team",
+        "users": []
+      }
+    }
+  },
+  "commands": [
+    "pveum group delete devs"
+  ]
+}

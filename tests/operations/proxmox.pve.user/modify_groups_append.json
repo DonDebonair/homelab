@@ -1,0 +1,32 @@
+{
+  "args": [
+    "bob@pve"
+  ],
+  "kwargs": {
+    "groups": [
+      "ops"
+    ],
+    "append_groups": true,
+    "present": true
+  },
+  "facts": {
+    "pve.PVEUsers": {
+      "bob@pve": {
+        "user_id": "bob@pve",
+        "enabled": true,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": null,
+        "comment": null,
+        "groups": [
+          "admins"
+        ],
+        "realm_type": "pve"
+      }
+    }
+  },
+  "commands": [
+    "pveum user modify bob@pve --groups ops --append 1"
+  ]
+}

@@ -18,7 +18,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
+    "pyinfra-testing",
 ]
 
 [tool.uv.sources]
 pyinfra = { path = "../pyinfra", editable = true }
+pyinfra-testing = { path = "../pyinfra-testing", editable = true }

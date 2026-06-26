@@ -1,0 +1,15 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "comment": "Dev team",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEGroups": {}
+  },
+  "commands": [
+    "pveum group add devs --comment 'Dev team'"
+  ]
+}

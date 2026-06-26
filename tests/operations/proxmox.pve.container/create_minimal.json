@@ -1,0 +1,15 @@
+{
+  "args": [
+    100,
+    "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEContainers": {}
+  },
+  "commands": [
+    "pct create 100 ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  ]
+}

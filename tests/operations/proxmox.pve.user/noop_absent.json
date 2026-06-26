@@ -1,0 +1,13 @@
+{
+  "args": [
+    "ghost@pve"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pve.PVEUsers": {}
+  },
+  "commands": [],
+  "noop_description": "User 'ghost@pve' does not exist and 'present' is False."
+}

@@ -1,0 +1,22 @@
+{
+  "args": [
+    100,
+    ""
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pve.PVEContainers": {
+      "100": {
+        "vmid": 100,
+        "status": "stopped",
+        "lock": null,
+        "name": "old"
+      }
+    }
+  },
+  "commands": [
+    "pct destroy 100"
+  ]
+}

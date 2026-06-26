@@ -1,0 +1,14 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEGroups": {}
+  },
+  "commands": [
+    "pveum group add devs"
+  ]
+}

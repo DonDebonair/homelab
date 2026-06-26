@@ -1,0 +1,26 @@
+{
+  "args": [
+    "bob@pve"
+  ],
+  "kwargs": {
+    "enabled": true,
+    "present": true
+  },
+  "facts": {
+    "pve.PVEUsers": {
+      "bob@pve": {
+        "user_id": "bob@pve",
+        "enabled": true,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": null,
+        "comment": null,
+        "groups": [],
+        "realm_type": "pve"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "User 'bob@pve' already exists with the same attributes."
+}

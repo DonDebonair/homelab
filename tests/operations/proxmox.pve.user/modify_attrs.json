@@ -1,0 +1,28 @@
+{
+  "args": [
+    "bob@pve"
+  ],
+  "kwargs": {
+    "enabled": true,
+    "email": "new@example.io",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEUsers": {
+      "bob@pve": {
+        "user_id": "bob@pve",
+        "enabled": false,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": "old@example.io",
+        "comment": null,
+        "groups": [],
+        "realm_type": "pve"
+      }
+    }
+  },
+  "commands": [
+    "pveum user modify bob@pve --enable 1 --email new@example.io"
+  ]
+}

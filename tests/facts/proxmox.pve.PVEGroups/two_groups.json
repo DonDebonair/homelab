@@ -1,0 +1,22 @@
+{
+  "command": "pveum group list --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[{\"groupid\":\"admins\",\"comment\":\"Administrators\",\"users\":\"root@pam,alice@pve\"},{\"groupid\":\"ops\",\"comment\":null,\"users\":\"\"}]"
+  ],
+  "fact": {
+    "admins": {
+      "group_id": "admins",
+      "comment": "Administrators",
+      "users": [
+        "root@pam",
+        "alice@pve"
+      ]
+    },
+    "ops": {
+      "group_id": "ops",
+      "comment": null,
+      "users": []
+    }
+  }
+}

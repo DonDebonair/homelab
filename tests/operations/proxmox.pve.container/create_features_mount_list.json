@@ -1,0 +1,22 @@
+{
+  "args": [
+    500,
+    "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  ],
+  "kwargs": {
+    "present": true,
+    "features": {
+      "mount": [
+        "nfs",
+        "cifs",
+        "fuse"
+      ]
+    }
+  },
+  "facts": {
+    "pve.PVEContainers": {}
+  },
+  "commands": [
+    "pct create 500 ubuntu-22.04-standard_22.04-1_amd64.tar.zst --features 'mount=nfs;cifs;fuse'"
+  ]
+}

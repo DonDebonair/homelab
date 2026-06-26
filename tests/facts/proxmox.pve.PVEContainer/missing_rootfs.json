@@ -1,0 +1,17 @@
+{
+  "arg": [
+    100
+  ],
+  "command": "pct config 100",
+  "requires_command": "pct",
+  "output": [
+    "arch: amd64",
+    "cores: 2",
+    "hostname: test",
+    "memory: 4096",
+    "ostype: ubuntu",
+    "swap: 2048",
+    "unprivileged: 1"
+  ],
+  "fact": null
+}

@@ -1,0 +1,17 @@
+{
+  "args": [
+    "/",
+    "Administrator",
+    "alice@pve"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEAcls": {}
+  },
+  "commands": [
+    "pveum acl modify / --roles Administrator --users alice@pve --propagate 1"
+  ]
+}

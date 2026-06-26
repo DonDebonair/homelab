@@ -16,6 +16,7 @@ Both systems coexist; do not assume one replaces the other unless the task says 
 - Python `>=3.14`. Dependencies managed with `uv` (see `uv.lock`, `pyproject.toml`).
 - `pyinfra` is installed as an **editable path dependency from `../pyinfra`** (sibling checkout). Changes there affect this repo at runtime; if a pyinfra import or behavior looks wrong, check the sibling source.
    More information on how pyinfra works can be found at https://docs.pyinfra.com/en/latest/llms.txt
+- `pyinfra-testing` (the data-driven test harness for facts/operations) is likewise an **editable path dependency from `../pyinfra-testing`**. All fact/operation tests are generated from JSON case files via this harness — see [Testing](#testing-pyinfra-facts--operations). Its `README.md` documents the full case-file format.
 - `OP_SERVICE_ACCOUNT_TOKEN` must be set in the environment for any pyinfra run that imports `op_secrets` — secret resolution happens at import time via `SecretString.populate_cache_sync()`.
 
 ## Common commands
@@ -34,9 +35,10 @@ ansible-playbook -t docker-apps nas.yml
 # Ansible: encrypt a value for inline use
 ansible-vault encrypt_string -n <name> '<value>'
 
-# Tests (pytest only covers custom pyinfra facts/operations under tests/)
+# Tests — data-driven harness over custom pyinfra facts/operations under tests/
 uv run pytest
-uv run pytest tests/facts/test_proxmox.py::test_proxmox_containers_process
+uv run pytest tests/test_facts.py        # just the fact suites
+uv run pytest tests/test_operations.py   # just the operation suites
 
 # Helper CLI (cyclopts) for Ansible-side config edits
 uv run python script.py db add-db <name> [--user <u>] [--extensions ext1 ext2] [--dry-run]
@@ -56,6 +58,16 @@ Layered, reusable extensions to pyinfra live at the repo root:
 - `operations/` — custom `@operation`-decorated functions that read facts via `host.get_fact(...)`, diff against desired state, and `yield` the shell command(s) to converge. Always check the existing fact before issuing a command (idempotency pattern: read fact → compare → yield only if change needed → otherwise `host.noop(...)`).
 - `deploys/<group>/<feature>/__init__.py` — `@deploy`-decorated entry functions that compose pyinfra operations (built-in + custom) into a feature. Re-exported through `deploys/<group>/__init__.py` so `deploy.py` can import them by name.
 - `group_data/` — per-group host variables; pyinfra auto-loads these by group name. `group_data/all.py` is the global default.
+
+### Testing (pyinfra facts & operations)
+
+Custom facts and operations are tested **exclusively** through the `pyinfra-testing` harness as data-driven JSON cases — **not** hand-written `unittest`/pytest functions. **Any new fact or operation (or change to one) must ship with harness cases.**
+
+- **Discovery.** `tests/test_facts.py` and `tests/test_operations.py` auto-generate one `unittest` test per JSON file. Each subdirectory is named after the target's dotted path: `tests/facts/<module>.<FactClass>/` (e.g. `tests/facts/proxmox.pve.PVEContainers/`) and `tests/operations/<module>.<operation>/` (e.g. `tests/operations/proxmox.pve.container/`). To add a test, drop another `.json` file in the matching directory; to cover a new fact/operation, create its directory.
+- **Fact case** = `output` (the raw command lines `process()` receives) + the expected `fact`, plus `command` and `requires_command`. The expected `fact` is the result of `process()` JSON-normalised: dataclasses are compared via `dataclasses.asdict` (list **every** field, including `None` ones), `StrEnum`s by value, and non-string dict keys (int VMIDs, tuple ACL keys) by their canonical string form.
+- **Operation case** = `args`/`kwargs` + injected `facts` (keyed by `<module>.<FactClass>`) → expected `commands` (or `noop_description` for a no-op). Mock the facts the operation reads via `host.get_fact(...)`.
+- **Write plain JSON — the harness reconstructs typed values.** Enum/dataclass operation arguments are built from the operation's own annotations (`"arch": "amd64"` → `PVEContainerArch.AMD64`; `"features": {"nesting": true}` → the dataclass), and int/tuple/enum fact keys are matched via a canonical string key. Do not try to construct Python objects in JSON.
+- Generate expected values by running `process()` / the operation rather than hand-transcribing long command strings; see `../pyinfra-testing/README.md` for the complete case-file format and supported types.
 
 ### Secrets (1Password)
 

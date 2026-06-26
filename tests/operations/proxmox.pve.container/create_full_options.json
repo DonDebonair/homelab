@@ -1,0 +1,48 @@
+{
+  "args": [
+    200,
+    "debian-12-standard_12.2-1_amd64.tar.zst"
+  ],
+  "kwargs": {
+    "present": true,
+    "arch": "amd64",
+    "cores": 4,
+    "memory": 4096,
+    "swap": 2048,
+    "rootfs": "vm-pool:200",
+    "storage": "vm-pool",
+    "hostname": "test-container",
+    "unprivileged": true,
+    "os_type": "debian",
+    "nameserver": "1.1.1.1",
+    "searchdomain": "example.com",
+    "description": "Test container",
+    "on_boot": true,
+    "start": true,
+    "template": false,
+    "protection": false,
+    "console": true,
+    "cmode": "tty",
+    "tty": 2,
+    "cpu_limit": 2.5,
+    "cpu_units": 2000,
+    "features": {
+      "nesting": true,
+      "fuse": true,
+      "mount": [
+        "nfs",
+        "cifs"
+      ]
+    },
+    "pool": "test-pool",
+    "tags": "test,container",
+    "timezone": "UTC",
+    "ssh_public_keys": "/root/.ssh/authorized_keys"
+  },
+  "facts": {
+    "pve.PVEContainers": {}
+  },
+  "commands": [
+    "pct create 200 debian-12-standard_12.2-1_amd64.tar.zst --arch amd64 --cores 4 --memory 4096 --swap 2048 --rootfs vm-pool:200 --storage vm-pool --hostname test-container --unprivileged 1 --ostype debian --nameserver 1.1.1.1 --searchdomain example.com --description 'Test container' --onboot 1 --start 1 --template 0 --protection 0 --console 1 --cmode tty --tty 2 --cpulimit 2.5 --cpuunits 2000 --pool test-pool --tags test,container --timezone UTC --ssh-public-keys /root/.ssh/authorized_keys --features 'fuse=1,nesting=1,mount=nfs;cifs'"
+  ]
+}

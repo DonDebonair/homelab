@@ -1,0 +1,13 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pve.PVEGroups": {}
+  },
+  "commands": [],
+  "noop_description": "Group 'devs' does not exist and 'present' is False."
+}

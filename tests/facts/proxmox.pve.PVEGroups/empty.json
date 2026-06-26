@@ -1,0 +1,8 @@
+{
+  "command": "pveum group list --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

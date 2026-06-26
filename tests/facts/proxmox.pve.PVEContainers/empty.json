@@ -1,0 +1,8 @@
+{
+  "command": "pct list",
+  "requires_command": "pct",
+  "output": [
+    "VMID       Status     Lock         Name"
+  ],
+  "fact": {}
+}

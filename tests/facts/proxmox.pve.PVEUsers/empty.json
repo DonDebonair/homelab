@@ -1,0 +1,8 @@
+{
+  "command": "pveum user list --full --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

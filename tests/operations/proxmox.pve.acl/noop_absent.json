@@ -1,0 +1,16 @@
+{
+  "args": [
+    "/",
+    "Administrator",
+    "alice@pve"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "present": false
+  },
+  "facts": {
+    "pve.PVEAcls": {}
+  },
+  "commands": [],
+  "noop_description": "ACL for 'alice@pve' on '/' does not exist and 'present' is False."
+}

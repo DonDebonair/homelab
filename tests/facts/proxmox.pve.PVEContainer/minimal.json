@@ -1,0 +1,38 @@
+{
+  "arg": [
+    200
+  ],
+  "command": "pct config 200",
+  "requires_command": "pct",
+  "output": [
+    "arch: arm64",
+    "cores: 1",
+    "hostname: minimal-test",
+    "memory: 512",
+    "ostype: alpine",
+    "rootfs: local:vm-200-disk-0",
+    "swap: 0",
+    "unprivileged: 0"
+  ],
+  "fact": {
+    "arch": "arm64",
+    "cores": 1,
+    "hostname": "minimal-test",
+    "memory": 512,
+    "ostype": "alpine",
+    "rootfs": {
+      "volume": "local:vm-200-disk-0",
+      "acl": null,
+      "mountoptions": null,
+      "quota": null,
+      "replicate": null,
+      "ro": null,
+      "shared": null,
+      "size": null
+    },
+    "swap": 0,
+    "unprivileged": false,
+    "features": null,
+    "network_interfaces": null
+  }
+}

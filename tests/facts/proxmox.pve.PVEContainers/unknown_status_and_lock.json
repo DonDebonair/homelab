@@ -1,0 +1,16 @@
+{
+  "command": "pct list",
+  "requires_command": "pct",
+  "output": [
+    "VMID       Status     Lock         Name",
+    "105        bogusstat  weirdlock    oddball"
+  ],
+  "fact": {
+    "105": {
+      "vmid": 105,
+      "status": "unknown",
+      "lock": "unknown",
+      "name": "oddball"
+    }
+  }
+}

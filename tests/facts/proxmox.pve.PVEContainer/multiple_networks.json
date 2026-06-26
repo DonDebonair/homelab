@@ -1,0 +1,73 @@
+{
+  "arg": [
+    400
+  ],
+  "command": "pct config 400",
+  "requires_command": "pct",
+  "output": [
+    "arch: amd64",
+    "cores: 2",
+    "hostname: multi-net",
+    "memory: 2048",
+    "net0: name=eth0,bridge=vmbr0,firewall=1,ip=192.168.1.100/24",
+    "net1: name=eth1,bridge=vmbr1,firewall=0,ip=10.0.0.50/24,tag=100",
+    "ostype: ubuntu",
+    "rootfs: vm-pool:subvol-400-disk-0",
+    "swap: 1024",
+    "unprivileged: 1"
+  ],
+  "fact": {
+    "arch": "amd64",
+    "cores": 2,
+    "hostname": "multi-net",
+    "memory": 2048,
+    "ostype": "ubuntu",
+    "rootfs": {
+      "volume": "vm-pool:subvol-400-disk-0",
+      "acl": null,
+      "mountoptions": null,
+      "quota": null,
+      "replicate": null,
+      "ro": null,
+      "shared": null,
+      "size": null
+    },
+    "swap": 1024,
+    "unprivileged": true,
+    "features": null,
+    "network_interfaces": {
+      "0": {
+        "name": "eth0",
+        "bridge": "vmbr0",
+        "firewall": true,
+        "gw": null,
+        "gw6": null,
+        "hwaddr": null,
+        "ip": "192.168.1.100/24",
+        "ip6": null,
+        "link_down": null,
+        "mtu": null,
+        "rate": null,
+        "tag": null,
+        "trunks": null,
+        "type": null
+      },
+      "1": {
+        "name": "eth1",
+        "bridge": "vmbr1",
+        "firewall": false,
+        "gw": null,
+        "gw6": null,
+        "hwaddr": null,
+        "ip": "10.0.0.50/24",
+        "ip6": null,
+        "link_down": null,
+        "mtu": null,
+        "rate": null,
+        "tag": 100,
+        "trunks": null,
+        "type": null
+      }
+    }
+  }
+}

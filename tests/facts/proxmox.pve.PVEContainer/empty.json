@@ -1,0 +1,9 @@
+{
+  "arg": [
+    100
+  ],
+  "command": "pct config 100",
+  "requires_command": "pct",
+  "output": [],
+  "fact": null
+}

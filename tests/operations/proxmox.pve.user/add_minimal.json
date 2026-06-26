@@ -1,0 +1,14 @@
+{
+  "args": [
+    "carol@pve"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEUsers": {}
+  },
+  "commands": [
+    "pveum user add carol@pve --enable 1"
+  ]
+}

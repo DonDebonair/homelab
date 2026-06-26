@@ -1,0 +1,23 @@
+{
+  "command": "pveum acl list --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[{\"path\":\"/\",\"type\":\"user\",\"ugid\":\"alice@pve\",\"propagate\":1,\"roleid\":\"PVEAdmin\"},{\"path\":\"/vms\",\"type\":\"group\",\"ugid\":\"ops\",\"propagate\":0,\"roleid\":\"PVEVMUser\"}]"
+  ],
+  "fact": {
+    "[\"/\", \"user\", \"alice@pve\"]": {
+      "path": "/",
+      "propagate": true,
+      "role_id": "PVEAdmin",
+      "subject": "alice@pve",
+      "type": "user"
+    },
+    "[\"/vms\", \"group\", \"ops\"]": {
+      "path": "/vms",
+      "propagate": false,
+      "role_id": "PVEVMUser",
+      "subject": "ops",
+      "type": "group"
+    }
+  }
+}

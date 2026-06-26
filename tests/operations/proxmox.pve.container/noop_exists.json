@@ -1,0 +1,21 @@
+{
+  "args": [
+    175,
+    "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEContainers": {
+      "175": {
+        "vmid": 175,
+        "status": "running",
+        "lock": null,
+        "name": "existing"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Container '175' already exists. Use force=True to recreate."
+}

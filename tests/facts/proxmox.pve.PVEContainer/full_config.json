@@ -1,0 +1,64 @@
+{
+  "arg": [
+    100
+  ],
+  "command": "pct config 100",
+  "requires_command": "pct",
+  "output": [
+    "arch: amd64",
+    "cores: 2",
+    "features: nesting=1",
+    "hostname: postgres",
+    "memory: 4096",
+    "net0: name=eth0,bridge=vmbr0,firewall=1,hwaddr=BC:24:11:80:25:32,ip=dhcp,ip6=dhcp,type=veth",
+    "ostype: ubuntu",
+    "rootfs: vm-pool:subvol-100-disk-0,size=8G",
+    "swap: 2048",
+    "unprivileged: 1"
+  ],
+  "fact": {
+    "arch": "amd64",
+    "cores": 2,
+    "hostname": "postgres",
+    "memory": 4096,
+    "ostype": "ubuntu",
+    "rootfs": {
+      "volume": "vm-pool:subvol-100-disk-0",
+      "acl": null,
+      "mountoptions": null,
+      "quota": null,
+      "replicate": null,
+      "ro": null,
+      "shared": null,
+      "size": "8G"
+    },
+    "swap": 2048,
+    "unprivileged": true,
+    "features": {
+      "force_rw_sys": null,
+      "fuse": null,
+      "keyctl": null,
+      "mknod": null,
+      "mount": null,
+      "nesting": true
+    },
+    "network_interfaces": {
+      "0": {
+        "name": "eth0",
+        "bridge": "vmbr0",
+        "firewall": true,
+        "gw": null,
+        "gw6": null,
+        "hwaddr": "BC:24:11:80:25:32",
+        "ip": "dhcp",
+        "ip6": "dhcp",
+        "link_down": null,
+        "mtu": null,
+        "rate": null,
+        "tag": null,
+        "trunks": null,
+        "type": "veth"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/",
+    "PVEAdmin",
+    "alice@pve"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "present": false
+  },
+  "facts": {
+    "pve.PVEAcls": {
+      "[\"/\", \"user\", \"alice@pve\"]": {
+        "path": "/",
+        "propagate": true,
+        "role_id": "PVEAdmin",
+        "subject": "alice@pve",
+        "type": "user"
+      }
+    }
+  },
+  "commands": [
+    "pveum acl delete / --users alice@pve"
+  ]
+}

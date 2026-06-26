@@ -1,0 +1,8 @@
+{
+  "command": "pveum acl list --output-format json",
+  "requires_command": "pveum",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

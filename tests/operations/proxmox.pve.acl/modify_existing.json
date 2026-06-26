@@ -1,0 +1,26 @@
+{
+  "args": [
+    "/",
+    "PVEVMAdmin",
+    "alice@pve"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "propagate": false,
+    "present": true
+  },
+  "facts": {
+    "pve.PVEAcls": {
+      "[\"/\", \"user\", \"alice@pve\"]": {
+        "path": "/",
+        "propagate": true,
+        "role_id": "PVEAdmin",
+        "subject": "alice@pve",
+        "type": "user"
+      }
+    }
+  },
+  "commands": [
+    "pveum acl modify / --roles PVEVMAdmin --users alice@pve --propagate 0"
+  ]
+}

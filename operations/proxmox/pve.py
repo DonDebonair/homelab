@@ -132,6 +132,9 @@ def user(
         if not modified:
             host.noop(f"User '{user_id}' already exists with the same attributes.")
             return
+    else:
+        host.noop(f"User '{user_id}' does not exist and 'present' is False.")
+        return
     yield StringCommand(*cmd)
 
 

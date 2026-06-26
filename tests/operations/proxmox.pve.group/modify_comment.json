@@ -1,0 +1,21 @@
+{
+  "args": [
+    "devs"
+  ],
+  "kwargs": {
+    "comment": "New team",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEGroups": {
+      "devs": {
+        "group_id": "devs",
+        "comment": "Old team",
+        "users": []
+      }
+    }
+  },
+  "commands": [
+    "pveum group modify devs --comment 'New team'"
+  ]
+}
