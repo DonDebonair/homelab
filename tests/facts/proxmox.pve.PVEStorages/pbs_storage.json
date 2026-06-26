@@ -1,0 +1,29 @@
+{
+  "command": "pvesh get /storage --output-format json",
+  "requires_command": "pvesh",
+  "output": [
+    "[{\"storage\":\"local\",\"type\":\"dir\",\"content\":\"iso,vztmpl,backup\",\"digest\":\"abc\",\"path\":\"/var/lib/vz\"},{\"storage\":\"pbs\",\"type\":\"pbs\",\"content\":\"backup\",\"server\":\"192.168.1.51\",\"datastore\":\"synology\",\"username\":\"pve@pbs!backup\",\"fingerprint\":\"AA:BB:CC:DD\",\"prune-backups\":\"keep-all=1\",\"digest\":\"def\"}]"
+  ],
+  "fact": {
+    "local": {
+      "storage": "local",
+      "type": "dir",
+      "content": "iso,vztmpl,backup",
+      "server": null,
+      "datastore": null,
+      "username": null,
+      "fingerprint": null,
+      "disabled": false
+    },
+    "pbs": {
+      "storage": "pbs",
+      "type": "pbs",
+      "content": "backup",
+      "server": "192.168.1.51",
+      "datastore": "synology",
+      "username": "pve@pbs!backup",
+      "fingerprint": "AA:BB:CC:DD",
+      "disabled": false
+    }
+  }
+}

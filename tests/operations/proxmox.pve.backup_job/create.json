@@ -1,0 +1,19 @@
+{
+  "args": [
+    "pve-to-pbs",
+    "pbs",
+    [100, 101],
+    "02:00"
+  ],
+  "kwargs": {
+    "notes_template": "{{guestname}}",
+    "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEBackupJobs": {}
+  },
+  "commands": [
+    "pvesh create /cluster/backup --id pve-to-pbs --storage pbs --vmid 100,101 --schedule 02:00 --mode snapshot --enabled 1 --notes-template '{{guestname}}' --prune-backups keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2"
+  ]
+}

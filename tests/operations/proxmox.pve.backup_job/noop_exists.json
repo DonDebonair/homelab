@@ -1,0 +1,30 @@
+{
+  "args": [
+    "pve-to-pbs",
+    "pbs",
+    [101, 100],
+    "02:00"
+  ],
+  "kwargs": {
+    "notes_template": "{{guestname}}",
+    "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEBackupJobs": {
+      "pve-to-pbs": {
+        "id": "pve-to-pbs",
+        "enabled": true,
+        "schedule": "02:00",
+        "storage": "pbs",
+        "vmid": "100,101",
+        "mode": "snapshot",
+        "notes_template": "{{guestname}}",
+        "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+        "comment": null
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Backup job 'pve-to-pbs' already exists with the same configuration."
+}

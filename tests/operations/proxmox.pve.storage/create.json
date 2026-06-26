@@ -1,0 +1,23 @@
+{
+  "args": [
+    "pbs",
+    "pbs",
+    "192.168.1.51",
+    "synology",
+    "pve@pbs!backup",
+    "s3cr3t",
+    "AA:BB:CC:DD"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEStorages": {}
+  },
+  "commands": [
+    {
+      "raw": "pvesm add pbs pbs --server 192.168.1.51 --datastore synology --username 'pve@pbs!backup' --password s3cr3t --fingerprint AA:BB:CC:DD --content backup",
+      "masked": "pvesm add pbs pbs --server 192.168.1.51 --datastore synology --username 'pve@pbs!backup' --password '*MASKED*' --fingerprint AA:BB:CC:DD --content backup"
+    }
+  ]
+}

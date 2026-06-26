@@ -1,0 +1,8 @@
+{
+  "command": "pvesh get /cluster/backup --output-format json",
+  "requires_command": "pvesh",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

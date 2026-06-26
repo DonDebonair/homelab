@@ -1,11 +1,11 @@
 from pyinfra import host
 from pyinfra.api import HiddenValue, QuoteString, StringCommand, operation
 
-from facts.proxmox.pve import PVEGroups, PVEUsers, PVEAcls, PVEContainers
+from facts.proxmox.pve import PVEGroups, PVEUsers, PVEAcls, PVEContainers, PVEStorages, PVEBackupJobs
 from models.proxmox import (
     PVEAclType,
     PVEContainerArch, PVEContainerOSType, PVEContainerFeatures, PVEConsoleMode,
-    PVEContainerNetworkInterface
+    PVEContainerNetworkInterface, PVEBackupMode
 )
 
 
@@ -337,4 +337,156 @@ def container(
     else:
         # Container doesn't exist and shouldn't exist
         host.noop(f"Container '{vmid}' does not exist and 'present' is False.")
+        return
+
+
+def _norm_csv(value: str | None) -> str | None:
+    """Order-independent normalisation of a comma-separated value for diffing
+    (PVE may reorder e.g. vmid lists or prune-backups keys)."""
+    if not value:
+        return value
+    return ",".join(sorted(part for part in value.split(",") if part))
+
+
+@operation()
+def storage(
+        storage_id: str,
+        storage_type: str,
+        server: str,
+        datastore: str,
+        username: str,
+        password: str,
+        fingerprint: str,
+        content: str = "backup",
+        present: bool = True,
+):
+    """
+    Manage a Proxmox Backup Server storage on a PVE host via ``pvesm``.
+
+    Idempotency is keyed on ``PVEStorages``. The storage password (a PBS token
+    secret) is never returned by ``pvesh get /storage``, so it cannot be diffed:
+    it is set on creation only and left untouched when reconciling an existing
+    storage (mirrors ``pbs.user``'s password handling).
+
+    Args:
+        storage_id: The PVE storage id, e.g. ``pbs``
+        storage_type: The storage type, e.g. ``pbs``
+        server: PBS server address (IP or DNS name)
+        datastore: The PBS datastore name
+        username: Auth id, e.g. ``pve@pbs!backup``
+        password: The PBS token secret
+        fingerprint: PBS TLS certificate fingerprint
+        content: Allowed content types (``backup`` for PBS)
+        present: Whether the storage should exist (True) or not (False)
+    """
+    storages = host.get_fact(PVEStorages, _sudo=True)
+    storage_info = storages.get(storage_id) if storages else None
+    is_present = storage_info is not None
+
+    if not present and is_present:
+        yield StringCommand("pvesm", "remove", QuoteString(storage_id))
+    elif present and not is_present:
+        yield StringCommand(
+            "pvesm", "add", QuoteString(storage_type), QuoteString(storage_id),
+            "--server", QuoteString(server),
+            "--datastore", QuoteString(datastore),
+            "--username", QuoteString(username),
+            "--password", QuoteString(HiddenValue(str(password))),
+            "--fingerprint", QuoteString(fingerprint),
+            "--content", QuoteString(content),
+        )
+    elif present and is_present:
+        # Reconcile non-secret fields; password is not diffable (see docstring).
+        desired = {
+            "server": server,
+            "datastore": datastore,
+            "username": username,
+            "fingerprint": fingerprint,
+            "content": content,
+        }
+        changed = {k: v for k, v in desired.items() if getattr(storage_info, k) != v}
+        if not changed:
+            host.noop(f"Storage '{storage_id}' already exists with the same configuration.")
+            return
+        cmd: list[str | QuoteString] = ["pvesm", "set", QuoteString(storage_id)]
+        for key, value in changed.items():
+            cmd.extend([f"--{key}", QuoteString(value)])
+        yield StringCommand(*cmd)
+    else:
+        host.noop(f"Storage '{storage_id}' does not exist and 'present' is False.")
+        return
+
+
+@operation()
+def backup_job(
+        job_id: str,
+        storage: str,
+        vmid: list[int],
+        schedule: str,
+        mode: PVEBackupMode = PVEBackupMode.SNAPSHOT,
+        notes_template: str | None = None,
+        prune_backups: str | None = None,
+        enabled: bool = True,
+        comment: str | None = None,
+        present: bool = True,
+):
+    """
+    Manage a scheduled vzdump backup job on a PVE host via ``pvesh`` against
+    ``/cluster/backup``, keyed on a stable ``job_id``.
+
+    Args:
+        job_id: Stable job id (pve-configid), e.g. ``pve-to-pbs``
+        storage: Target storage id, e.g. ``pbs``
+        vmid: Guests to back up (order-independent)
+        schedule: systemd-calendar schedule, e.g. ``02:00``
+        mode: Backup mode (snapshot/suspend/stop)
+        notes_template: Optional notes template, e.g. ``{{guestname}}``
+        prune_backups: Optional retention, e.g. ``keep-last=3,keep-daily=7``
+        enabled: Whether the job is enabled
+        comment: Optional job comment
+        present: Whether the job should exist (True) or not (False)
+    """
+    jobs = host.get_fact(PVEBackupJobs, _sudo=True)
+    job_info = jobs.get(job_id) if jobs else None
+    is_present = job_info is not None
+    vmid_str = ",".join(str(v) for v in sorted(vmid))
+
+    def add_flags(cmd: list[str | QuoteString]) -> None:
+        cmd.extend(["--storage", QuoteString(storage)])
+        cmd.extend(["--vmid", QuoteString(vmid_str)])
+        cmd.extend(["--schedule", QuoteString(schedule)])
+        cmd.extend(["--mode", str(mode)])
+        cmd.extend(["--enabled", str(int(enabled))])
+        if notes_template is not None:
+            cmd.extend(["--notes-template", QuoteString(notes_template)])
+        if prune_backups is not None:
+            cmd.extend(["--prune-backups", QuoteString(prune_backups)])
+        if comment is not None:
+            cmd.extend(["--comment", QuoteString(comment)])
+
+    if not present and is_present:
+        yield StringCommand("pvesh", "delete", QuoteString(f"/cluster/backup/{job_id}"))
+    elif present and not is_present:
+        cmd: list[str | QuoteString] = ["pvesh", "create", "/cluster/backup", "--id", QuoteString(job_id)]
+        add_flags(cmd)
+        yield StringCommand(*cmd)
+    elif present and is_present:
+        differs = (
+            job_info.storage != storage
+            or _norm_csv(job_info.vmid) != _norm_csv(vmid_str)
+            or job_info.schedule != schedule
+            or job_info.mode != mode
+            or job_info.enabled != enabled
+            or (notes_template is not None and job_info.notes_template != notes_template)
+            or (prune_backups is not None and _norm_csv(job_info.prune_backups) != _norm_csv(prune_backups))
+            or (comment is not None and job_info.comment != comment)
+        )
+        if not differs:
+            host.noop(f"Backup job '{job_id}' already exists with the same configuration.")
+            return
+        cmd = ["pvesh", "set", QuoteString(f"/cluster/backup/{job_id}")]
+        add_flags(cmd)
+        yield StringCommand(*cmd)
+    else:
+        host.noop(f"Backup job '{job_id}' does not exist and 'present' is False.")
         return

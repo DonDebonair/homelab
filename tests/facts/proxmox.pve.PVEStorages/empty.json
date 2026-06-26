@@ -1,0 +1,8 @@
+{
+  "command": "pvesh get /storage --output-format json",
+  "requires_command": "pvesh",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

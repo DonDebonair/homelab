@@ -17,6 +17,9 @@ from models.proxmox import (
     PVEContainerStatus,
     PVEContainerLock,
     PVEContainerSummary,
+    PVEStorageInfo,
+    PVEBackupMode,
+    PVEBackupJobInfo,
 )
 
 
@@ -304,3 +307,65 @@ class PVEContainer(FactBase[Union[PVEContainerConfig, None]]):
             return None
 
         return PVEContainerNetworkInterface(**net_config)
+
+
+class PVEStorages(FactBase[dict[str, PVEStorageInfo]]):
+
+    @override
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "pvesh"
+
+    @override
+    def command(self) -> str:
+        return "pvesh get /storage --output-format json"
+
+    @override
+    def process(self, output: list[str]) -> dict[str, PVEStorageInfo]:
+        storages_data = json.loads("\n".join(output))
+
+        storages = {}
+        for storage in storages_data:
+            storage_id = storage["storage"]
+            storages[storage_id] = PVEStorageInfo(
+                storage=storage_id,
+                type=storage["type"],
+                content=storage.get("content"),
+                server=storage.get("server"),
+                datastore=storage.get("datastore"),
+                username=storage.get("username"),
+                fingerprint=storage.get("fingerprint"),
+                disabled=bool(storage.get("disable", 0)),
+            )
+        return storages
+
+
+class PVEBackupJobs(FactBase[dict[str, PVEBackupJobInfo]]):
+
+    @override
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "pvesh"
+
+    @override
+    def command(self) -> str:
+        return "pvesh get /cluster/backup --output-format json"
+
+    @override
+    def process(self, output: list[str]) -> dict[str, PVEBackupJobInfo]:
+        jobs_data = json.loads("\n".join(output))
+
+        jobs = {}
+        for job in jobs_data:
+            job_id = job["id"]
+            jobs[job_id] = PVEBackupJobInfo(
+                id=job_id,
+                # `enabled` defaults to on when the property is absent.
+                enabled=bool(job.get("enabled", 1)),
+                schedule=job["schedule"],
+                storage=job["storage"],
+                vmid=job.get("vmid", ""),
+                mode=PVEBackupMode(job["mode"]),
+                notes_template=job.get("notes-template"),
+                prune_backups=job.get("prune-backups"),
+                comment=job.get("comment"),
+            )
+        return jobs

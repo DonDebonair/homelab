@@ -1,0 +1,29 @@
+{
+  "args": [
+    "pve-to-pbs",
+    "pbs",
+    [100, 101],
+    "02:00"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pve.PVEBackupJobs": {
+      "pve-to-pbs": {
+        "id": "pve-to-pbs",
+        "enabled": true,
+        "schedule": "02:00",
+        "storage": "pbs",
+        "vmid": "100,101",
+        "mode": "snapshot",
+        "notes_template": "{{guestname}}",
+        "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+        "comment": null
+      }
+    }
+  },
+  "commands": [
+    "pvesh delete /cluster/backup/pve-to-pbs"
+  ]
+}

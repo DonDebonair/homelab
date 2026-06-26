@@ -1,0 +1,30 @@
+{
+  "args": [
+    "pbs",
+    "pbs",
+    "192.168.1.51",
+    "synology",
+    "pve@pbs!backup",
+    "s3cr3t",
+    "AA:BB:CC:DD"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEStorages": {
+      "pbs": {
+        "storage": "pbs",
+        "type": "pbs",
+        "content": "backup",
+        "server": "192.168.1.51",
+        "datastore": "synology",
+        "username": "pve@pbs!backup",
+        "fingerprint": "AA:BB:CC:DD",
+        "disabled": false
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Storage 'pbs' already exists with the same configuration."
+}

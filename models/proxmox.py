@@ -185,3 +185,37 @@ class PBSDatastoreInfo:
     name: str
     path: str
     comment: str | None
+
+
+# --- PVE storage & backup jobs -----------------------------------------------
+
+
+@dataclass
+class PVEStorageInfo:
+    storage: str
+    type: str
+    content: str | None
+    server: str | None
+    datastore: str | None
+    username: str | None
+    fingerprint: str | None
+    disabled: bool
+
+
+class PVEBackupMode(StrEnum):
+    SNAPSHOT = "snapshot"
+    SUSPEND = "suspend"
+    STOP = "stop"
+
+
+@dataclass
+class PVEBackupJobInfo:
+    id: str
+    enabled: bool
+    schedule: str
+    storage: str
+    vmid: str
+    mode: PVEBackupMode
+    notes_template: str | None
+    prune_backups: str | None
+    comment: str | None

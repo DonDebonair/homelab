@@ -1,0 +1,31 @@
+{
+  "args": [
+    "pve-to-pbs",
+    "pbs",
+    [100, 101],
+    "03:30"
+  ],
+  "kwargs": {
+    "notes_template": "{{guestname}}",
+    "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+    "present": true
+  },
+  "facts": {
+    "pve.PVEBackupJobs": {
+      "pve-to-pbs": {
+        "id": "pve-to-pbs",
+        "enabled": true,
+        "schedule": "02:00",
+        "storage": "pbs",
+        "vmid": "100,101",
+        "mode": "snapshot",
+        "notes_template": "{{guestname}}",
+        "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+        "comment": null
+      }
+    }
+  },
+  "commands": [
+    "pvesh set /cluster/backup/pve-to-pbs --storage pbs --vmid 100,101 --schedule 03:30 --mode snapshot --enabled 1 --notes-template '{{guestname}}' --prune-backups keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2"
+  ]
+}
