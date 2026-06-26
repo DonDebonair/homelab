@@ -1,33 +1,34 @@
-from pathlib import Path
 import re
 
 from pyinfra import host
 from pyinfra.api import deploy
 from pyinfra.operations import apt, files, server
 
-files_dir = Path(__file__).resolve().parent / "files"
+PROXMOX_KEYRING = "/usr/share/keyrings/proxmox-archive-keyring.gpg"
 
 
 @deploy("Prepare Proxmox Host")
 def prepare_proxmox_host():
-    files.file(
+    apt.sources_file(
         name="Ensure Enterprise repository is removed",
-        path="/etc/apt/sources.list.d/pve-enterprise.sources",
+        filename="pve-enterprise",
         present=False,
     )
-    add_proxmox_repo = files.put(
-        name="Copy Proxmox VE no-subscription repository file",
-        src=str(files_dir / "proxmox.sources"),
-        dest="/etc/apt/sources.list.d/proxmox.sources",
-        mode=644,
-        create_remote_dir=False,
+    add_proxmox_repo = apt.sources_file(
+        name="Add Proxmox VE no-subscription repository",
+        filename="proxmox",
+        uris="http://download.proxmox.com/debian/pve",
+        suites="trixie",
+        components="pve-no-subscription",
+        signed_by=PROXMOX_KEYRING,
     )
-    add_ceph_repo = files.put(
-        name="Copy Ceph no-subscription repository file",
-        src=str(files_dir / "ceph.sources"),
-        dest="/etc/apt/sources.list.d/ceph.sources",
-        mode=644,
-        create_remote_dir=False
+    add_ceph_repo = apt.sources_file(
+        name="Add Ceph no-subscription repository",
+        filename="ceph",
+        uris="http://download.proxmox.com/debian/ceph-squid",
+        suites="trixie",
+        components="no-subscription",
+        signed_by=PROXMOX_KEYRING,
     )
     apt.update(
         name="Update APT package cache",

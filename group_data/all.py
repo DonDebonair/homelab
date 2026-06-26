@@ -7,5 +7,6 @@ home = f"/home/{user}"
 nas_ip = "192.168.1.21"
 proxmox_ip = "192.168.1.22"
 postgres_lxc_ip = "192.168.1.41"
+pbs_ip = "192.168.1.51"
 domain = "dv.zone"
 
