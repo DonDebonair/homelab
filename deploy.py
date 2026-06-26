@@ -8,6 +8,7 @@ from deploys.nas import docker_setup as nas_docker_setup, networking
 from deploys.proxmox_host import prepare_proxmox_host, users_and_groups, setup_lxc_containers, setup_networking, \
     setup_vms
 from deploys.postgres_lxc import users as postgres_users, setup_postgres, databases_and_users
+from deploys.pbs_vm import users as pbs_vm_users
 
 
 if "nas" in host.groups:
@@ -26,6 +27,9 @@ if "postgres_lxc" in host.groups:
 
 if "docker_vm" in host.groups:
     docker_vm_users()
+
+if "pbs_vm" in host.groups:
+    pbs_vm_users()
 
 if host.get_fact(LinuxName) == "Debian":
     common_debian_setup()

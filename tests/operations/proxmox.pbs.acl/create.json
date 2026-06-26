@@ -1,0 +1,17 @@
+{
+  "args": [
+    "/datastore/store1",
+    "DatastoreAdmin",
+    "backup@pbs"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {}
+  },
+  "commands": [
+    "proxmox-backup-manager acl update /datastore/store1 DatastoreAdmin --auth-id backup@pbs --propagate 1"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/",
+    "Admin",
+    "daan@pbs"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "propagate": true,
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {
+      "[\"/\", \"user\", \"daan@pbs\"]": {
+        "path": "/",
+        "propagate": true,
+        "role_id": "Admin",
+        "subject": "daan@pbs",
+        "type": "user"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "ACL for 'daan@pbs' on '/' already exists with the 'Admin' role and propagation."
+}

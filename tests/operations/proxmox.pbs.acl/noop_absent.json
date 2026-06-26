@@ -1,0 +1,16 @@
+{
+  "args": [
+    "/datastore/store1",
+    "DatastoreAudit",
+    "ghost@pbs"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "present": false
+  },
+  "facts": {
+    "pbs.PBSAcls": {}
+  },
+  "commands": [],
+  "noop_description": "ACL for 'ghost@pbs' on '/datastore/store1' does not exist and 'present' is False."
+}

@@ -1,0 +1,25 @@
+{
+  "args": [
+    "test@pbs"
+  ],
+  "kwargs": {
+    "enabled": true,
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSUsers": {
+      "test@pbs": {
+        "user_id": "test@pbs",
+        "enabled": true,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": null,
+        "comment": null,
+        "realm": "pbs"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "User 'test@pbs' already exists with the same attributes."
+}

@@ -1,0 +1,26 @@
+{
+  "args": [
+    "/",
+    "Admin",
+    "daan@pbs"
+  ],
+  "kwargs": {
+    "acl_type": "user",
+    "propagate": false,
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {
+      "[\"/\", \"user\", \"daan@pbs\"]": {
+        "path": "/",
+        "propagate": true,
+        "role_id": "Admin",
+        "subject": "daan@pbs",
+        "type": "user"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager acl update / Admin --auth-id daan@pbs --propagate 0"
+  ]
+}

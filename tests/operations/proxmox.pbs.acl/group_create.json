@@ -1,0 +1,17 @@
+{
+  "args": [
+    "/datastore/store1",
+    "DatastoreAudit",
+    "auditors"
+  ],
+  "kwargs": {
+    "acl_type": "group",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {}
+  },
+  "commands": [
+    "proxmox-backup-manager acl update /datastore/store1 DatastoreAudit --group auditors --propagate 1"
+  ]
+}

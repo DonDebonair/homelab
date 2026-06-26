@@ -1,0 +1,19 @@
+{
+  "args": [
+    "backup@pbs"
+  ],
+  "kwargs": {
+    "expire": 1893456000,
+    "firstname": "Backup",
+    "lastname": "Operator",
+    "email": "backup@example.io",
+    "comment": "VIP",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSUsers": {}
+  },
+  "commands": [
+    "proxmox-backup-manager user create backup@pbs --expire 1893456000 --firstname Backup --lastname Operator --email backup@example.io --comment VIP --enable 1"
+  ]
+}

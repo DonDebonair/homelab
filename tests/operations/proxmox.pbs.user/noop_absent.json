@@ -1,0 +1,13 @@
+{
+  "args": [
+    "ghost@pbs"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pbs.PBSUsers": {}
+  },
+  "commands": [],
+  "noop_description": "User 'ghost@pbs' does not exist and 'present' is False."
+}

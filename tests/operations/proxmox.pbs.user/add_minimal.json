@@ -1,0 +1,14 @@
+{
+  "args": [
+    "backup@pbs"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSUsers": {}
+  },
+  "commands": [
+    "proxmox-backup-manager user create backup@pbs --enable 1"
+  ]
+}

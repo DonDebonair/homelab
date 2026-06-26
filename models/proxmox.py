@@ -148,3 +148,33 @@ class PVEConsoleMode(StrEnum):
     CONSOLE = "console"
     SHELL = "shell"
     TTY = "tty"
+
+
+# --- Proxmox Backup Server (PBS) ---------------------------------------------
+
+
+@dataclass
+class PBSUserInfo:
+    user_id: str
+    enabled: bool
+    expire: int | None
+    firstname: str | None
+    lastname: str | None
+    email: str | None
+    comment: str | None
+    realm: str | None
+
+
+class PBSAclType(StrEnum):
+    USER = "user"
+    GROUP = "group"
+    TOKEN = "token"
+
+
+@dataclass
+class PBSAclInfo:
+    path: str
+    propagate: bool
+    role_id: str
+    subject: str
+    type: PBSAclType

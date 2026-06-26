@@ -1,0 +1,25 @@
+{
+  "args": [
+    "test@pbs"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pbs.PBSUsers": {
+      "test@pbs": {
+        "user_id": "test@pbs",
+        "enabled": true,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": null,
+        "comment": null,
+        "realm": "pbs"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager user remove test@pbs"
+  ]
+}

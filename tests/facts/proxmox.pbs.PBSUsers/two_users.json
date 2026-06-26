@@ -1,0 +1,29 @@
+{
+  "command": "proxmox-backup-manager user list --output-format json",
+  "requires_command": "proxmox-backup-manager",
+  "output": [
+    "[{\"comment\":\"This is a comment\",\"email\":\"test@example.com\",\"enable\":false,\"expire\":1783720800,\"firstname\":\"Test\",\"lastname\":\"User\",\"userid\":\"test@pbs\"},{\"comment\":\"This is the root user\",\"email\":\"pbs@daan.dv.email\",\"firstname\":\"Root\",\"lastname\":\"User\",\"userid\":\"root@pam\"}]"
+  ],
+  "fact": {
+    "test@pbs": {
+      "user_id": "test@pbs",
+      "enabled": false,
+      "expire": 1783720800,
+      "firstname": "Test",
+      "lastname": "User",
+      "email": "test@example.com",
+      "comment": "This is a comment",
+      "realm": "pbs"
+    },
+    "root@pam": {
+      "user_id": "root@pam",
+      "enabled": true,
+      "expire": null,
+      "firstname": "Root",
+      "lastname": "User",
+      "email": "pbs@daan.dv.email",
+      "comment": "This is the root user",
+      "realm": "pam"
+    }
+  }
+}

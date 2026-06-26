@@ -1,0 +1,8 @@
+{
+  "command": "proxmox-backup-manager acl list --output-format json",
+  "requires_command": "proxmox-backup-manager",
+  "output": [
+    "[]"
+  ],
+  "fact": {}
+}

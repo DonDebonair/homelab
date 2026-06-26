@@ -1,0 +1,23 @@
+{
+  "command": "proxmox-backup-manager acl list --output-format json",
+  "requires_command": "proxmox-backup-manager",
+  "output": [
+    "[{\"path\":\"/\",\"propagate\":true,\"roleid\":\"Admin\",\"ugid\":\"daan@pbs\",\"ugid_type\":\"user\"},{\"path\":\"/datastore/store1\",\"propagate\":false,\"roleid\":\"DatastoreAudit\",\"ugid\":\"auditors\",\"ugid_type\":\"group\"}]"
+  ],
+  "fact": {
+    "[\"/\", \"user\", \"daan@pbs\"]": {
+      "path": "/",
+      "propagate": true,
+      "role_id": "Admin",
+      "subject": "daan@pbs",
+      "type": "user"
+    },
+    "[\"/datastore/store1\", \"group\", \"auditors\"]": {
+      "path": "/datastore/store1",
+      "propagate": false,
+      "role_id": "DatastoreAudit",
+      "subject": "auditors",
+      "type": "group"
+    }
+  }
+}

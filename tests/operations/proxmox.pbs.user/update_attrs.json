@@ -1,0 +1,27 @@
+{
+  "args": [
+    "test@pbs"
+  ],
+  "kwargs": {
+    "enabled": true,
+    "email": "new@example.io",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSUsers": {
+      "test@pbs": {
+        "user_id": "test@pbs",
+        "enabled": false,
+        "expire": null,
+        "firstname": null,
+        "lastname": null,
+        "email": "old@example.io",
+        "comment": null,
+        "realm": "pbs"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager user update test@pbs --enable 1 --email new@example.io"
+  ]
+}
