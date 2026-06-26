@@ -1,0 +1,16 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "comment": "Synology iSCSI",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSDatastores": {}
+  },
+  "commands": [
+    "proxmox-backup-manager datastore create synology /mnt/synology --comment 'Synology iSCSI'"
+  ]
+}

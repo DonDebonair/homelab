@@ -1,7 +1,7 @@
 from pyinfra import host
 from pyinfra.api import HiddenValue, QuoteString, StringCommand, operation
 
-from facts.proxmox.pbs import PBSUsers, PBSAcls
+from facts.proxmox.pbs import PBSUsers, PBSAcls, PBSDatastores
 from models.proxmox import PBSAclType
 
 
@@ -129,5 +129,49 @@ def acl(
             return
     else:
         host.noop(f"ACL for '{subject}' on '{path}' does not exist and 'present' is False.")
+        return
+    yield StringCommand(*cmd)
+
+
+@operation()
+def datastore(
+        datastore_name: str,
+        path: str,
+        comment: str | None = None,
+        present: bool = True,
+):
+    """
+    Create or remove a Proxmox Backup Server datastore via
+    ``proxmox-backup-manager``.
+
+    Args:
+        datastore_name: The datastore name, e.g. ``synology``
+        path: The absolute path backing the datastore, e.g. ``/mnt/synology``
+        comment: Optional datastore comment (only set on creation)
+        present: Whether the datastore should exist (True) or not (False)
+    """
+    datastores = host.get_fact(PBSDatastores, _sudo=True)
+    datastore_info = datastores.get(datastore_name) if datastores else None
+    is_present = datastore_info is not None
+    cmd: list[str | QuoteString] = ["proxmox-backup-manager", "datastore"]
+
+    if not present and is_present:
+        cmd.extend(["remove", QuoteString(datastore_name)])
+    elif present and not is_present:
+        cmd.extend(["create", QuoteString(datastore_name), QuoteString(path)])
+        if comment:
+            cmd.extend(["--comment", QuoteString(comment)])
+    elif present and is_present:
+        # PBS does not support relocating a datastore in place; flag a mismatch
+        # rather than silently ignoring it.
+        if datastore_info.path != path:
+            raise ValueError(
+                f"Datastore '{datastore_name}' already exists at '{datastore_info.path}', "
+                f"which differs from the requested path '{path}'."
+            )
+        host.noop(f"Datastore '{datastore_name}' already exists at '{path}'.")
+        return
+    else:
+        host.noop(f"Datastore '{datastore_name}' does not exist and 'present' is False.")
         return
     yield StringCommand(*cmd)

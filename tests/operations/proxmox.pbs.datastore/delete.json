@@ -1,0 +1,21 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "pbs.PBSDatastores": {
+      "synology": {
+        "name": "synology",
+        "path": "/mnt/synology",
+        "comment": null
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager datastore remove synology"
+  ]
+}

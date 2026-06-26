@@ -1,0 +1,15 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSDatastores": {}
+  },
+  "commands": [
+    "proxmox-backup-manager datastore create synology /mnt/synology"
+  ]
+}

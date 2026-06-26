@@ -1,0 +1,15 @@
+{
+  "args": [
+    "iqn.2000-01.com.synology:DS923.Target-1.2c0d1f17e14",
+    "/mnt/synology"
+  ],
+  "kwargs": {},
+  "facts": {
+    "files.FindInFile": {
+      "extended_regex=False, interpolate_variables=False, path=/etc/fstab, pattern=/mnt/synology": []
+    }
+  },
+  "commands": [
+    "set -e\nmount_path='/mnt/synology'\nfs_type='ext4'\ntarget_iqn='iqn.2000-01.com.synology:DS923.Target-1.2c0d1f17e14'\ndevice=$(iscsiadm -m session -P 3 | awk -v t=\"$target_iqn\" '$1==\"Target:\"{cur=$2} cur==t && /Attached scsi disk/{for(i=1;i<=NF;i++) if($i==\"disk\") print \"/dev/\"$(i+1)}' | head -n1)\nif [ -z \"$device\" ]; then echo \"No iSCSI device found for $target_iqn\" >&2; exit 1; fi\npartition=\"${device}1\"\nuuid=$(blkid -s UUID -o value \"$partition\")\nif [ -z \"$uuid\" ]; then echo \"Could not determine UUID for $partition\" >&2; exit 1; fi\ncp /etc/fstab \"/etc/fstab.backup.$(date +%Y%m%d-%H%M%S)\"\nsed -i \"\\|[[:space:]]${mount_path}[[:space:]]|d\" /etc/fstab\necho \"UUID=${uuid} ${mount_path} ${fs_type} _netdev,nofail,x-systemd.device-timeout=30 0 2\" >> /etc/fstab\nmkdir -p \"$mount_path\"\nmountpoint -q \"$mount_path\" || mount \"$mount_path\""
+  ]
+}

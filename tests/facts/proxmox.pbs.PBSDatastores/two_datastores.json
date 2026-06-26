@@ -1,0 +1,19 @@
+{
+  "command": "proxmox-backup-manager datastore list --output-format json",
+  "requires_command": "proxmox-backup-manager",
+  "output": [
+    "[{\"name\":\"synology\",\"path\":\"/mnt/synology\",\"comment\":\"Synology iSCSI\"},{\"name\":\"local\",\"path\":\"/var/lib/proxmox-backup/local\"}]"
+  ],
+  "fact": {
+    "synology": {
+      "name": "synology",
+      "path": "/mnt/synology",
+      "comment": "Synology iSCSI"
+    },
+    "local": {
+      "name": "local",
+      "path": "/var/lib/proxmox-backup/local",
+      "comment": null
+    }
+  }
+}

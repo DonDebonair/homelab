@@ -1,0 +1,20 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSDatastores": {
+      "synology": {
+        "name": "synology",
+        "path": "/mnt/synology",
+        "comment": null
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Datastore 'synology' already exists at '/mnt/synology'."
+}

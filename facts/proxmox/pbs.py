@@ -7,6 +7,7 @@ from models.proxmox import (
     PBSUserInfo,
     PBSAclType,
     PBSAclInfo,
+    PBSDatastoreInfo,
 )
 
 
@@ -70,3 +71,28 @@ class PBSAcls(FactBase[dict[tuple[str, str, str], PBSAclInfo]]):
                 type=PBSAclType(acl["ugid_type"]),
             )
         return acls
+
+
+class PBSDatastores(FactBase[dict[str, PBSDatastoreInfo]]):
+
+    @override
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "proxmox-backup-manager"
+
+    @override
+    def command(self) -> str:
+        return "proxmox-backup-manager datastore list --output-format json"
+
+    @override
+    def process(self, output: list[str]) -> dict[str, PBSDatastoreInfo]:
+        datastores_data = json.loads("\n".join(output))
+
+        datastores = {}
+        for datastore in datastores_data:
+            name = datastore["name"]
+            datastores[name] = PBSDatastoreInfo(
+                name=name,
+                path=datastore["path"],
+                comment=datastore.get("comment"),
+            )
+        return datastores

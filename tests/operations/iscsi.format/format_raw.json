@@ -1,0 +1,15 @@
+{
+  "args": [
+    "iqn.2000-01.com.synology:DS923.Target-1.2c0d1f17e14",
+    "/mnt/synology"
+  ],
+  "kwargs": {},
+  "facts": {
+    "files.FindInFile": {
+      "extended_regex=False, interpolate_variables=False, path=/etc/fstab, pattern=/mnt/synology": []
+    }
+  },
+  "commands": [
+    "set -e\nfs_type='ext4'\ntarget_iqn='iqn.2000-01.com.synology:DS923.Target-1.2c0d1f17e14'\ndevice=$(iscsiadm -m session -P 3 | awk -v t=\"$target_iqn\" '$1==\"Target:\"{cur=$2} cur==t && /Attached scsi disk/{for(i=1;i<=NF;i++) if($i==\"disk\") print \"/dev/\"$(i+1)}' | head -n1)\nif [ -z \"$device\" ]; then echo \"No iSCSI device found for $target_iqn\" >&2; exit 1; fi\npartition=\"${device}1\"\nif blkid -s UUID -o value \"$partition\" >/dev/null 2>&1; then\n    echo \"$partition already has a filesystem; refusing to reformat\" >&2\n    exit 0\nfi\nparted \"$device\" --script mklabel gpt\nparted \"$device\" --script mkpart primary \"$fs_type\" 0% 100%\nudevadm settle || sleep 3\nmkfs.\"$fs_type\" \"$partition\""
+  ]
+}

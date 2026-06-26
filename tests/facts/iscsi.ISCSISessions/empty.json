@@ -1,0 +1,6 @@
+{
+  "command": "iscsiadm -m session -P 3 2> /dev/null || true",
+  "requires_command": "iscsiadm",
+  "output": [],
+  "fact": {}
+}

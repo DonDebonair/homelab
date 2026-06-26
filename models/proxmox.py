@@ -178,3 +178,10 @@ class PBSAclInfo:
     role_id: str
     subject: str
     type: PBSAclType
+
+
+@dataclass
+class PBSDatastoreInfo:
+    name: str
+    path: str
+    comment: str | None
