@@ -1,0 +1,21 @@
+[Unit]
+Description=macvlan shim so the host can reach Docker macvlan containers
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Recreate idempotently on every (re)start; the leading '-' ignores the
+# "interface does not exist" error on the very first run.
+ExecStartPre=-/usr/bin/ip link delete macvlan-shim
+ExecStart=/usr/bin/ip link add macvlan-shim link {{ parent }} type macvlan mode bridge
+ExecStart=/usr/bin/ip addr add {{ shim_ip }}/32 dev macvlan-shim
+ExecStart=/usr/bin/ip link set macvlan-shim up
+# Divert each macvlan container IP over the shim. A /32 is more specific than
+# the connected /24 on the parent, so normal LAN traffic is untouched.
+{% for ip in routes %}ExecStart=/usr/bin/ip route replace {{ ip }}/32 dev macvlan-shim
+{% endfor %}ExecStop=-/usr/bin/ip link delete macvlan-shim
+
+[Install]
+WantedBy=multi-user.target
