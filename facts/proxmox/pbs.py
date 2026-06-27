@@ -46,7 +46,7 @@ class PBSUsers(FactBase[dict[str, PBSUserInfo]]):
         return users
 
 
-class PBSAcls(FactBase[dict[tuple[str, str, str], PBSAclInfo]]):
+class PBSAcls(FactBase[dict[tuple[str, PBSAclType, str, str], PBSAclInfo]]):
 
     @override
     def requires_command(self, *args, **kwargs) -> str | None:
@@ -57,18 +57,32 @@ class PBSAcls(FactBase[dict[tuple[str, str, str], PBSAclInfo]]):
         return "proxmox-backup-manager acl list --output-format json"
 
     @override
-    def process(self, output: list[str]) -> dict[tuple[str, str, str], PBSAclInfo]:
+    def process(self, output: list[str]) -> dict[tuple[str, PBSAclType, str, str], PBSAclInfo]:
         acls_data = json.loads("\n".join(output))
 
         acls = {}
         for acl in acls_data:
-            key = (acl["path"], acl["ugid_type"], acl["ugid"])
+            path = acl["path"]
+            ugid = acl["ugid"]
+            role_id = acl["roleid"]
+            # PBS reports both users and API tokens with ugid_type "user"; a
+            # token is distinguished only by the "!" in its id (e.g.
+            # "pve@pbs!backup"). Derive TOKEN so it round-trips against the
+            # acl_type callers pass to the operation.
+            raw_type = acl["ugid_type"]
+            if raw_type == "user" and "!" in ugid:
+                acl_type = PBSAclType.TOKEN
+            else:
+                acl_type = PBSAclType(raw_type)
+            # `acl update` is additive: one auth-id can hold several roles on the
+            # same path, so the role is part of the key.
+            key = (path, acl_type, ugid, role_id)
             acls[key] = PBSAclInfo(
-                path=acl["path"],
+                path=path,
                 propagate=bool(acl["propagate"]),
-                role_id=acl["roleid"],
-                subject=acl["ugid"],
-                type=PBSAclType(acl["ugid_type"]),
+                role_id=role_id,
+                subject=ugid,
+                type=acl_type,
             )
         return acls
 

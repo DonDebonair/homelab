@@ -2,22 +2,29 @@
   "command": "proxmox-backup-manager acl list --output-format json",
   "requires_command": "proxmox-backup-manager",
   "output": [
-    "[{\"path\":\"/\",\"propagate\":true,\"roleid\":\"Admin\",\"ugid\":\"daan@pbs\",\"ugid_type\":\"user\"},{\"path\":\"/datastore/store1\",\"propagate\":false,\"roleid\":\"DatastoreAudit\",\"ugid\":\"auditors\",\"ugid_type\":\"group\"}]"
+    "[{\"path\":\"/\",\"propagate\":true,\"roleid\":\"Admin\",\"ugid\":\"daan@pbs\",\"ugid_type\":\"user\"},{\"path\":\"/datastore/store1\",\"propagate\":false,\"roleid\":\"DatastoreAudit\",\"ugid\":\"auditors\",\"ugid_type\":\"group\"},{\"path\":\"/datastore/synology\",\"propagate\":true,\"roleid\":\"DatastorePowerUser\",\"ugid\":\"pve@pbs!backup\",\"ugid_type\":\"user\"}]"
   ],
   "fact": {
-    "[\"/\", \"user\", \"daan@pbs\"]": {
+    "[\"/\", \"user\", \"daan@pbs\", \"Admin\"]": {
       "path": "/",
       "propagate": true,
       "role_id": "Admin",
       "subject": "daan@pbs",
       "type": "user"
     },
-    "[\"/datastore/store1\", \"group\", \"auditors\"]": {
+    "[\"/datastore/store1\", \"group\", \"auditors\", \"DatastoreAudit\"]": {
       "path": "/datastore/store1",
       "propagate": false,
       "role_id": "DatastoreAudit",
       "subject": "auditors",
       "type": "group"
+    },
+    "[\"/datastore/synology\", \"token\", \"pve@pbs!backup\", \"DatastorePowerUser\"]": {
+      "path": "/datastore/synology",
+      "propagate": true,
+      "role_id": "DatastorePowerUser",
+      "subject": "pve@pbs!backup",
+      "type": "token"
     }
   }
 }

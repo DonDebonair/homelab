@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/datastore/synology",
+    "DatastoreBackup",
+    "pve@pbs!backup"
+  ],
+  "kwargs": {
+    "acl_type": "token",
+    "present": false
+  },
+  "facts": {
+    "pbs.PBSAcls": {
+      "[\"/datastore/synology\", \"token\", \"pve@pbs!backup\", \"DatastoreBackup\"]": {
+        "path": "/datastore/synology",
+        "propagate": true,
+        "role_id": "DatastoreBackup",
+        "subject": "pve@pbs!backup",
+        "type": "token"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager acl update /datastore/synology DatastoreBackup --auth-id 'pve@pbs!backup' --delete"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/datastore/synology",
+    "DatastorePowerUser",
+    "pve@pbs!backup"
+  ],
+  "kwargs": {
+    "acl_type": "token",
+    "propagate": true,
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {
+      "[\"/datastore/synology\", \"token\", \"pve@pbs!backup\", \"DatastorePowerUser\"]": {
+        "path": "/datastore/synology",
+        "propagate": true,
+        "role_id": "DatastorePowerUser",
+        "subject": "pve@pbs!backup",
+        "type": "token"
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "ACL for 'pve@pbs!backup' on '/datastore/synology' already exists with the 'DatastorePowerUser' role and propagation."
+}

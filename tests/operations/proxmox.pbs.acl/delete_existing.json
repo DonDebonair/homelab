@@ -10,7 +10,7 @@
   },
   "facts": {
     "pbs.PBSAcls": {
-      "[\"/\", \"user\", \"daan@pbs\"]": {
+      "[\"/\", \"user\", \"daan@pbs\", \"Admin\"]": {
         "path": "/",
         "propagate": true,
         "role_id": "Admin",

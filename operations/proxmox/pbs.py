@@ -107,7 +107,11 @@ def acl(
         present: Whether the ACL should exist (True) or not (False)
     """
     acls = host.get_fact(PBSAcls, _sudo=True)
-    acl_info = acls.get((path, acl_type, subject)) if acls else None
+    # `acl update` is additive (a role is added alongside any existing roles for
+    # the auth-id on that path; PBS has no in-place role swap), so an ACL entry
+    # is identified by role too. A role change is therefore a delete of the old
+    # role plus a create of the new one, expressed as two operation calls.
+    acl_info = acls.get((path, acl_type, subject, role_id)) if acls else None
     is_present = acl_info is not None
     cmd: list[str | QuoteString] = ["proxmox-backup-manager", "acl", "update"]
     # PBS addresses users/tokens via --auth-id and groups via --group. acl_type
@@ -121,7 +125,8 @@ def acl(
         cmd.extend([QuoteString(path), QuoteString(role_id), subject_flag, QuoteString(subject),
                     "--propagate", str(int(propagate))])
     elif present and is_present:
-        if role_id != acl_info.role_id or propagate != acl_info.propagate:
+        # Same path/subject/role already present; only propagation can differ.
+        if propagate != acl_info.propagate:
             cmd.extend([QuoteString(path), QuoteString(role_id), subject_flag, QuoteString(subject),
                         "--propagate", str(int(propagate))])
         else:

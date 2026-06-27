@@ -1,0 +1,25 @@
+{
+  "args": [
+    "/datastore/synology",
+    "DatastorePowerUser",
+    "pve@pbs!backup"
+  ],
+  "kwargs": {
+    "acl_type": "token",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSAcls": {
+      "[\"/datastore/synology\", \"token\", \"pve@pbs!backup\", \"DatastoreBackup\"]": {
+        "path": "/datastore/synology",
+        "propagate": true,
+        "role_id": "DatastoreBackup",
+        "subject": "pve@pbs!backup",
+        "type": "token"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager acl update /datastore/synology DatastorePowerUser --auth-id 'pve@pbs!backup' --propagate 1"
+  ]
+}
