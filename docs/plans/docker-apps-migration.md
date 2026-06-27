@@ -2,11 +2,54 @@
 
 ## Context
 
-The homelab runs ~20 docker apps on the Synology NAS via the legacy Ansible
+The homelab runs 20 docker apps on the Synology NAS via the legacy Ansible
 `roles/docker-apps` role. We are migrating these onto the pyinfra-managed
-`docker_vm` host, app by app. This document covers the **first step**: standing
-up the **common scaffolding** for ordinary docker apps and porting **one** app —
-`dozzle` (a stateless docker log viewer) — end-to-end as the proving case.
+`docker_vm` host, app by app. The section below tracks **overall progress**; the
+rest of this document is the original write-up of the **first step** — standing
+up the **common scaffolding** for ordinary docker apps and porting `dozzle` (a
+stateless docker log viewer) end-to-end as the proving case.
+
+## Migration tracker
+
+20 apps in the Ansible `roles/docker-apps` role (source of truth:
+`roles/docker-apps/vars/main.yml`). **5 ported, 13 left to port, 2 won't be
+ported** (superseded/dropped). Ported apps live in
+`deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
+
+| App | Domain | Homepage group | Exposure | State / dependencies | Status |
+|-----|--------|----------------|----------|----------------------|--------|
+| dozzle | dozzle.dv.zone | Admin | internal | docker socket only (stateless) | ✅ Ported |
+| whoami | whoami.dv.zone | — | external | none (stateless) | ✅ Ported |
+| miniflux | rss.dv.zone | Bookmarks | external | postgres `miniflux`, OIDC | ✅ Ported |
+| paperless | docs.dv.zone | Office | internal | postgres `paperless`, redis/tika/gotenberg sidecars, external named vols, OIDC, secrets | ✅ Ported |
+| homepage | home.dv.zone | — | internal | bind-mount config + docker socket; `homepage.*` labels drive the dashboard | ✅ Ported |
+| pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin/{data,config}` vols (uid/gid 5050), `config_local.py` template, OIDC | ⬜ To port |
+| portainer | docker.dv.zone | Admin | internal | `portainer` vol, docker socket | ⬜ To port |
+| tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol | ⬜ To port |
+| overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
+| sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol | ⬜ To port |
+| qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol | ⬜ To port |
+| forgejo | git.dv.zone | Development | internal | postgres `forgejo`, `forgejo` vol | ⬜ To port |
+| nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
+| n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
+| pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat/config` vol | ⬜ To port |
+| stash | xxx.dv.zone | — | internal | 6 vols (config/data/metadata/cache/blobs/generated) | ⬜ To port |
+| cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa/{config,ingest,calibre-library}` vols | ⬜ To port |
+| cwa-dl | books-dl.dv.zone | Entertainment | internal | none (stateless) | ⬜ To port |
+| pihole | — | Admin | — | **superseded** by the Technitium DNS migration (already on docker_vm) — not ported | 🚫 Won't port |
+| watchtower | — | — | — | auto-updater; to be dropped in favour of Renovate-driven version bumps | 🚫 Won't port |
+
+Notes:
+- **Postgres-backed apps** (`forgejo`, `nocodb`, `n8n`, plus the done `miniflux`/`paperless`)
+  target the `postgres_lxc` instead of the NAS's in-compose `postgres-db`. Each
+  needs its DB/user provisioned there and a `secrets.py` entry for the password.
+- **OIDC apps** (`pgadmin`, plus done `miniflux`/`paperless`) need an Authelia
+  client + redirect registered in `deploys/docker_vm/proxies/vars.py`.
+- When porting each app, add its `homepage.*` labels (group/name/icon/href/weight,
+  and a `homepage.widget.key` from 1Password where a widget applies) so it
+  self-registers on the homepage dashboard.
+- `exposure: external` apps join `caddy-external` and must already be in the
+  cloudflared ingress; `internal` apps join `caddy-internal` behind Authelia.
 
 Most of the heavy lifting already exists and is **reused, not rebuilt**:
 
@@ -132,11 +175,12 @@ included so every app template stays uniform.
 
 - **Removing dozzle from the NAS / Ansible `roles/docker-apps`.** Leave it running
   there until the docker_vm instance is verified; decommissioning is a follow-up.
-- **Homepage labels (`homepage.*`).** The NAS dozzle template carries them, but
-  `homepage` isn't on docker_vm yet, so they'd be inert. Add when homepage lands.
-- **The other ~17 apps.** Stateful ones (named volumes, postgres DB users,
-  secrets) will exercise more of the scaffolding (`NamedVolume(external=True)`,
-  `TemplateFile`, the postgres network, `secrets.py`).
+- **Homepage labels (`homepage.*`).** *(Resolved — homepage has since landed;
+  dozzle's labels were added with it. New apps add their own labels as they're
+  ported — see the Migration tracker notes.)*
+- **The other apps.** Tracked in the **Migration tracker** above. Stateful ones
+  (named volumes, postgres DB users, secrets) exercise more of the scaffolding
+  (`NamedVolume(external=True)`, `TemplateFile`, the postgres network, `secrets.py`).
 
 ## Verification
 
