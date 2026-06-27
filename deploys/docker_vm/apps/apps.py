@@ -14,4 +14,10 @@ apps = [
         image="traefik/whoami",
         version="v1.11.0",
     ),
+    ComposeApp(
+        name="miniflux",
+        image="miniflux/miniflux",
+        version="2.3.2",
+        domain="rss.dv.zone",
+    ),
 ]

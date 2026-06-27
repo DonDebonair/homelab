@@ -12,6 +12,15 @@ main_network_interface = "ens18"
 internal_reverse_proxy_ip = "192.168.50.20"
 external_reverse_proxy_ip = "192.168.50.21"
 dns_ip = "192.168.50.30"
+# Host's address on the macvlan-shim interface (lets the host reach the
+# macvlan-only containers). Must be a free LAN IP, ideally outside the router's
+# DHCP pool.
+macvlan_shim_ip = "192.168.50.11"
+# macvlan container IPs the host must reach via the shim (host-side /32 routes).
+# These services live only on the macvlan network, so without the shim the host
+# -- and bridge containers routing through it -- get "no route to host" when an
+# internal name (e.g. auth.dv.zone -> .21) resolves to one of them.
+macvlan_shim_routes = [internal_reverse_proxy_ip, external_reverse_proxy_ip, dns_ip]
 
 extra_proxied_domains = [
     {"domain": "tv.dv.zone",       "port": 8989},

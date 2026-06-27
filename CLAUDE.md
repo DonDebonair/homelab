@@ -59,6 +59,15 @@ Layered, reusable extensions to pyinfra live at the repo root:
 - `deploys/<group>/<feature>/__init__.py` — `@deploy`-decorated entry functions that compose pyinfra operations (built-in + custom) into a feature. Re-exported through `deploys/<group>/__init__.py` so `deploy.py` can import them by name.
 - `group_data/` — per-group host variables; pyinfra auto-loads these by group name. `group_data/all.py` is the global default.
 
+### Docker image versioning
+
+**Every container image must be pinned to an explicit version — never `:latest` or untagged.**
+
+- For compose services, pinning is enforced through the **required `image` and `version` fields on `ComposeApp`** (`deploys/common/docker_compose/models.py`). They have no defaults, so a new app can't be constructed without them. The compose template renders the image as `image: [[ app.image ]]:[[ app.version ]]` — do not hardcode an image/tag in a template.
+- The version literal lives on the `ComposeApp` in the group's `apps.py`, co-located with the app. **Exception:** `caddy_version` stays in `deploys/docker_vm/proxies/vars.py` because the custom-image *build* (`docker.build`) needs the same value; `apps.py` imports it so there's still one source of truth.
+- **Secondary images** (a sidecar like authelia's `redis`, which the single-image `ComposeApp` can't express) and **non-compose images** (`docker.plugin`, `docker.build` base images) are pinned inline where they're declared. Note the loki log-driver plugin uses an **arch-suffixed** tag (`grafana/loki-docker-driver:<ver>-amd64`) because it publishes no multi-arch tag.
+- To bump a version: change the `version` field (or the inline tag), then redeploy. Look up the current tag on the registry rather than guessing. Automating bumps with Renovate is planned once all apps are migrated off Ansible onto the docker_vm.
+
 ### Testing (pyinfra facts & operations)
 
 Custom facts and operations are tested **exclusively** through the `pyinfra-testing` harness as data-driven JSON cases — **not** hand-written `unittest`/pytest functions. **Any new fact or operation (or change to one) must ship with harness cases.**

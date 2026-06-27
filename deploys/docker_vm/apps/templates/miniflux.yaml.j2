@@ -1,0 +1,42 @@
+services:
+  miniflux:
+    container_name: miniflux
+    image: [[ app.image ]]:[[ app.version ]]
+    networks:
+      - caddy-external
+    environment:
+      DATABASE_URL: postgres://miniflux:[[ miniflux_db_password ]]@[[ host.data.postgres_lxc_ip ]]:5432/miniflux?sslmode=disable
+      BASE_URL: https://[[ app.domain ]]
+      RUN_MIGRATIONS: 1
+      LOG_FORMAT: json
+      LOG_DATE_TIME: 1
+      POLLING_FREQUENCY: 15
+      CLEANUP_ARCHIVE_UNREAD_DAYS: -1
+      CLEANUP_ARCHIVE_READ_DAYS: -1
+      METRICS_COLLECTOR: 1
+      METRICS_ALLOWED_NETWORKS: '127.0.0.1/8,172.0.0.1/8'
+      OAUTH2_PROVIDER: oidc
+      OAUTH2_CLIENT_ID: miniflux
+      OAUTH2_CLIENT_SECRET: [[ miniflux_oidc_client_secret ]]
+      OAUTH2_REDIRECT_URL: https://[[ app.domain ]]/oauth2/oidc/callback
+      OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.[[ host.data.domain ]]
+      OAUTH2_USER_CREATION: 1
+      SCHEDULER_ROUND_ROBIN_MIN_INTERVAL: 15
+    labels:
+      caddy_external: [[ app.domain ]]
+      caddy_external.reverse_proxy: "{{upstreams 8080}}"
+      homepage.group: Bookmarks
+      homepage.name: Miniflux
+      homepage.icon: miniflux
+      homepage.href: https://[[ app.domain ]]
+      homepage.widget.type: miniflux
+      homepage.widget.url: https://[[ app.domain ]]
+      homepage.widget.key: "secret"
+      homepage.weight: 1000
+    expose:
+      - 8080
+    restart: unless-stopped
+
+networks:
+  caddy-external:
+    external: true
