@@ -1,0 +1,105 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  paperless-redis:
+    container_name: paperless-redis
+    image: redis:7.4.9
+    networks:
+      - paperless
+    volumes:
+      - paperless-redis:/data
+    restart: unless-stopped
+
+  paperless-gotenberg:
+    container_name: paperless-gotenberg
+    image: gotenberg/gotenberg:8.34.0
+    networks:
+      - paperless
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=true"
+      - "--chromium-allow-list=file:///tmp/.*"
+    restart: unless-stopped
+
+  paperless-tika:
+    container_name: paperless-tika
+    image: apache/tika:3.3.1.0-full
+    networks:
+      - paperless
+    restart: unless-stopped
+
+  paperless:
+    container_name: paperless
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      - paperless-redis
+      - paperless-gotenberg
+      - paperless-tika
+    networks:
+      - caddy-internal
+      - paperless
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - [[ host.data.docker_volumes_base ]]/paperless/export:/usr/src/paperless/export
+      - [[ host.data.docker_volumes_base ]]/paperless/consume:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_DBHOST: [[ host.data.postgres_lxc_ip ]]
+      PAPERLESS_DBPORT: 5432
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: [[ paperless_db_password ]]
+      PAPERLESS_DBSSLMODE: disable
+      PAPERLESS_SECRET_KEY: [[ paperless_secret_key ]]
+      PAPERLESS_URL: https://[[ app.domain ]]
+      PAPERLESS_TIME_ZONE: Europe/Amsterdam
+      PAPERLESS_OCR_LANGUAGE: nld
+      PAPERLESS_OCR_LANGUAGES: nld eng fra deu
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_ENDPOINT: http://paperless-tika:9998
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless-gotenberg:3000
+      USERMAP_UID: [[ host.data.docker_uid ]]
+      USERMAP_GID: [[ host.data.docker_gid ]]
+      PAPERLESS_CONSUMER_ENABLE_BARCODES: "true"
+      PAPERLESS_CONSUMER_ENABLE_ASN_BARCODE: "true"
+      PAPERLESS_OCR_ROTATE_PAGES: "false"
+      PAPERLESS_TASK_WORKERS: 2
+      # SSO via Authelia (client + redirect already registered in proxies/vars.py)
+      PAPERLESS_APPS: allauth.socialaccount.providers.openid_connect
+      PAPERLESS_SOCIALACCOUNT_PROVIDERS: '{"openid_connect":{"SCOPE":["openid","profile","email"],"OAUTH_PKCE_ENABLED":true,"APPS":[{"provider_id":"authelia","name":"Authelia","client_id":"paperless","secret":"[[ paperless_oidc_client_secret ]]","settings":{"server_url":"https://auth.[[ host.data.domain ]]","token_auth_method":"client_secret_basic"}}]}}'
+      PAPERLESS_DISABLE_REGULAR_LOGIN: "true"
+      PAPERLESS_REDIRECT_LOGIN_TO_SSO: "true"
+      PAPERLESS_SOCIALACCOUNT_EMAIL_AUTHENTICATION: "true"
+      # Gmail OAuth for the mail-fetching feature (re-authorize the mail account
+      # once in the UI after migration: the NAS used the default secret key, so
+      # tokens encrypted under it won't decrypt against the new secret key).
+      PAPERLESS_GMAIL_OAUTH_CLIENT_ID: [[ paperless_gmail_oauth_client_id ]]
+      PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET: [[ paperless_gmail_oauth_client_secret ]]
+      # Carried verbatim from the NAS deploy -- review post-migration if needed.
+      PAPERLESS_FILENAME_FORMAT: |
+        {% if "Business" in custom_fields %}
+          {{ custom_fields.Business.value }}/
+        {% else %}
+          prive/
+        {% endif %}
+        {{ created_year }}/{{ document_type }}/{{ created }} - {{ correspondent }} - {{ title }}
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8000}}"
+      homepage.group: Office
+      homepage.name: Paperless-ngx
+      homepage.icon: paperless-ngx
+      homepage.href: https://[[ app.domain ]]
+      homepage.widget.type: paperlessngx
+      homepage.widget.url: https://[[ app.domain ]]
+      homepage.weight: 1000
+    expose:
+      - 8000
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  paperless:
+    driver: bridge
+[[ vol.top_level_volumes(app) ]]
