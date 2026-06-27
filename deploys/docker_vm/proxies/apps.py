@@ -1,6 +1,7 @@
 from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVolume, TemplateFile
 from deploys.docker_vm.proxies.vars import (
     cloudflare_tunnel_id,
+    caddy_version,
     CLOUDFLARE_UID,
     CLOUDFLARE_GID,
 )
@@ -10,6 +11,8 @@ DOCKER_SOCKET = BindMount(source="/var/run/docker.sock", mount_path="/var/run/do
 apps = [
     ComposeApp(
         name="caddy-internal",
+        image="caddy-custom",
+        version=caddy_version,
         volumes=[
             DOCKER_SOCKET,
             NamedVolume(name="caddy-internal-data", mount_path="/data", external=True),
@@ -17,6 +20,8 @@ apps = [
     ),
     ComposeApp(
         name="caddy-external",
+        image="caddy-custom",
+        version=caddy_version,
         volumes=[
             DOCKER_SOCKET,
             NamedVolume(name="caddy-external-data", mount_path="/data", external=True),
@@ -24,6 +29,8 @@ apps = [
     ),
     ComposeApp(
         name="authelia",
+        image="authelia/authelia",
+        version="4.39.20",
         volumes=[
             BindMount(source="authelia/config", mount_path="/config"),
             NamedVolume(name="redis-data", mount_path="/data"),
@@ -44,6 +51,8 @@ apps = [
     ),
     ComposeApp(
         name="cloudflared",
+        image="cloudflare/cloudflared",
+        version="2026.6.1",
         volumes=[
             BindMount(
                 source="cloudflared",

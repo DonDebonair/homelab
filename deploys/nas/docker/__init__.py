@@ -62,7 +62,7 @@ def docker_setup():
     )
     docker.plugin(
         name="Install Loki plugin",
-        plugin="grafana/loki-docker-driver:latest",
+        plugin="grafana/loki-docker-driver:3.7.2-amd64",
         alias="loki",
         enabled=True,
     )

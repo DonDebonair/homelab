@@ -51,6 +51,8 @@ class TemplateFile:
 @dataclass
 class ComposeApp:
     name: str
+    image: str
+    version: str
     domain: str | None = None
     volumes: list[BindMount | NamedVolume] | None = None
     files: list[TemplateFile] | None = None

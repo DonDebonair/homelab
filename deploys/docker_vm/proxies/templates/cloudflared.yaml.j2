@@ -1,7 +1,7 @@
 [%- import '_volumes.j2' as vol with context -%]
 services:
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: [[ app.image ]]:[[ app.version ]]
     container_name: cloudflared
     command: tunnel --no-autoupdate run
     networks:

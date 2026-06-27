@@ -178,3 +178,6 @@ pyrightconfig.json
 *.swp
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# Claude Code personal settings
+.claude/settings.local.json

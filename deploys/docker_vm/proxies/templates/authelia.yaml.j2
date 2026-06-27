@@ -2,7 +2,7 @@
 services:
   authelia:
     container_name: authelia
-    image: authelia/authelia:latest
+    image: [[ app.image ]]:[[ app.version ]]
     restart: unless-stopped
     depends_on:
       - redis
@@ -32,7 +32,7 @@ services:
       dns.[[ host.data.domain ]]: "[[ host.data.internal_reverse_proxy_ip ]]"
 
   redis:
-    image: redis:7
+    image: redis:7.4.9
     networks:
       - authelia
     restart: unless-stopped

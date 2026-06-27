@@ -2,7 +2,7 @@
 services:
   dozzle:
     container_name: dozzle
-    image: amir20/dozzle:latest
+    image: [[ app.image ]]:[[ app.version ]]
     volumes:[[ vol.service_volumes(app) ]]
     networks:
       - caddy-internal

@@ -1,7 +1,7 @@
 [%- import '_volumes.j2' as vol with context -%]
 services:
   technitium-dns:
-    image: technitium/dns-server:[[ technitium_version ]]
+    image: [[ app.image ]]:[[ app.version ]]
     container_name: technitium-dns
     hostname: technitium-dns
     networks:

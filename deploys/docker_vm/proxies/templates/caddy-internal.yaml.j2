@@ -1,7 +1,7 @@
 [%- import '_volumes.j2' as vol with context -%]
 services:
   caddy-internal:
-    image: caddy-custom:[[ caddy_version ]]
+    image: [[ app.image ]]:[[ app.version ]]
     container_name: caddy-internal
     environment:
       - CADDY_INGRESS_NETWORKS=caddy-internal

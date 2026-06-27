@@ -1,6 +1,6 @@
 services:
   loki:
-    image: grafana/loki:[[ loki_version ]]
+    image: [[ app.image ]]:[[ app.version ]]
     container_name: loki
     command: -config.file=/etc/loki/loki-config.yaml
     environment:

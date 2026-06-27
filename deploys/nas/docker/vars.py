@@ -1,1 +1,1 @@
-loki_version = "3.1.0"
+# Image versions are pinned on each ComposeApp in apps.py (image/version fields).

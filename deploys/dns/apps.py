@@ -3,6 +3,8 @@ from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVol
 apps = [
     ComposeApp(
         name="technitium-dns",
+        image="technitium/dns-server",
+        version="15.2.0",
         volumes=[
             NamedVolume(name="technitium-dns-config", mount_path="/etc/dns", external=True),
             NamedVolume(name="technitium-dns-logs", mount_path="/var/log/technitium/dns"),
