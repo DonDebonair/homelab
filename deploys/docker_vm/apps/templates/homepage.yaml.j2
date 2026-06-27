@@ -1,0 +1,27 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  homepage:
+    container_name: homepage
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: [[ app.domain ]]
+    networks:
+      # On both proxy networks so its widgets/site-monitors can reach apps
+      # exposed on either; discovery itself is via the docker socket.
+      - caddy-internal
+      - caddy-external
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3000}}"
+      caddy_internal.import: secure *
+    expose:
+      - 3000
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  caddy-external:
+    external: true
+[[ vol.top_level_volumes(app) ]]

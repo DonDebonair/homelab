@@ -12,6 +12,11 @@ services:
       caddy_internal: dozzle.[[ host.data.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 8080}}"
       caddy_internal.import: secure *
+      homepage.group: Admin
+      homepage.name: Dozzle
+      homepage.icon: dozzle
+      homepage.href: https://dozzle.[[ host.data.domain ]]
+      homepage.weight: 3000
     expose:
       - 8080
     restart: unless-stopped
