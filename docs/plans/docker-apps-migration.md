@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **5 ported, 13 left to port, 2 won't be
+`roles/docker-apps/vars/main.yml`). **6 ported, 12 left to port, 2 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -29,7 +29,7 @@ ported** (superseded/dropped). Ported apps live in
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol | ⬜ To port |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol | ⬜ To port |
-| forgejo | git.dv.zone | Development | internal | postgres `forgejo`, `forgejo` vol | ⬜ To port |
+| forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
 | n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
 | pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat/config` vol | ⬜ To port |

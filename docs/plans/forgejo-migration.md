@@ -220,7 +220,8 @@ dig +short git.dv.zone @192.168.50.30   # expect 192.168.50.20
 - **Container up:** `docker ps` shows `forgejo` on `caddy-internal`; logs show a
   clean startup, schema migration as a no-op, SSH server listening on `:22`.
 - **DB restored:** repos/users/issues counts match the NAS (spot-check via the UI
-  or `docker exec forgejo forgejo admin user list`).
+  or `docker exec -u git forgejo forgejo admin user list` — `-u git` because Forgejo
+  refuses to run admin commands as root).
 - **HTTPS:** `curl -sI https://git.dv.zone/` → 200 with a valid public cert; web UI
   loads; clone over `https://git.dv.zone/...` works.
 - **git-over-SSH:** `ssh -T -p 22 git@git.dv.zone` returns Forgejo's greeting;
@@ -244,7 +245,43 @@ dig +short git.dv.zone @192.168.50.30   # expect 192.168.50.20
 - Update the [docker-apps-migration.md](docker-apps-migration.md) tracker
   (forgejo → ✅ Ported).
 
+## Upgrade to v15 (post-migration, 8.0.3 → 15.0.3)
+
+Done as a follow-up after the migration settled. Target **v15.0.3** — latest stable
+and an LTS (supported to 2027-07). Forgejo officially supports skipping majors
+(cumulative migrations); 15.0.3 ships the *fixed* versions of every migration, so
+the known runtime bugs in intermediate binaries (v13.0.0 Postgres `secret`-table
+corruption, v10 TOTP migration failure) never execute on a direct jump.
+
+**Breaking changes that actually touch this stack** (the rest don't, because the
+template sets a minimal env config and omits the homepage widget token):
+- **v15 cookie rename → forced re-login.** Harmless; all users log in once more.
+  Suppress with `FORGEJO__security__COOKIE_REMEMBER_NAME=gitea_incredible` if wanted.
+- **v14+ SSH `authorized_keys` startup validation.** From v14 on, Forgejo validates
+  `/data/git/.ssh/authorized_keys` at boot and **halts** if it finds keys it didn't
+  write. Ours is Forgejo-generated (from the DB) so it should pass; if the container
+  fails to boot complaining about authorized_keys, delete that file (Forgejo
+  recreates it from the DB) and restart — `docker exec -u git forgejo forgejo admin regenerate keys`.
+- **v11 `USE_COMPAT_SSH_URI` default flips to `true`** → clone URLs *display* as
+  `ssh://git@git.dv.zone/...` instead of scp-style. Cosmetic (existing remotes keep
+  working). Set `FORGEJO__server__SSH_DOMAIN` is unaffected; add
+  `FORGEJO__repository__USE_COMPAT_SSH_URI=false` only if you want the old display.
+
+Not affected: Authelia OIDC login source and LFS have **no** breaking changes
+v9→v15; PostgreSQL floor stays at 12 (PG17 fine).
+
+**Runbook:**
+```bash
+# 1. Back up first — DB dump (clean, no -t) + the /data volume snapshot
+docker exec postgres ... pg_dump ...        # or rely on PBS / the still-intact NAS copy
+# 2. Bump the version in apps.py (8.0.3 -> 15.0.3) -- done -- and redeploy
+uv run pyinfra inventory.py --limit docker_vm deploy.py
+# 3. Watch the migration run on first boot
+ssh daan@192.168.50.10 'docker logs -f forgejo'   # expect cumulative migrations, then Listen :3000
+# 4. Re-verify: web UI (re-login via SSO), git-over-SSH clone, repos present.
+#    If boot halts on authorized_keys -> delete /data/git/.ssh/authorized_keys, restart.
+```
+
 ## Out of scope
 
-- The Forgejo major-version upgrade (9/10/11…) — separate change after the move.
 - Forgejo Actions runners — none configured on the NAS; not part of this port.
