@@ -1,0 +1,44 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  forgejo:
+    container_name: forgejo
+    image: [[ app.image ]]:[[ app.version ]]
+    networks:
+      - caddy-internal
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      USER_UID: [[ host.data.docker_uid ]]
+      USER_GID: [[ host.data.docker_gid ]]
+      # DB on the postgres_lxc over the LAN (env overrides the migrated app.ini).
+      FORGEJO__database__DB_TYPE: postgres
+      FORGEJO__database__HOST: [[ host.data.postgres_lxc_ip ]]:5432
+      FORGEJO__database__NAME: forgejo
+      FORGEJO__database__USER: forgejo
+      FORGEJO__database__PASSWD: [[ forgejo_db_password ]]
+      FORGEJO__database__SSL_MODE: disable
+      FORGEJO__server__ROOT_URL: https://[[ app.domain ]]/
+      FORGEJO__server__DOMAIN: [[ app.domain ]]
+      # git-over-SSH passthrough: the image's sshd listens on container port 22,
+      # reached via the caddy-internal layer4 route (:22 -> forgejo:22). SSH_PORT
+      # is the port Forgejo advertises in clone URLs (git@git.dv.zone:user/repo).
+      FORGEJO__server__SSH_DOMAIN: [[ app.domain ]]
+      FORGEJO__server__SSH_PORT: "22"
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3000}}"
+      homepage.group: Development
+      homepage.name: Forgejo
+      homepage.icon: forgejo
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 1000
+      # homepage gitea widget omitted: it needs an API token. Regenerate one
+      # post-migration and add homepage.widget.{type=gitea,url,key} if wanted.
+    expose:
+      - 3000
+      - 22
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

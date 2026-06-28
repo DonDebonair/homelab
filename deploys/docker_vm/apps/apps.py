@@ -40,6 +40,22 @@ apps = [
         domain="rss.dv.zone",
     ),
     ComposeApp(
+        name="forgejo",
+        image="codeberg.org/forgejo/forgejo",
+        # Latest 8.x patch: migrate on the same major as the NAS (`:8`) so the
+        # startup schema migration is a no-op against the carried-over DB. A
+        # major bump is a separate change -- see docs/plans/forgejo-migration.md.
+        version="8.0.3",
+        domain="git.dv.zone",
+        volumes=[
+            # Git repositories + LFS + gitea/conf/app.ini (SECRET_KEY,
+            # INTERNAL_TOKEN, OAUTH2_JWT_SECRET, LFS_JWT_SECRET) -- the
+            # highest-recovery-cost state in the homelab, so external=True keeps
+            # `down -v` from ever wiping it.
+            NamedVolume(name="forgejo-data", mount_path="/data", external=True),
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",
