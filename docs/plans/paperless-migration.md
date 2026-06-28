@@ -111,6 +111,27 @@ dig +short docs.dv.zone @192.168.50.30   # expect 192.168.50.20
   still mints access tokens. (So the SECRET_KEY/encrypted-mail-token concern did not
   apply to paperless-ngx mail accounts.)
 
+## Scanner -> consume folder over SMB (2026-06-28)
+
+The Brother MFC-L8690CDW scanned straight into the consume folder when Paperless
+ran on the NAS (via a Synology SMB share + a dedicated printer account, configured
+in DSM, never codified here). Reproduced on docker_vm with a host-level Samba
+share, managed by `deploys/docker_vm/samba/` (wired into `deploy.py`):
+
+- Installs `samba`, creates a no-login `scanner` system account for SMB auth, and
+  templates `/etc/samba/smb.conf` with a single `[paperless-consume]` share
+  pointing at `/srv/docker/volumes/paperless/consume`.
+- `force user`/`force group = dockerlimited` so every scan lands owned by the
+  Paperless consumer (USERMAP_UID/GID 2000) and gets read + deleted normally.
+- SMB password comes from 1Password
+  (`op://Homelab/Paperless secrets/Brother Scanner/password`) and is set
+  idempotently (only when the passdb entry is missing).
+
+**Printer config (Scan to Network / CIFS):** Host `192.168.50.10`, share/path
+`paperless-consume`, user `scanner`, the password above, SMBv2/3. If the panel
+ever rejects SMB2, the model only does SMB1 on some firmwares — lower
+`server min protocol` to `NT1` as a last resort (insecure; LAN only).
+
 ## Follow-ups
 
 - Clean the leftover import dump from the export bind mount:

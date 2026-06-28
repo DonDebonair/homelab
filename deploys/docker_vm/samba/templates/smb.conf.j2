@@ -1,0 +1,37 @@
+# Managed by pyinfra -- do not edit by hand.
+# Exposes the Paperless consume inbox over SMB so the Brother scanner can drop
+# scans straight into it. See deploys/docker_vm/samba/__init__.py.
+[global]
+   workgroup = WORKGROUP
+   server string = Docker VM (%h)
+   server role = standalone server
+   security = user
+   passdb backend = tdbsam
+   map to guest = never
+   # Brother MFC-L8690CDW speaks SMB2/3; refuse the legacy, insecure SMB1.
+   server min protocol = SMB2
+   # We connect by IP, so NetBIOS name resolution (nmbd) is unnecessary.
+   disable netbios = yes
+   # This box is not a print server.
+   load printers = no
+   printing = bsd
+   printcap name = /dev/null
+   disable spoolss = yes
+   logging = file
+   log file = /var/log/samba/log.%m
+   max log size = 1000
+
+[{{ share_name }}]
+   comment = Paperless consume inbox
+   path = {{ consume_path }}
+   browseable = yes
+   read only = no
+   valid users = {{ scanner_user }}
+   # Whoever authenticates, write to the filesystem as the Paperless app user so
+   # the consumer (USERMAP_UID/GID) can read and delete what the scanner drops.
+   force user = {{ force_user }}
+   force group = {{ force_group }}
+   create mask = 0660
+   force create mode = 0660
+   directory mask = 0770
+   force directory mode = 0770
