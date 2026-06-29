@@ -5,7 +5,7 @@
 Fourth app in the `docker-apps` migration ([docker-apps-migration.md](docker-apps-migration.md)),
 and the first **multi-container + stateful** one. paperless-ngx ran on the Synology
 NAS via the Ansible `roles/docker-apps` role (`paperless.yml.j2`) with a webserver +
-redis + gotenberg + tika, a Postgres DB in the NAS `postgres-db` container, OIDC via
+redis + gotenberg + tika, a Postgres DB in the NAS `postgres` container, OIDC via
 Authelia, Gmail OAuth mail fetching, and ~1300 documents on disk under
 `/volume2/docker/paperless`.
 

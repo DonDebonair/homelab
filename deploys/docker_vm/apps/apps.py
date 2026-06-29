@@ -16,10 +16,10 @@ apps = [
             BindMount(source="/var/run/docker.sock", mount_path="/var/run/docker.sock", read_only=True),
         ],
         templates=[
-            TemplateFile(src="homepage/settings", dest="homepage/settings.yaml"),
-            TemplateFile(src="homepage/docker", dest="homepage/docker.yaml"),
-            TemplateFile(src="homepage/services", dest="homepage/services.yaml"),
-            TemplateFile(src="homepage/bookmarks", dest="homepage/bookmarks.yaml"),
+            TemplateFile(src="homepage/settings.yaml", dest="homepage/settings.yaml"),
+            TemplateFile(src="homepage/docker.yaml", dest="homepage/docker.yaml"),
+            TemplateFile(src="homepage/services.yaml", dest="homepage/services.yaml"),
+            TemplateFile(src="homepage/bookmarks.yaml", dest="homepage/bookmarks.yaml"),
         ],
     ),
     ComposeApp(

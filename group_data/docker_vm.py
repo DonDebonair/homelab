@@ -39,3 +39,18 @@ macvlan_network = DockerNetwork(
     ip_range="192.168.50.0/24",
     opts=[f"parent={main_network_interface}"],
 )
+
+# Monitoring bridge network (prometheus/loki/grafana/exporters). Loki pins a
+# fixed IP here so the daemon-level Loki log driver can push to it; see loki_ip
+# below. Subnet picks the next free block after the caddy networks (172.101-104
+# are taken in deploys/docker_vm/proxies/__init__.py).
+monitoring_network = DockerNetwork(
+    name="monitoring",
+    driver="bridge",
+    gateway="172.105.0.1",
+    subnet="172.105.0.0/16",
+    ip_range="172.105.0.0/24",
+)
+# Fixed address Loki binds on the monitoring network; the Docker daemon's
+# default log driver ships every container's logs here.
+loki_ip = "172.105.0.100"

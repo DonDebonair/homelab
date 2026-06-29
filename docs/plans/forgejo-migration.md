@@ -6,7 +6,7 @@ Next app in the `docker-apps` migration ([docker-apps-migration.md](docker-apps-
 and the first **git forge** (stateful repos + Postgres + an in-DB OAuth source +
 git-over-SSH). Forgejo currently runs on the Synology NAS via the Ansible
 `roles/docker-apps` role (`forgejo.yml.j2`): a single `codeberg.org/forgejo/forgejo:8`
-container, the Postgres DB living in the NAS `postgres-db` container, all repo/LFS
+container, the Postgres DB living in the NAS `postgres` container, all repo/LFS
 state in the bind mount `/volume2/docker/forgejo:/data`, exposed HTTP-only on
 `git.dv.zone` (port 3000) behind caddy-internal. The NAS compose configured **no**
 OIDC and **no** git-over-SSH.

@@ -1,0 +1,76 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  prometheus:
+    container_name: prometheus
+    image: [[ app.image ]]:[[ app.version ]]
+    command:
+      - '--storage.tsdb.retention.time=60d'
+      - '--storage.tsdb.path=/prometheus'
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - caddy-internal
+      - monitoring
+    volumes:
+      - prometheus-data:/prometheus
+      - [[ host.data.docker_volumes_base ]]/prometheus/config:/etc/prometheus:ro
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 9090}}"
+      # Prometheus has no auth of its own -> gate it behind Authelia.
+      caddy_internal.import: secure *
+      homepage.group: Monitoring
+      homepage.name: Prometheus
+      homepage.icon: prometheus
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 2000
+    expose:
+      - 9090
+    restart: unless-stopped
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:v1.11.1
+    command:
+      - --collector.disable-defaults
+      - --collector.stat
+      - --collector.time
+      - --collector.cpu
+      - --collector.loadavg
+      - --collector.hwmon
+      - --collector.meminfo
+      - --collector.diskstats
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  snmp-exporter:
+    container_name: snmp-exporter
+    image: prom/snmp-exporter:v0.30.1
+    command:
+      - '--config.file=/etc/snmp_exporter/snmp.yml'
+    networks:
+      - monitoring
+    volumes:
+      - [[ host.data.docker_volumes_base ]]/snmp:/etc/snmp_exporter:ro
+    restart: unless-stopped
+
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    command:
+      - '--docker_only=true'
+    networks:
+      - monitoring
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  monitoring:
+    external: true
+[[ vol.top_level_volumes(app) ]]

@@ -1,0 +1,19 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  loki:
+    container_name: loki
+    image: [[ app.image ]]:[[ app.version ]]
+    command: -config.file=/etc/loki/loki-config.yaml
+    environment:
+      TZ: Europe/Amsterdam
+    networks:
+      monitoring:
+        # Fixed IP so the daemon-level Loki log driver can push to it.
+        ipv4_address: [[ host.data.loki_ip ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    external: true
+[[ vol.top_level_volumes(app) ]]
