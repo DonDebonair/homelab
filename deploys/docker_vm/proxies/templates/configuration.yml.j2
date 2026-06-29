@@ -75,6 +75,13 @@ identity_providers:
   oidc:
     jwks:
       - key: {{secret "/config/secrets/jwks/private.pem" | mindent 10 "|" | msquote}}
+    # Authelia 4.39+ no longer puts non-standard claims (groups, email, name, ...) in
+    # the ID token by default. Clients that read claims from the ID token rather than
+    # the userinfo endpoint (e.g. Grafana's role_attribute_path on `groups`) need them
+    # back; attach this policy via `claims_policy: 'default'` on such a client.
+    claims_policies:
+      default:
+        id_token: ['groups', 'email', 'email_verified', 'preferred_username', 'name']
     clients:
 [%- for c in oidc_clients %]
       - client_id: [[ c.id ]]
@@ -83,6 +90,9 @@ identity_providers:
           [[ c.secret_hash ]]
         public: false
         authorization_policy: [[ c.policy ]]
+[%-   if c.get('claims_policy') %]
+        claims_policy: '[[ c.claims_policy ]]'
+[%-   endif %]
         consent_mode: implicit
         redirect_uris:
 [%-   for uri in c.redirect_uris %]

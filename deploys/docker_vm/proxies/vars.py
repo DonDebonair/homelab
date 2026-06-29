@@ -61,6 +61,9 @@ oidc_clients = [
         "redirect_uris": ["https://grafana.dv.zone/login/generic_oauth"],
         "scopes": ["openid", "groups", "email", "profile"],
         "auth_method": "client_secret_basic",
+        # Grafana reads `groups` from the ID token for role_attribute_path; Authelia
+        # 4.39 drops it from the ID token unless a claims policy restores it.
+        "claims_policy": "default",
     },
     {
         "id": "forgejo",
