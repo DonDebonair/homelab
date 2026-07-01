@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **6 ported, 12 left to port, 2 won't be
+`roles/docker-apps/vars/main.yml`). **7 ported, 11 left to port, 2 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -28,7 +28,7 @@ ported** (superseded/dropped). Ported apps live in
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol | ⬜ To port |
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol | ⬜ To port |
-| qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol | ⬜ To port |
+| qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
 | n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
@@ -40,6 +40,16 @@ ported** (superseded/dropped). Ported apps live in
 | watchtower | — | — | — | auto-updater; to be dropped in favour of Renovate-driven version bumps | 🚫 Won't port |
 
 Notes:
+- **NFS-mounted shares** (`qbittorrent`'s torrent library, on the NAS): expressed
+  with the new `NfsVolume` model (`deploys/common/docker_compose/models.py`) — a
+  compose `local`/`type=nfs` named volume, mounted lazily by the daemon on `up`.
+  The container runs as the docker_vm docker user (`PUID` = `host.data.docker_uid`
+  = `2000`, `PGID` = `100`). NFS maps access by numeric id and the NAS folder's
+  access is Synology-ACL based (keyed on named accounts:
+  `dockerlimited`/`sc-radarr`/`sc-sonarr`/`PlexMediaServer`), so we give the NAS a
+  matching **named `dockervm` account pinned to uid 2000** — provisioned by the
+  new `synology.user()` operation (`deploys/nas/users`) — and grant *it* the ACL.
+  NAS side needs the user (automated) + ACL + export rule + routing — see below.
 - **Postgres-backed apps** (`forgejo`, `nocodb`, `n8n`, plus the done `miniflux`/`paperless`)
   target the `postgres_lxc` instead of the NAS's in-compose `postgres-db`. Each
   needs its DB/user provisioned there and a `secrets.py` entry for the password.
@@ -200,3 +210,51 @@ included so every app template stays uniform.
    reverse-proxy IP; caddy discovers the backend from the labels.)
 6. **Idempotency:** re-run; second run reports no changes (or a no-op
    `docker compose up`).
+
+## qbittorrent — NAS-side NFS setup (prerequisite)
+
+The torrent library stays on the NAS (`/volume1/entertainment/torrents`); the
+docker_vm container mounts it over NFS. Do all of this **before** deploying
+qbittorrent, or `docker compose up` will hang trying to mount the volume. Step 4
+(the `dockervm` user) is automated — run `uv run pyinfra inventory.py --limit nas
+deploy.py`; the rest (NFS/export/routing/ACL) is DSM GUI + firewall.
+
+1. **Enable NFS.** Control Panel → File Services → NFS → *Enable NFS service*
+   and *Enable NFSv4.1* support.
+2. **Export rule on the `entertainment` shared folder.** Control Panel → Shared
+   Folder → `entertainment` → Edit → NFS Permissions → Create:
+   - **Hostname/IP:** `192.168.50.0/24` (the docker_vm subnet) or just the VM,
+     `192.168.50.10`.
+   - **Privilege:** Read/Write.
+   - **Squash:** *No mapping* — so the container's numeric uid/gid (`2000`) pass
+     through unchanged and are evaluated against the folder ACL (below).
+   - **Security:** sys.
+   - Tick **Allow connections from non-privileged ports** (Docker's NFS client
+     uses a high source port) and **Allow users to access mounted subfolders**.
+   - DSM shows the mount path (`/volume1/entertainment`); the VM mounts the
+     `/torrents` subdir via the `device: ":/volume1/entertainment/torrents"` in
+     the compose volume.
+3. **Routing / firewall.** docker_vm (`192.168.50.10`) is on a different subnet
+   from the NAS (`192.168.1.21`); confirm the two route to each other and, if the
+   DSM firewall is on, allow NFS (tcp/udp **2049**) from `192.168.50.0/24`.
+4. **Named `dockervm` user (uid 2000) — automated.** Access to
+   `/volume1/entertainment/torrents` is Synology-ACL based (entries for
+   `dockerlimited` uid 1029, `sc-radarr`/`sc-readarr`/`sc-sonarr`,
+   `PlexMediaServer`), **not** POSIX ownership. The docker_vm qbittorrent runs as
+   uid `2000`, so the NAS needs a matching account. The `synology.user()`
+   operation (run via `nas_setup_users()` in the `nas` deploy) creates a
+   `dockervm` user and pins it to uid `2000` — `synouser` auto-assigns a uid, so
+   the op edits `/etc/passwd` and runs `synouser --rebuild all`, which (verified
+   on this DSM by controlled test) *persists* the change into the user DB rather
+   than reverting it. Primary group stays `users` (gid 100), hence `PGID: 100`.
+5. **ACL grant to `dockervm`.** Once the user exists, grant it **Read & Write**
+   (incl. delete/rename) on `/volume1/entertainment/torrents`, **applied to this
+   folder + sub-folders + files** (covers existing downloads — no chown) and
+   **inheritable** (new files from qbittorrent *and* the `sc-*` users carry the
+   grant both ways). Because `dockervm` is now a real named account, this is
+   doable straight from the DSM **Shared Folder → Edit → Permissions** ACL editor
+   (no `synoacltool` needed).
+
+Quick client-side verification from the VM once the rule is in place:
+`showmount -e 192.168.1.21` should list the export; `sudo mount -t nfs4
+192.168.1.21:/volume1/entertainment/torrents /mnt` should succeed.

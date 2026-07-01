@@ -1,0 +1,19 @@
+{
+  "args": [
+    "dockervm"
+  ],
+  "kwargs": {
+    "uid": 2000,
+    "present": true
+  },
+  "facts": {
+    "synology.SynologyUser": {
+      "user_name=dockervm": null
+    }
+  },
+  "commands": [
+    "/usr/syno/sbin/synouser --add 'dockervm' \"$(openssl rand -base64 24)\" \"\" 0 \"\" \"\"",
+    "sed -i 's/^dockervm:x:[0-9]*:/dockervm:x:2000:/' /etc/passwd",
+    "/usr/syno/sbin/synouser --rebuild all"
+  ]
+}

@@ -41,6 +41,29 @@ class NamedVolume:
 
 
 @dataclass
+class NfsVolume:
+    """NFS-backed docker named volume (local driver, type=nfs).
+
+    Rendered as a top-level volume with `driver_opts` and referenced in a
+    service as `<name>:<mount_path>` like any named volume. The share is mounted
+    lazily by the docker daemon when the first container using it starts; the
+    helper does not pre-create anything (`compose up` handles it). `server` is
+    the NFS host, `path` the exported path on it.
+
+    NOTE: NFS passes ownership by numeric uid/gid, so the container's PUID/PGID
+    must match the ownership of the files on the NFS server -- not necessarily
+    host.data.docker_uid/gid.
+    """
+    kind: ClassVar[str] = "nfs"
+    name: str
+    mount_path: str
+    server: str
+    path: str
+    options: str = "rw,nfsvers=4,soft,timeo=100,retrans=3"
+    read_only: bool = False
+
+
+@dataclass
 class TemplateFile:
     src: str
     dest: str
@@ -54,7 +77,7 @@ class ComposeApp:
     image: str
     version: str
     domain: str | None = None
-    volumes: list[BindMount | NamedVolume] | None = None
+    volumes: list[BindMount | NamedVolume | NfsVolume] | None = None
     files: list[TemplateFile] | None = None
     templates: list[TemplateFile] | None = None
     external: bool = False

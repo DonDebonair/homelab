@@ -1,4 +1,5 @@
-from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVolume, TemplateFile
+from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVolume, NfsVolume, TemplateFile
+from group_data.all import nas_ip
 
 DOCKER_SOCKET = BindMount(source="/var/run/docker.sock", mount_path="/var/run/docker.sock")
 
@@ -53,6 +54,28 @@ apps = [
             # highest-recovery-cost state in the homelab, so external=True keeps
             # `down -v` from ever wiping it.
             NamedVolume(name="forgejo-data", mount_path="/data", external=True),
+        ],
+    ),
+    ComposeApp(
+        name="qbittorrent",
+        image="lscr.io/linuxserver/qbittorrent",
+        version="5.2.2_v2.0.13-ls464",
+        domain="torrent.dv.zone",
+        volumes=[
+            # Config: settings + per-torrent session/.fastresume data. High
+            # recovery cost (losing it means re-adding every torrent and
+            # force-rechecking), so external=True keeps `down -v` from wiping it.
+            NamedVolume(name="qbittorrent-config", mount_path="/config", external=True),
+            # The shared torrent library lives on the NAS; mounted over NFS so
+            # the rest of the media stack keeps reading/writing the same files.
+            # Access is via a Synology ACL entry for the container's id (2000);
+            # see the template's PUID/PGID note.
+            NfsVolume(
+                name="qbittorrent-torrents",
+                mount_path="/data",
+                server=nas_ip,
+                path="/volume1/entertainment/torrents",
+            ),
         ],
     ),
     ComposeApp(

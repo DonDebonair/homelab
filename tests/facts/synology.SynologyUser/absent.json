@@ -1,0 +1,9 @@
+{
+  "arg": ["ghost"],
+  "command": "/usr/syno/sbin/synouser --get 'ghost' || true",
+  "requires_command": "/usr/syno/sbin/synouser",
+  "output": [
+    "synouser.c:406 SYNOUserGet failed. synoerr=[0x1D00]"
+  ],
+  "fact": null
+}

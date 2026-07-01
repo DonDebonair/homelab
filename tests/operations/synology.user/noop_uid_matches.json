@@ -1,0 +1,26 @@
+{
+  "args": [
+    "dockervm"
+  ],
+  "kwargs": {
+    "uid": 2000,
+    "present": true
+  },
+  "facts": {
+    "synology.SynologyUser": {
+      "user_name=dockervm": {
+        "name": "dockervm",
+        "uid": 2000,
+        "gid": 100,
+        "type": "AUTH_LOCAL",
+        "description": "",
+        "home": "/var/services/homes/dockervm",
+        "shell": "/sbin/nologin",
+        "expired": false,
+        "mail": ""
+      }
+    }
+  },
+  "noop_description": "Synology user dockervm already present with uid 2000",
+  "commands": []
+}

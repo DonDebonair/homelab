@@ -1,0 +1,40 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  qbittorrent:
+    container_name: qbittorrent
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # Run as the docker_vm docker user (PUID 2000). The torrent library lives
+      # on the NAS and is shared with the *arr stack / Plex via Synology ACLs;
+      # the NAS has a matching `dockervm` account pinned to uid 2000 (see
+      # deploys/nas/users) which is granted Read&Write on the folder, so
+      # qbittorrent can manage downloads over NFS (which maps by numeric id).
+      # PGID is 100 -- the NAS `users` group, `dockervm`'s primary group.
+      PUID: [[ host.data.docker_uid ]]
+      PGID: 100
+      WEBUI_PORT: 8080
+      TORRENTING_PORT: 6887
+    ports:
+      - 6887:6887
+      - 6887:6887/udp
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8080}}"
+      caddy_internal.import: secure *
+      homepage.group: Downloaders
+      homepage.name: qBittorrent
+      homepage.icon: qbittorrent
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 2000
+    expose:
+      - 8080
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

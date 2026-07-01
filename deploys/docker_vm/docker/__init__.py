@@ -75,6 +75,14 @@ def docker_setup():
         ],
         _sudo=True,
     )
+    apt.packages(
+        name="Install NFS client",
+        # Provides the mount.nfs helper the kernel/Docker use to mount `type=nfs`
+        # compose volumes (e.g. qbittorrent's NAS torrent library), plus
+        # showmount for diagnostics.
+        packages=["nfs-common"],
+        _sudo=True,
+    )
     server.user(
         name=f"Add user '{host.data.user}' to 'docker' group",
         user=host.data.user,

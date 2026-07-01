@@ -10,6 +10,59 @@ class SynologyGroupType(StrEnum):
     AUTH_LDAP = "AUTH_LDAP"
     AUTH_DOM = "AUTH_DOMAIN"
 
+class SynologyUserType(StrEnum):
+    AUTH_LOCAL = "AUTH_LOCAL"
+    AUTH_LDAP = "AUTH_LDAP"
+    AUTH_DOM = "AUTH_DOMAIN"
+
+@dataclass
+class SynologyUserInfo:
+    name: str
+    uid: int
+    gid: int
+    type: SynologyUserType
+    description: str
+    home: str
+    shell: str
+    expired: bool
+    mail: str
+
+
+class SynologyUser(FactBase[Union[SynologyUserInfo, None]]):
+
+    def requires_command(self, *args, **kwargs) -> str | None:
+        return "/usr/syno/sbin/synouser"
+
+    @override
+    def command(self, user_name: str) -> str:
+        return f"/usr/syno/sbin/synouser --get '{user_name}' || true"
+
+    @override
+    def process(self, output: str) -> Union[SynologyUserInfo, None]:
+        output = '\n'.join(output)
+
+        # A missing user prints "SYNOUserGet failed" / a "SynoErr" line and no
+        # fields, so the absence of the name field is the reliable signal.
+        name_match = re.search(r"User Name\s*:\s*\[(?P<name>.+?)\]", output)
+        if not name_match:
+            return None
+
+        def field(label: str, pattern: str = r"(.*?)") -> str | None:
+            match = re.search(rf"{label}\s*:\s*\[{pattern}\]", output)
+            return match.group(1) if match else None
+
+        return SynologyUserInfo(
+            name=name_match.group("name"),
+            uid=int(field("User uid", r"(\d+)")),
+            gid=int(field("Primary gid", r"(\d+)")),
+            type=SynologyUserType(field("User Type", r"(.+?)")),
+            description=field("Fullname") or "",
+            home=field("User Dir") or "",
+            shell=field("User Shell") or "",
+            expired=field("Expired", r"(.+?)") == "true",
+            mail=field("User Mail") or "",
+        )
+
 @dataclass
 class SynologyGroupInfo:
     name: str

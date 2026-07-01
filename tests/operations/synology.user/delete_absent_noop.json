@@ -1,0 +1,15 @@
+{
+  "args": [
+    "dockervm"
+  ],
+  "kwargs": {
+    "present": false
+  },
+  "facts": {
+    "synology.SynologyUser": {
+      "user_name=dockervm": null
+    }
+  },
+  "noop_description": "Synology user dockervm is absent",
+  "commands": []
+}

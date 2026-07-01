@@ -1,0 +1,28 @@
+{
+  "args": [
+    "dockervm"
+  ],
+  "kwargs": {
+    "uid": 2000,
+    "present": true
+  },
+  "facts": {
+    "synology.SynologyUser": {
+      "user_name=dockervm": {
+        "name": "dockervm",
+        "uid": 1034,
+        "gid": 100,
+        "type": "AUTH_LOCAL",
+        "description": "",
+        "home": "/var/services/homes/dockervm",
+        "shell": "/sbin/nologin",
+        "expired": false,
+        "mail": ""
+      }
+    }
+  },
+  "commands": [
+    "sed -i 's/^dockervm:x:[0-9]*:/dockervm:x:2000:/' /etc/passwd",
+    "/usr/syno/sbin/synouser --rebuild all"
+  ]
+}

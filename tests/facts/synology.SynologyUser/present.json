@@ -1,0 +1,30 @@
+{
+  "arg": ["dockervm"],
+  "command": "/usr/syno/sbin/synouser --get 'dockervm' || true",
+  "requires_command": "/usr/syno/sbin/synouser",
+  "output": [
+    "User Name   : [dockervm]",
+    "User Type   : [AUTH_LOCAL]",
+    "User uid    : [2000]",
+    "Primary gid : [100]",
+    "Fullname    : [Docker VM NFS service account]",
+    "User Dir    : [/var/services/homes/dockervm]",
+    "User Shell  : [/sbin/nologin]",
+    "Expired     : [false]",
+    "User Mail   : []",
+    "Alloc Size  : [132]",
+    "Member Of   : [1]",
+    "(100) users"
+  ],
+  "fact": {
+    "name": "dockervm",
+    "uid": 2000,
+    "gid": 100,
+    "type": "AUTH_LOCAL",
+    "description": "Docker VM NFS service account",
+    "home": "/var/services/homes/dockervm",
+    "shell": "/sbin/nologin",
+    "expired": false,
+    "mail": ""
+  }
+}
