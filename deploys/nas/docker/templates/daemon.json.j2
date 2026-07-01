@@ -1,0 +1,12 @@
+{
+    "data-root": "/var/packages/ContainerManager/var/docker",
+    "log-driver": "loki",
+    "log-opts": {
+      "loki-url": "http://[[ host.data.loki_macvlan_ip ]]:3100/loki/api/v1/push",
+      "mode": "non-blocking",
+      "max-buffer-size": "4m"
+    },
+    "registry-mirrors": [],
+    "seccomp-profile": "unconfined",
+    "storage-driver": "btrfs"
+}

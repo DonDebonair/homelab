@@ -4,9 +4,8 @@ from pyinfra import host
 from pyinfra.api import deploy
 from pyinfra.operations import files, docker
 
-from deploys.common.docker_compose import docker_compose
-from deploys.nas.docker.apps import apps
 from deploys.nas.docker import vars
+from deploys.nas.docker.apps import apps
 from operations import synology
 
 template_dir = Path(__file__).resolve().parent / "templates"
@@ -66,4 +65,18 @@ def docker_setup():
         alias="loki",
         enabled=True,
     )
-    docker_compose(apps=apps, template_dir=template_dir, variables=vars)
+    files.template(
+        name="Configure Docker daemon default log driver",
+        src=str(template_dir / "daemon.json.j2"),
+        dest="/var/packages/ContainerManager/etc/dockerd.json",
+        mode="0600",
+        user="root",
+        group="root",
+        jinja_env_kwargs={
+            "variable_start_string": "[[",
+            "variable_end_string": "]]",
+            "block_start_string": "[%",
+            "block_end_string": "%]",
+        },
+        _sudo=True,
+    )

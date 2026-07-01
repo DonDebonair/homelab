@@ -52,5 +52,7 @@ monitoring_network = DockerNetwork(
     ip_range="172.105.0.0/24",
 )
 # Fixed address Loki binds on the monitoring network; the Docker daemon's
-# default log driver ships every container's logs here.
+# default log driver ships every container's logs here. The host reaches this
+# via the bridge, so it needs no macvlan-shim route.
 loki_ip = "172.105.0.100"
+

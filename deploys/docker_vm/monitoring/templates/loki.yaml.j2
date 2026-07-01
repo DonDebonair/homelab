@@ -8,12 +8,17 @@ services:
       TZ: Europe/Amsterdam
     networks:
       monitoring:
-        # Fixed IP so the daemon-level Loki log driver can push to it.
+        # Fixed IP the docker_vm host's daemon-level Loki log driver pushes to.
         ipv4_address: [[ host.data.loki_ip ]]
+      macvlan:
+        # Real LAN IP so other hosts (e.g. NAS containers) can push logs here.
+        ipv4_address: [[ host.data.loki_macvlan_ip ]]
     volumes:[[ vol.service_volumes(app) ]]
     restart: unless-stopped
 
 networks:
   monitoring:
+    external: true
+  macvlan:
     external: true
 [[ vol.top_level_volumes(app) ]]
