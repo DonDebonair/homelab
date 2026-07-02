@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **7 ported, 11 left to port, 2 won't be
+`roles/docker-apps/vars/main.yml`). **8 ported, 10 left to port, 2 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -27,7 +27,7 @@ ported** (superseded/dropped). Ported apps live in
 | portainer | docker.dv.zone | Admin | internal | `portainer` vol, docker socket | ⬜ To port |
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol | ⬜ To port |
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
-| sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol | ⬜ To port |
+| sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
@@ -40,7 +40,8 @@ ported** (superseded/dropped). Ported apps live in
 | watchtower | — | — | — | auto-updater; to be dropped in favour of Renovate-driven version bumps | 🚫 Won't port |
 
 Notes:
-- **NFS-mounted shares** (`qbittorrent`'s torrent library, on the NAS): expressed
+- **NFS-mounted shares** (`qbittorrent`'s torrent library and `sabnzbd`'s usenet
+  download area, both under `/volume1/entertainment` on the NAS): expressed
   with the new `NfsVolume` model (`deploys/common/docker_compose/models.py`) — a
   compose `local`/`type=nfs` named volume, mounted lazily by the daemon on `up`.
   The container runs as the docker_vm docker user (`PUID` = `host.data.docker_uid`
@@ -258,3 +259,54 @@ deploy.py`; the rest (NFS/export/routing/ACL) is DSM GUI + firewall.
 Quick client-side verification from the VM once the rule is in place:
 `showmount -e 192.168.1.21` should list the export; `sudo mount -t nfs4
 192.168.1.21:/volume1/entertainment/torrents /mnt` should succeed.
+
+## sabnzbd — NAS-side + config migration (prerequisite)
+
+sabnzbd is the structural twin of qbittorrent: `sabnzbd-config` (external named
+volume, high recovery cost) + the NAS usenet download area
+(`/volume1/entertainment/usenet`) mounted over NFS as `sabnzbd-usenet`. Runs as
+`PUID` = `host.data.docker_uid` = `2000`, `PGID` = `100`. Because usenet is a
+subfolder of the same `entertainment` share qbittorrent already uses, **the NFS
+enable / export rule / routing from the qbittorrent runbook (steps 1–3) already
+cover it** — the only new NAS-side step is the ACL grant.
+
+1. **ACL grant to `dockervm` on the usenet folder.** Grant the existing
+   `dockervm` account (uid 2000, provisioned by `nas_setup_users()`) **Read &
+   Write** (incl. delete/rename) on `/volume1/entertainment/usenet`, **applied to
+   this folder + sub-folders + files** (covers existing downloads — no chown) and
+   **inheritable**. DSM **Shared Folder → `entertainment` → Edit → Permissions**
+   ACL editor. (No new export rule / firewall change — already done for torrents.)
+
+2. **Migrate the config — via the workstation.** The current config lives on the
+   NAS bind mount at `/volume2/docker/sabnzbd/config`; it must land in the new
+   `sabnzbd-config` named volume on docker_vm
+   (`/var/lib/docker/volumes/sabnzbd-config/_data`). **The NAS and docker_vm
+   cannot reach each other on the network**, so the copy must be bridged by the
+   workstation — never a direct `rsync nas:… docker_vm:…`.
+   - Stop the NAS sabnzbd container first (quiesce `sabnzbd.ini` + the queue db).
+   - Populate the volume through a **helper container**, not host-path sudo: the
+     `daan` user is in the `docker` group on docker_vm so `docker` needs no sudo,
+     and a throwaway container writes into the named volume as root internally.
+     This dodges the tar-pipe/sudo tty problem (`sudo` can't prompt when stdin is
+     the tar stream). Both SSH sessions originate from the workstation, so data
+     flows NAS → workstation → docker_vm with no direct host-to-host connection:
+     ```
+     ssh <docker_vm> 'docker volume create sabnzbd-config'
+     ssh <nas> 'tar -C /volume2/docker/sabnzbd/config -cf - .' \
+       | ssh <docker_vm> 'docker run --rm -i -v sabnzbd-config:/dest alpine tar --numeric-owner -xf - -C /dest'
+     ```
+     Do this *before* the deploy's `docker compose up` so sabnzbd starts on the
+     migrated config. (Staging alternative: `rsync -aH <nas>:/volume2/docker/sabnzbd/config/ /tmp/sab/`
+     on the workstation, then `rsync -aH /tmp/sab/ <docker_vm>:/tmp/sab/` and load
+     it in via the same helper-container pattern.)
+   - Fix ownership for the container's ids, again via a helper container:
+     `ssh <docker_vm> 'docker run --rm -v sabnzbd-config:/dest alpine chown -R 2000:100 /dest'`.
+   - **Domain is unchanged** (`nzb.dv.zone`), so `sabnzbd.ini`'s `host_whitelist`
+     needs no edit. The download paths in the config are `/data/...` and the
+     `/data` mount point is preserved, so category/completed/incomplete paths stay
+     valid over NFS.
+
+3. **Deploy & verify.** `uv run pyinfra inventory.py --limit docker_vm deploy.py`;
+   then `https://nzb.dv.zone` → Authelia → sabnzbd UI with servers, queue, and
+   history intact; confirm a test download completes into the NFS `/data` area and
+   is visible to the *arr stack. Then decommission the NAS sabnzbd (Ansible).

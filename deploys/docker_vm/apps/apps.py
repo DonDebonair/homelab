@@ -79,6 +79,29 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="sabnzbd",
+        image="lscr.io/linuxserver/sabnzbd",
+        version="5.0.4-ls261",
+        domain="nzb.dv.zone",
+        volumes=[
+            # Config: sabnzbd.ini (servers, API key, categories, schedules) plus
+            # the queue/history db. High recovery cost -- losing it means
+            # re-adding every news server and losing queue/history -- so
+            # external=True keeps `down -v` from wiping it.
+            NamedVolume(name="sabnzbd-config", mount_path="/config", external=True),
+            # The shared usenet download area lives on the NAS; mounted over NFS
+            # so the rest of the media stack (the *arr apps) keeps reading the
+            # completed downloads. Access is via a Synology ACL entry for the
+            # container's id (2000); see the template's PUID/PGID note.
+            NfsVolume(
+                name="sabnzbd-usenet",
+                mount_path="/data",
+                server=nas_ip,
+                path="/volume1/entertainment/usenet",
+            ),
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",
