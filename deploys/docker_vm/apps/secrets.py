@@ -15,5 +15,8 @@ paperless_api_token = SecretString("op://Homelab/Paperless secrets/api token")
 # homepage portainer widget access token (existing value carried over from the
 # NAS deploy; still valid because the /data volume is migrated intact).
 portainer_api_token = SecretString("op://Homelab/Portainer/api token")
+# Shared secret between the Portainer server (here) and its remote agents (the
+# NAS agent). Must match AGENT_SECRET on every agent -- see deploys/nas/docker.
+portainer_agent_secret = SecretString("op://Homelab/Portainer/shared agent secret")
 
 SecretString.populate_cache_sync()

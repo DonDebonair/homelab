@@ -6,6 +6,10 @@ services:
     volumes:[[ vol.service_volumes(app) ]]
     networks:
       - caddy-internal
+    environment:
+      # Shared secret so the server authenticates to remote agents (the NAS
+      # agent). Must match AGENT_SECRET on every agent (deploys/nas/docker).
+      AGENT_SECRET: [[ portainer_agent_secret ]]
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 9000}}"

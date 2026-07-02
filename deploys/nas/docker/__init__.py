@@ -6,6 +6,7 @@ from pyinfra.operations import files, docker
 
 from deploys.common.docker_compose import docker_compose
 from deploys.nas.docker import vars
+from deploys.nas.docker import secrets
 from deploys.nas.docker.apps import apps
 from operations import synology
 
@@ -87,4 +88,4 @@ def docker_setup():
 def setup_docker_apps():
     """Deploy the Docker Compose apps that remain on the NAS (currently just
     cAdvisor, scraped by the docker_vm Prometheus)."""
-    docker_compose(apps=apps, template_dir=template_dir)
+    docker_compose(apps=apps, template_dir=template_dir, variables=secrets)

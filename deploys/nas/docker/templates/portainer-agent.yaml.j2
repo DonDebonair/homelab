@@ -1,0 +1,19 @@
+services:
+  portainer-agent:
+    container_name: portainer-agent
+    image: [[ app.image ]]:[[ app.version ]]
+    environment:
+      # Must match AGENT_SECRET on the docker_vm Portainer server so the server
+      # is allowed to connect to this agent.
+      AGENT_SECRET: [[ portainer_agent_secret ]]
+    # Published on the host so the docker_vm Portainer server can reach the agent
+    # over the LAN (the two hosts route to each other; only inter-host SSH is
+    # blocked). Add the environment in the Portainer UI as 192.168.1.21:9001.
+    ports:
+      - "9001:9001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Synology stores Docker volumes here (not /var/lib/docker/volumes); mapping
+      # it lets the agent browse volume contents from the server UI.
+      - /volume1/@docker/volumes:/var/lib/docker/volumes
+    restart: unless-stopped
