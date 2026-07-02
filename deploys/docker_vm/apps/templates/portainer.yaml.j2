@@ -1,0 +1,28 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  portainer:
+    container_name: portainer
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 9000}}"
+      homepage.group: Admin
+      homepage.name: Portainer
+      homepage.icon: portainer
+      homepage.href: https://[[ app.domain ]]
+      homepage.widget.type: portainer
+      homepage.widget.url: https://[[ app.domain ]]
+      homepage.widget.key: [[ portainer_api_token ]]
+      homepage.widget.env: 2
+      homepage.weight: 2000
+    expose:
+      - 9000
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

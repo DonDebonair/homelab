@@ -12,4 +12,8 @@ paperless_gmail_oauth_client_id = SecretString("op://Homelab/Paperless secrets/G
 paperless_gmail_oauth_client_secret = SecretString("op://Homelab/Paperless secrets/Google APIs/secret")
 paperless_api_token = SecretString("op://Homelab/Paperless secrets/api token")
 
+# homepage portainer widget access token (existing value carried over from the
+# NAS deploy; still valid because the /data volume is migrated intact).
+portainer_api_token = SecretString("op://Homelab/Portainer/api token")
+
 SecretString.populate_cache_sync()

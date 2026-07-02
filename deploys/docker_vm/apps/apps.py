@@ -107,6 +107,23 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="portainer",
+        # Enterprise Edition (free tier) -- matches the NAS instance so the
+        # migrated /data volume (users, OIDC login config, EE license) stays valid.
+        image="portainer/portainer-ee",
+        version="2.39.4",
+        domain="docker.dv.zone",
+        volumes=[
+            # Portainer's state: local admin user, OIDC login config, EE license,
+            # environment/endpoint definitions, stacks. Non-trivial recovery cost,
+            # so external=True keeps `down -v` from wiping it. Data is bridged
+            # over from the NAS bind mount (/volume2/docker/portainer).
+            NamedVolume(name="portainer-data", mount_path="/data", external=True),
+            # Manages the local docker_vm daemon via the socket.
+            DOCKER_SOCKET,
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",

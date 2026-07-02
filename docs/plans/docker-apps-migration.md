@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **8 ported, 10 left to port, 2 won't be
+`roles/docker-apps/vars/main.yml`). **9 ported, 9 left to port, 2 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -24,7 +24,7 @@ ported** (superseded/dropped). Ported apps live in
 | paperless | docs.dv.zone | Office | internal | postgres `paperless`, redis/tika/gotenberg sidecars, external named vols, OIDC, secrets | ✅ Ported |
 | homepage | home.dv.zone | — | internal | bind-mount config + docker socket; `homepage.*` labels drive the dashboard | ✅ Ported |
 | pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin/{data,config}` vols (uid/gid 5050), `config_local.py` template, OIDC | ⬜ To port |
-| portainer | docker.dv.zone | Admin | internal | `portainer` vol, docker socket | ⬜ To port |
+| portainer | docker.dv.zone | Admin | internal | `portainer-data` vol (external), docker socket; EE, `/data` bridged from NAS | ✅ Ported |
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol | ⬜ To port |
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
