@@ -66,15 +66,18 @@ apps = [
             # recovery cost (losing it means re-adding every torrent and
             # force-rechecking), so external=True keeps `down -v` from wiping it.
             NamedVolume(name="qbittorrent-config", mount_path="/config", external=True),
-            # The shared torrent library lives on the NAS; mounted over NFS so
-            # the rest of the media stack keeps reading/writing the same files.
-            # Access is via a Synology ACL entry for the container's id (2000);
-            # see the template's PUID/PGID note.
+            # The whole media library lives on the NAS under
+            # /volume1/entertainment; we mount that *root* (not just /torrents) at
+            # /data so the download client and the *arr apps share one tree and
+            # cross-directory hardlinks / instant moves work. Downloads land in
+            # the `torrents/` subdir (qBittorrent's Session\DefaultSavePath is
+            # /data/torrents). Access is via a Synology ACL entry for the
+            # container's id (2000); see the template's PUID/PGID note.
             NfsVolume(
-                name="qbittorrent-torrents",
+                name="qbittorrent-data",
                 mount_path="/data",
                 server=nas_ip,
-                path="/volume1/entertainment/torrents",
+                path="/volume1/entertainment",
             ),
         ],
     ),
@@ -89,15 +92,17 @@ apps = [
             # re-adding every news server and losing queue/history -- so
             # external=True keeps `down -v` from wiping it.
             NamedVolume(name="sabnzbd-config", mount_path="/config", external=True),
-            # The shared usenet download area lives on the NAS; mounted over NFS
-            # so the rest of the media stack (the *arr apps) keeps reading the
-            # completed downloads. Access is via a Synology ACL entry for the
-            # container's id (2000); see the template's PUID/PGID note.
+            # Mount the whole /volume1/entertainment tree at /data (not just the
+            # usenet/ subdir) so downloads share the media library with the *arr
+            # apps for hardlinks. sabnzbd writes under the `usenet/` subdir
+            # (download_dir=/data/usenet/incomplete, complete_dir=/data/usenet/complete).
+            # Access is via a Synology ACL entry for the container's id (2000);
+            # see the template's PUID/PGID note.
             NfsVolume(
-                name="sabnzbd-usenet",
+                name="sabnzbd-data",
                 mount_path="/data",
                 server=nas_ip,
-                path="/volume1/entertainment/usenet",
+                path="/volume1/entertainment",
             ),
         ],
     ),

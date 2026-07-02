@@ -40,9 +40,24 @@ ported** (superseded/dropped). Ported apps live in
 | watchtower | — | — | — | auto-updater; to be dropped in favour of Renovate-driven version bumps | 🚫 Won't port |
 
 Notes:
-- **NFS-mounted shares** (`qbittorrent`'s torrent library and `sabnzbd`'s usenet
-  download area, both under `/volume1/entertainment` on the NAS): expressed
-  with the new `NfsVolume` model (`deploys/common/docker_compose/models.py`) — a
+- **NFS-mounted shares** — `qbittorrent` and `sabnzbd` both mount the **whole
+  `/volume1/entertainment` tree** at `/data` (not just their `torrents/` /
+  `usenet/` subdir), so the download clients and the future *arr apps share one
+  filesystem and cross-directory hardlinks / instant moves work (trash-guides
+  single-mount layout; the tree holds `torrents/`, `usenet/`, `media/`). Each app
+  keeps its **own inline `NfsVolume`** with `path=/volume1/entertainment` (a
+  shared *external* NFS volume would be tidier but needs a custom op — pyinfra's
+  built-in `docker.volume` can't set `--opt` driver options; deferred). Downloads
+  are pinned into the right subdir **inside each app's config**, not via the
+  mount: qbittorrent `Session\DefaultSavePath=/data/torrents` (categories relative:
+  `/data/torrents/{movies,tv,music,books}`); sabnzbd `download_dir=/data/usenet/incomplete`,
+  `complete_dir=/data/usenet/complete`. **Gotcha:** an existing qbittorrent torrent
+  bakes its absolute save path into `.fastresume`; widening the mount orphans it
+  (`missingFiles`) even though AutoTMM recomputes `save_path` correctly — fix with
+  a one-time **force-recheck** (`POST /api/v2/torrents/recheck`; `LocalHostAuth=false`
+  lets you call the API from inside the container without login) once the files
+  are visible at the new path.
+  Expressed with the `NfsVolume` model (`deploys/common/docker_compose/models.py`) — a
   compose `local`/`type=nfs` named volume, mounted lazily by the daemon on `up`.
   The container runs as the docker_vm docker user (`PUID` = `host.data.docker_uid`
   = `2000`, `PGID` = `100`). NFS maps access by numeric id and the NAS folder's
