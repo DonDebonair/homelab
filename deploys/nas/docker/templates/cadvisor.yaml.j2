@@ -1,0 +1,17 @@
+services:
+  cadvisor:
+    container_name: cadvisor
+    image: [[ app.image ]]:[[ app.version ]]
+    command:
+      - '--docker_only=true'
+    # Published on the host so Prometheus on the docker_vm can scrape it over the
+    # LAN (the two hosts route to each other; only inter-host SSH is blocked).
+    # Host 8080 is taken by DSM, so map the host side to 8098.
+    ports:
+      - "8098:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped

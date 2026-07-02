@@ -28,3 +28,14 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets: ['cadvisor:8080']
+        labels:
+          instance: docker_vm
+  # cAdvisor for the containers still running on the NAS. It publishes host port
+  # 8098 there; the docker_vm reaches the NAS over the LAN. instance=nas so its
+  # metrics are distinguishable from the local cadvisor above.
+  - job_name: 'cadvisor-nas'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['[[ host.data.nas_ip ]]:8098']
+        labels:
+          instance: nas

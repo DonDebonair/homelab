@@ -5,7 +5,8 @@ from deploys.common.debian import common_debian_setup
 from deploys.docker_vm import users as docker_vm_users, docker_setup, setup_caddy_proxies, setup_apps, \
     setup_guest_agent, setup_macvlan_shim, setup_samba, setup_monitoring, setup_loki_log_driver
 from deploys.dns import setup_technitium_dns
-from deploys.nas import docker_setup as nas_docker_setup, networking, setup_users as nas_setup_users
+from deploys.nas import docker_setup as nas_docker_setup, setup_docker_apps as nas_setup_docker_apps, \
+    networking, setup_users as nas_setup_users
 from deploys.proxmox_host import prepare_proxmox_host, users_and_groups, setup_lxc_containers, setup_networking, \
     setup_vms, configure_backups
 from deploys.postgres_lxc import users as postgres_users, setup_postgres, databases_and_users
@@ -16,6 +17,7 @@ if "nas" in host.groups:
     nas_setup_users()
     networking()
     nas_docker_setup()
+    nas_setup_docker_apps()
 
 if "proxmox_host" in host.groups:
     prepare_proxmox_host()
