@@ -12,8 +12,8 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 19 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **14 ported, 2 left to port, 3 won't be
-ported** (superseded/dropped). Ported apps live in
+`roles/docker-apps/vars/main.yml`). **15 ported, 1 left to port (`nocodb`), 3
+won't be ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
 | App | Domain | Homepage group | Exposure | State / dependencies | Status |
@@ -31,7 +31,7 @@ ported** (superseded/dropped). Ported apps live in
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
-| n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
+| n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n-data` vol (external, uid/gid 1000) holding the encryption key; DB + vol bridged from NAS — see runbook below | ✅ Ported |
 | pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat-config` vol (external) + NAS youtube library over NFS; runs `2000:100`, config bridged from NAS | ✅ Ported |
 | cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa-config` vol (external), `cwa/ingest` bind, NAS `calibre-library` over NFS + `NETWORK_SHARE_MODE`; see [cwa-migration.md](cwa-migration.md) | ✅ Ported |
 | cwa-dl | books-dl.dv.zone | Entertainment | internal | **superseded** by [Shelfmark](https://github.com/calibrain/shelfmark) — deploy fresh on docker_vm (clean slate), don't migrate cwa-dl or its data; see [cwa-migration.md](cwa-migration.md) follow-ups | 🚫 Won't port |
@@ -516,3 +516,85 @@ NAS quiesce. Internal on `caddy-internal` (`requests.dv.zone`, container port
   [Seerr](https://seerr.dev/) (the maintained successor). In the future we want
   to migrate `requests.dv.zone` off `sctx/overseerr` onto Seerr. Since this was a
   fresh install with little state, the eventual swap should be low-cost.
+
+## n8n — DB + volume migration (done 2026-07-03)
+
+Workflow automation platform. The **forgejo shape**: Postgres-backed + one
+high-recovery-cost external volume, and **both** the DB *and* the volume must be
+migrated together. Internal on `caddy-internal` (`n8n.dv.zone`, container port
+**5678**), Automation homepage tile, `docker.n8n.io/n8nio/n8n:2.28.6` (the exact
+version the NAS currently runs as the floating `:latest`, so n8n's startup schema
+migration is a no-op against the carried-over DB — bump as a separate change
+later, matching the forgejo "migrate on same version" rule).
+
+- **DB → postgres_lxc.** The `n8n` DB + user are **already provisioned** on
+  `postgres_lxc` (`deploys/postgres_lxc/databases/vars.py`; secret
+  `n8n_password` at `op://Homelab/PostgreSQL n8n user/password`). The live data
+  still lives in the NAS in-compose `postgres` container (**postgres:14**,
+  database `n8n`) and must be dumped → restored into the LXC (PostgreSQL 17).
+  App side reads the same password ref via the new `n8n_db_password` in
+  `deploys/docker_vm/apps/secrets.py`.
+- **State — `n8n-data`, `external=True`** at `/home/node/.n8n`. Besides logs and
+  custom nodes, this dir holds **`config` — the instance encryption key** that
+  decrypts *every* stored credential in the Postgres DB. **The DB alone is
+  useless without this key**, so the volume and the DB must move together, and
+  `external=True` keeps `down -v` from ever wiping the key. `N8N_ENCRYPTION_KEY`
+  is deliberately **not** set in the compose env so n8n reads the migrated key
+  from the file (matches the NAS, which never set it).
+- **Self-auth, NOT behind Authelia.** n8n has its own user management, and its
+  webhook endpoints must be reachable without an SSO round-trip, so the template
+  carries **no `import secure *`** (matches the NAS `exposure: internal`).
+- **Runs as the image's built-in `node` (uid/gid 1000).** The NAS set no
+  PUID/PGID and the volume files are already `1000:1000`, so no `user:` override;
+  migrated files are chowned `1000:1000` on the way in.
+
+**Cutover runbook** (mirrors the forgejo DB + `/data` bridge — NAS and docker_vm
+can't reach each other, so every hop originates from the Mac; all three
+NAS-postgres dump traps apply, see [[feedback_nas_postgres_dump_restore]]):
+
+```bash
+# 1. Quiesce — on the NAS, stop n8n so the DB + .n8n dir are a consistent snapshot.
+ssh nas.dv.zone 'sudo /usr/local/bin/docker stop n8n'
+
+# 2. Dump the DB — ON THE NAS (postgres container is named `postgres`, v14).
+#    NO `-t` (corrupts the -Fc archive) and NO `-i`; just redirect stdout.
+ssh nas.dv.zone 'sudo /usr/local/bin/docker exec postgres pg_dump -U n8n -Fc n8n > /volume2/docker/n8n-db.dump'
+#    Verify the dump has row data BEFORE trusting it (must be > 0):
+ssh nas.dv.zone 'sudo /usr/local/bin/docker cp /volume2/docker/n8n-db.dump postgres:/tmp/d.dump \
+  && sudo /usr/local/bin/docker exec postgres pg_restore -l /tmp/d.dump | grep -ci "TABLE DATA"'
+
+# 3. Restore into postgres_lxc (192.168.1.41, PG17), into the empty n8n DB.
+#    Transfer to a FILE (never stream over stdin -> silent truncation); docker_vm
+#    has no pg_restore so borrow a throwaway postgres:17 (reaches the LXC like
+#    miniflux/paperless). --clean --if-exists keeps it re-runnable.
+ssh nas.dv.zone 'sudo cat /volume2/docker/n8n-db.dump' | ssh dockervm.dv.zone 'cat > ~/n8n-db.dump'
+ssh dockervm.dv.zone 'ls -l ~/n8n-db.dump'   # size MUST match the NAS dump
+PW=$(op read "op://Homelab/PostgreSQL n8n user/password")   # on the Mac
+ssh dockervm.dv.zone "PGPASSWORD='$PW' docker run --rm -e PGPASSWORD \
+  -v ~/n8n-db.dump:/dump:ro postgres:17 \
+  pg_restore -h 192.168.1.41 -U n8n -d n8n --clean --if-exists --no-owner --verbose /dump"
+
+# 4. Bridge the .n8n dir -> the n8n-data named volume. `config` is mode 600 owned
+#    uid 1000, so tar as ROOT on the NAS (the ssh user can't read it). Create the
+#    volume first, then extract as root and chown to the container user (1000).
+ssh dockervm.dv.zone 'docker volume create n8n-data'
+ssh nas.dv.zone 'sudo tar -C /volume2/docker/n8n --numeric-owner -cf - .' \
+  | ssh dockervm.dv.zone 'docker run --rm -i -v n8n-data:/dest alpine tar --numeric-owner -xf - -C /dest'
+ssh dockervm.dv.zone 'docker run --rm -v n8n-data:/dest alpine chown -R 1000:1000 /dest'
+
+# 5. Deploy — brings up n8n on the migrated key + restored DB (domain unchanged,
+#    so WEBHOOK_URL/n8n.dv.zone need no edit).
+uv run pyinfra inventory.py --limit docker_vm deploy.py -y
+ssh dockervm.dv.zone 'docker logs -f n8n'   # expect clean start, migrations no-op
+```
+
+**Verified 2026-07-03** — container healthy on `caddy-internal` running
+`node` (uid/gid 1000), `docker.n8n.io/n8nio/n8n:2.28.6`, `n8n ready on ::, port
+5678` with no migration/DB/encryption errors (same version → schema migration a
+no-op). DB restore landed 1 workflow / 2 credentials / 1 user (110 `TABLE DATA`
+entries in the dump). **Decisive check: `n8n export:credentials --all
+--decrypted` succeeded for both credentials** (`redditOAuth2Api`, `pushoverApi`)
+— the migrated `/home/node/.n8n/config` encryption key matches the restored DB,
+which is the whole point of bridging the volume with the DB. `https://n8n.dv.zone/`
+→ **200** serving n8n's own login (not an Authelia 302). NAS n8n left
+stopped-but-present (`Exited (0)`); Ansible decommission is the follow-up.

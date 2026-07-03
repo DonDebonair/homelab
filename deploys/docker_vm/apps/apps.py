@@ -235,6 +235,24 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="n8n",
+        image="docker.n8n.io/n8nio/n8n",
+        # Pin the exact version the NAS runs (was the floating :latest) so n8n's
+        # startup DB migrations are a no-op against the carried-over DB. Bump as a
+        # separate, isolated change afterwards.
+        version="2.28.6",
+        domain="n8n.dv.zone",
+        volumes=[
+            # The ~/.n8n dir. Beyond logs/custom-nodes, it holds `config` -- the
+            # instance ENCRYPTION KEY that decrypts every stored credential in the
+            # Postgres DB. Lose it and the migrated DB's credentials are
+            # unrecoverable, so external=True keeps `down -v` from wiping it.
+            # Bridged from the NAS bind dir (/volume2/docker/n8n); the image runs
+            # as node (uid/gid 1000), matching the migrated files.
+            NamedVolume(name="n8n-data", mount_path="/home/node/.n8n", external=True),
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",

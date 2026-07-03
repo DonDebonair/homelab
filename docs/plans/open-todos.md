@@ -26,6 +26,7 @@ data dir. Then flip nothing else — the tracker rows are already ✅.
 - ⬜ **tautulli** — left stopped-but-present; Ansible decommission.
 - ⬜ **pgadmin** — left stopped-but-present; Ansible decommission.
 - ⬜ **pinchflat** — left stopped-but-present; Ansible decommission.
+- ⬜ **n8n** — left stopped-but-present; remove entry + template, then delete `/volume2/docker/n8n` (holds the migrated `.n8n` incl. encryption key) once confident. ([docker-apps-migration.md](docker-apps-migration.md) "n8n" section)
 - ⬜ **cwa** — stop/remove NAS `cwa` stack + entry (`nas.yml` apps list + `roles/docker-apps/templates/cwa.yml.j2`); keep `/volume2/docker/cwa/config` + old library path until confident, then clean up. ([cwa-migration.md](cwa-migration.md) "Decommission")
 - ⬜ **qbittorrent / sabnzbd** — decommission NAS instances after verifying downloads land in the shared NFS tree. ([docker-apps-migration.md](docker-apps-migration.md))
 - ⬜ **Caddy proxies (NAS)** — the Ansible `proxies` role still re-creates the Caddy stack on the NAS when `nas.yml` runs; comment it out of `nas.yml` (or remove it) now that docker_vm serves the proxies. Flip any Cloudflare DNS still aimed at NAS macvlan IPs to the docker_vm IPs (192.168.50.20/.21). ([caddy-proxies-migration.md](caddy-proxies-migration.md) "Cut-over notes")
@@ -36,8 +37,7 @@ data dir. Then flip nothing else — the tracker rows are already ✅.
 
 Tracked in full in [docker-apps-migration.md](docker-apps-migration.md).
 
-- ⬜ **nocodb** — postgres-backed (`postgres_lxc` DB + user), `nocodb` vol, secrets. Reuses the NAS→postgres_lxc dump/restore path.
-- ⬜ **n8n** — postgres-backed, `n8n` vol (uid/gid 1000), secrets.
+- ⬜ **nocodb** — postgres-backed (`postgres_lxc` DB + user), `nocodb` vol, secrets. Reuses the NAS→postgres_lxc dump/restore path. **Last remaining app migration.**
 
 ## 3. New apps to stand up (fresh, not migrations)
 
