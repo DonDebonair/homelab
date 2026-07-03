@@ -11,8 +11,8 @@ stateless docker log viewer) end-to-end as the proving case.
 
 ## Migration tracker
 
-20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **10 ported, 8 left to port, 2 won't be
+19 apps in the Ansible `roles/docker-apps` role (source of truth:
+`roles/docker-apps/vars/main.yml`). **11 ported, 5 left to port, 3 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -33,9 +33,8 @@ ported** (superseded/dropped). Ported apps live in
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
 | n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
 | pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat/config` vol | ⬜ To port |
-| stash | xxx.dv.zone | — | internal | 6 vols (config/data/metadata/cache/blobs/generated) | ⬜ To port |
-| cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa/{config,ingest,calibre-library}` vols | ⬜ To port |
-| cwa-dl | books-dl.dv.zone | Entertainment | internal | none (stateless) | ⬜ To port |
+| cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa-config` vol (external), `cwa/ingest` bind, NAS `calibre-library` over NFS + `NETWORK_SHARE_MODE`; see [cwa-migration.md](cwa-migration.md) | ✅ Ported |
+| cwa-dl | books-dl.dv.zone | Entertainment | internal | **superseded** by [Shelfmark](https://github.com/calibrain/shelfmark) — deploy fresh on docker_vm (clean slate), don't migrate cwa-dl or its data; see [cwa-migration.md](cwa-migration.md) follow-ups | 🚫 Won't port |
 | pihole | — | Admin | — | **superseded** by the Technitium DNS migration (already on docker_vm) — not ported | 🚫 Won't port |
 | watchtower | — | — | — | auto-updater; to be dropped in favour of Renovate-driven version bumps | 🚫 Won't port |
 

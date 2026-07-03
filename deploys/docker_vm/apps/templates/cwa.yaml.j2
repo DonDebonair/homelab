@@ -1,0 +1,38 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  cwa:
+    container_name: cwa
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # The calibre library is on the NAS over NFS (maps by numeric id). Run as
+      # the docker_vm docker user (PUID 2000) with PGID 100 -- the NAS `users`
+      # group, `dockervm`'s primary group -- matching qbittorrent/sabnzbd so
+      # writes to the shared /volume1/entertainment tree work.
+      PUID: [[ host.data.docker_uid ]]
+      PGID: 100
+      # metadata.db (library) + app.db (config) are SQLite on a network share.
+      # This CWA switch disables WAL on both, skips recursive chowns that fail on
+      # network filesystems, and uses polling watchers instead of inotify. See
+      # the CWA README -> "Deploying on Network Shares (NFS/SMB)".
+      NETWORK_SHARE_MODE: "true"
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8083}}"
+      caddy_internal.import: secure *
+      homepage.group: Entertainment
+      homepage.name: Calibre-Web Automated
+      homepage.icon: calibre-web
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 310
+    expose:
+      - 8083
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

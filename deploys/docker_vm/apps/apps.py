@@ -136,6 +136,35 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="cwa",
+        # Calibre-Web-Automated. Pinned stable (no :latest); bump via the version
+        # field and redeploy.
+        image="crocodilestick/calibre-web-automated",
+        version="v4.0.6",
+        domain="books.dv.zone",
+        volumes=[
+            # App settings + app.db (users, ingest history, per-user shelves).
+            # High recovery cost, so external=True keeps `down -v` from wiping it.
+            # Migrated from the NAS bind dir (/volume2/docker/cwa/config).
+            NamedVolume(name="cwa-config", mount_path="/config", external=True),
+            # Ingest/watch dir -- transient (files are removed after CWA processes
+            # them). Local bind so books can be dropped on the host fs (and shared
+            # with cwa-dl once it lands here too). Resolves to
+            # /srv/docker/volumes/cwa/ingest.
+            BindMount(source="cwa/ingest", mount_path="/cwa-book-ingest"),
+            # The calibre library lives on the NAS under /volume1/entertainment --
+            # the same share qbittorrent/sabnzbd mount -- so the existing dockervm
+            # (uid 2000) ACL already covers it. metadata.db is SQLite on a network
+            # share, so the template sets NETWORK_SHARE_MODE=true to disable WAL.
+            NfsVolume(
+                name="cwa-library",
+                mount_path="/calibre-library",
+                server=nas_ip,
+                path="/volume1/entertainment/calibre-library",
+            ),
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",
