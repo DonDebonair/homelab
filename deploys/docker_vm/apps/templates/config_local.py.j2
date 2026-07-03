@@ -1,0 +1,21 @@
+# pgAdmin server-side config -- OIDC (Authelia) auth. Rendered by the apps
+# deploy and bind-mounted read-only at /pgadmin4/config_local.py. pgAdmin
+# authenticates via Authelia OIDC directly, so it is NOT behind the caddy
+# `secure` forward-auth snippet (that would double-auth and break the redirect).
+AUTHENTICATION_SOURCES = ['oauth2']
+OAUTH2_AUTO_CREATE_USER = True
+OAUTH2_CONFIG = [{
+    'OAUTH2_NAME': 'Authelia',
+    'OAUTH2_DISPLAY_NAME': 'Authelia',
+    'OAUTH2_CLIENT_ID': 'pgadmin',
+    'OAUTH2_CLIENT_SECRET': '[[ pgadmin_oidc_client_secret ]]',
+    'OAUTH2_API_BASE_URL': 'https://auth.dv.zone',
+    'OAUTH2_AUTHORIZATION_URL': 'https://auth.dv.zone/api/oidc/authorization',
+    'OAUTH2_TOKEN_URL': 'https://auth.dv.zone/api/oidc/token',
+    'OAUTH2_USERINFO_ENDPOINT': 'https://auth.dv.zone/api/oidc/userinfo',
+    'OAUTH2_SERVER_METADATA_URL': 'https://auth.dv.zone/.well-known/openid-configuration',
+    'OAUTH2_SCOPE': 'openid email profile',
+    'OAUTH2_USERNAME_CLAIM': 'email',
+    'OAUTH2_ICON': 'fa-key',
+    'OAUTH2_BUTTON_COLOR': '#2c3e50',
+}]

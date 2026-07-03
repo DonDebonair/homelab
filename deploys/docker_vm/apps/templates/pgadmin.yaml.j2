@@ -1,0 +1,36 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  pgadmin:
+    container_name: pgadmin
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # pgAdmin requires a default admin at first init even under OIDC-only auth
+      # (it seeds the internal db). The migrated pgadmin4.db already has it, so
+      # this just satisfies the entrypoint's env check. Internal password login
+      # is disabled (AUTHENTICATION_SOURCES = ['oauth2'] in config_local.py).
+      PGADMIN_DEFAULT_EMAIL: "[[ host.data.email ]]"
+      PGADMIN_DEFAULT_PASSWORD: "[[ pgadmin_default_password ]]"
+      # No local mail relay; internal password recovery is unused under OIDC.
+      PGADMIN_DISABLE_POSTFIX: "True"
+    networks:
+      - caddy-internal
+    labels:
+      # No `import secure` -- pgAdmin does its own Authelia OIDC (like miniflux /
+      # forgejo); the caddy forward-auth snippet would double-auth it.
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 80}}"
+      homepage.group: Databases
+      homepage.name: pgAdmin
+      homepage.icon: pgadmin
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 1000
+    expose:
+      - 80
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

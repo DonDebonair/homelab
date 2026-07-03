@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 19 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **11 ported, 5 left to port, 3 won't be
+`roles/docker-apps/vars/main.yml`). **12 ported, 4 left to port, 3 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -23,7 +23,7 @@ ported** (superseded/dropped). Ported apps live in
 | miniflux | rss.dv.zone | Bookmarks | external | postgres `miniflux`, OIDC | ✅ Ported |
 | paperless | docs.dv.zone | Office | internal | postgres `paperless`, redis/tika/gotenberg sidecars, external named vols, OIDC, secrets | ✅ Ported |
 | homepage | home.dv.zone | — | internal | bind-mount config + docker socket; `homepage.*` labels drive the dashboard | ✅ Ported |
-| pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin/{data,config}` vols (uid/gid 5050), `config_local.py` template, OIDC | ⬜ To port |
+| pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin-data` vol (external, uid/gid 5050), single-file `config_local.py` bind, OIDC (self-auth, no `import secure`); data bridged from NAS — see runbook below | ✅ Ported |
 | portainer | docker.dv.zone | Admin | internal | `portainer-data` vol (external), docker socket; EE, `/data` bridged from NAS | ✅ Ported |
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol (external), config migrated from NAS | ✅ Ported |
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
@@ -360,3 +360,64 @@ widget, `tautulli/tautulli:v2.17.2`.
   `NASty` from the carried-over `config.ini` (not a first-run); 884 history rows
   in the volume; `tautulli.dv.zone` → 302 Authelia; file-mgmt ops idempotent.
   NAS tautulli left stopped-but-present; Ansible decommission is the follow-up.
+
+## pgadmin — config + data migration (done 2026-07-03)
+
+Postgres admin UI. Stateful, **self-auths via Authelia OIDC** (like miniflux /
+forgejo — **not** behind `import secure`), Databases homepage tile,
+`dpage/pgadmin4:9.16` (NAS ran `:latest`). Runs as the image's built-in
+**uid/gid 5050**. Internal on `caddy-internal` (`pgadmin.dv.zone`, container port
+**80**). The Authelia `pgadmin` OIDC client was already staged in
+`deploys/docker_vm/proxies/vars.py` (redirect `…/oauth2/authorize`,
+`client_secret_basic`), so no proxy change was needed.
+
+- **State — `pgadmin-data`, `external=True`** at `/var/lib/pgadmin`. Holds
+  `pgadmin4.db` (server/connection definitions, users, prefs, saved queries) +
+  `storage/`/`sessions/` — high recovery cost, so external keeps `down -v` from
+  wiping it. Bridged from the NAS `/volume2/docker/pgadmin/data`.
+- **`config_local.py` — single-file bind (the one novel bit).** It must land at
+  `/pgadmin4/config_local.py`, *inside* the image's own module dir, so it can't
+  be a whole-dir mount. It's rendered by `TemplateFile(src="config_local.py",
+  dest="pgadmin/config_local.py", uid/gid 5050)` under `docker_volumes_base`, then
+  mounted read-only via an **absolute-source** `BindMount`
+  (`/srv/docker/volumes/pgadmin/config_local.py` → `/pgadmin4/config_local.py:ro`).
+  Absolute source ⇒ `is_managed=False`, so the helper doesn't mkdir a directory
+  over the file. Template is `deploys/docker_vm/apps/templates/config_local.py.j2`
+  (OAuth2 → Authelia; fixed the original's `OAUTH2_BUTTON_COLOR: <button-color>`
+  placeholder → `#2c3e50`).
+- **Secrets → 1Password** (was Ansible-Vault). Two new refs in
+  `deploys/docker_vm/apps/secrets.py`:
+  - `pgadmin_oidc_client_secret` = `op://Homelab/pgAdmin OIDC client/password` —
+    **must be the same plaintext** whose pbkdf2 hash is registered for the
+    `pgadmin` client in `proxies/vars.py` (carry over the Ansible
+    `pgadmin.oidc.secret` value) or Authelia rejects the token exchange.
+  - `pgadmin_default_password` = `op://Homelab/pgAdmin/password` — only satisfies
+    the image's first-init env check; internal login is disabled by OIDC-only auth.
+  - **Dropped** the NAS SendGrid `PGADMIN_CONFIG_MAIL_*` env — password-recovery
+    mail is unused under OIDC-only auth (kept `PGADMIN_DISABLE_POSTFIX=True`).
+  - User creates the 1Password items ([[feedback_user_creates_1password_items]]);
+    both must exist before *any* app deploys or `populate_cache_sync()` fails for
+    all of them. Verify the refs resolve via the SDK, not `op read`
+    ([[feedback_op_sdk_resolves_by_field_id]]).
+- **Data migration** — bridge NAS → workstation → docker_vm volume. **Stopped the
+  NAS pgadmin first** (`docker stop pgadmin`) to quiesce `pgadmin4.db`.
+  `pgadmin4.db` is mode `600` owned `5050`, which the ssh user can't read, so the
+  tar ran inside a **root container** on each end (also sidesteps NAS sudo; DSM
+  docker is at `/usr/local/bin/docker`, not on the non-interactive ssh PATH):
+  ```
+  ssh dockervm.dv.zone 'docker volume create pgadmin-data'
+  ssh nas.dv.zone '/usr/local/bin/docker run --rm -v /volume2/docker/pgadmin/data:/src alpine tar -C /src --numeric-owner -cf - .' \
+    | ssh dockervm.dv.zone 'docker run --rm -i -v pgadmin-data:/dest alpine tar --numeric-owner -xf - -C /dest'
+  ssh dockervm.dv.zone 'docker run --rm -v pgadmin-data:/dest alpine chown -R 5050:5050 /dest'
+  ```
+- **Server-definition repoint (remaining UI step).** The one carried-over server
+  in `pgadmin4.db` (`PostgreSQL Main`) references host **`postgres-db`** (the NAS
+  in-compose Postgres, macvlan `192.168.1.195`), which doesn't resolve on
+  docker_vm. After login, edit its host to an IP the VM can reach
+  (`192.168.1.195` for the NAS postgres, or `192.168.1.41` for the postgres_lxc).
+- **Deployed:** `uv run pyinfra inventory.py --limit docker_vm deploy.py -y`.
+- **Verified 2026-07-03:** `pgadmin` up on `dpage/pgadmin4:9.16`, `caddy-internal`;
+  `config_local.py` mounted `:ro`; gunicorn on :80; migrated `pgadmin4.db` loaded
+  (user `daan@dv.email`, 1 server def present, not a first-run);
+  `pgadmin.dv.zone` → 302 Authelia with the OAuth2 login button. NAS pgadmin left
+  stopped-but-present; Ansible decommission is the follow-up.

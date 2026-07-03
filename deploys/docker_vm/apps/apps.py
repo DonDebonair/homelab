@@ -1,5 +1,6 @@
 from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVolume, NfsVolume, TemplateFile
 from group_data.all import nas_ip
+from group_data.docker_vm import docker_volumes_base
 
 DOCKER_SOCKET = BindMount(source="/var/run/docker.sock", mount_path="/var/run/docker.sock")
 
@@ -162,6 +163,32 @@ apps = [
                 server=nas_ip,
                 path="/volume1/entertainment/calibre-library",
             ),
+        ],
+    ),
+    ComposeApp(
+        name="pgadmin",
+        image="dpage/pgadmin4",
+        version="9.16",
+        domain="pgadmin.dv.zone",
+        volumes=[
+            # pgadmin4.db (server/connection definitions, users, prefs, saved
+            # queries) + storage/ + sessions. High recovery cost, so external=True
+            # keeps `down -v` from wiping it. Bridged from the NAS
+            # (/volume2/docker/pgadmin/data). The dpage image runs as uid/gid 5050.
+            NamedVolume(name="pgadmin-data", mount_path="/var/lib/pgadmin", external=True),
+            # config_local.py (OAuth2/OIDC config) is a single file that lives in
+            # /pgadmin4 alongside the image's own modules, so it can't be a
+            # whole-dir mount. The TemplateFile below renders it under
+            # docker_volumes_base; an *absolute* source (is_managed=False) mounts
+            # just that file read-only without the helper mkdir-ing a dir over it.
+            BindMount(
+                source=f"{docker_volumes_base}/pgadmin/config_local.py",
+                mount_path="/pgadmin4/config_local.py",
+                read_only=True,
+            ),
+        ],
+        templates=[
+            TemplateFile(src="config_local.py", dest="pgadmin/config_local.py", uid=5050, gid=5050),
         ],
     ),
     ComposeApp(

@@ -5,6 +5,14 @@ miniflux_oidc_client_secret = SecretString("op://Homelab/Miniflux OIDC client/pa
 
 forgejo_db_password = SecretString("op://Homelab/PostgreSQL Forgejo user/password")
 
+# pgAdmin. The OIDC client secret MUST be the same plaintext whose pbkdf2 hash is
+# registered for the `pgadmin` client in deploys/docker_vm/proxies/vars.py (i.e.
+# the value carried over from the Ansible `pgadmin.oidc.secret` vault entry) --
+# otherwise Authelia rejects the token exchange. The default password only
+# satisfies the image's first-init env check (internal login is disabled by OIDC).
+pgadmin_oidc_client_secret = SecretString("op://Homelab/pgAdmin OIDC client/password")
+pgadmin_default_password = SecretString("op://Homelab/pgAdmin/password")
+
 paperless_db_password = SecretString("op://Homelab/PostgreSQL Paperless user/password")
 paperless_secret_key = SecretString("op://Homelab/Paperless secrets/secret key")
 paperless_oidc_client_secret = SecretString("op://Homelab/Paperless secrets/OIDC/secret")
