@@ -1,0 +1,34 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  tautulli:
+    container_name: tautulli
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # Config-only container (no NFS), so PUID/PGID are just the docker_vm
+      # docker user 2000:2000 -- no NAS-ACL reason to force PGID 100 here.
+      PUID: [[ host.data.docker_uid ]]
+      PGID: [[ host.data.docker_gid ]]
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8181}}"
+      homepage.group: Entertainment
+      homepage.name: Tautulli
+      homepage.icon: tautulli
+      homepage.href: https://[[ app.domain ]]
+      homepage.widget.type: tautulli
+      homepage.widget.url: https://[[ app.domain ]]
+      # Tautulli API key -- carried over unchanged with the migrated config.
+      homepage.widget.key: [[ tautulli_api_token ]]
+      homepage.weight: 110
+    expose:
+      - 8181
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

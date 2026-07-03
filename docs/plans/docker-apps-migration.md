@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 20 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **9 ported, 9 left to port, 2 won't be
+`roles/docker-apps/vars/main.yml`). **10 ported, 8 left to port, 2 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -25,7 +25,7 @@ ported** (superseded/dropped). Ported apps live in
 | homepage | home.dv.zone | — | internal | bind-mount config + docker socket; `homepage.*` labels drive the dashboard | ✅ Ported |
 | pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin/{data,config}` vols (uid/gid 5050), `config_local.py` template, OIDC | ⬜ To port |
 | portainer | docker.dv.zone | Admin | internal | `portainer-data` vol (external), docker socket; EE, `/data` bridged from NAS | ✅ Ported |
-| tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol | ⬜ To port |
+| tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol (external), config migrated from NAS | ✅ Ported |
 | overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
@@ -325,3 +325,39 @@ cover it** — the only new NAS-side step is the ACL grant.
    then `https://nzb.dv.zone` → Authelia → sabnzbd UI with servers, queue, and
    history intact; confirm a test download completes into the NFS `/data` area and
    is visible to the *arr stack. Then decommission the NAS sabnzbd (Ansible).
+
+## tautulli — config migration (done 2026-07-02)
+
+Plex activity/stats monitor. Simplest kind of stateful port: no postgres, no
+OIDC, no NFS — just one high-recovery-cost config volume whose live SQLite db
+(`tautulli.db`, all Plex watch history) is bridged from the NAS. Internal on
+`caddy-internal` (`tautulli.dv.zone`, `import secure *`), Entertainment homepage
+widget, `tautulli/tautulli:v2.17.2`.
+
+- **State — `tautulli-config`, `external=True`** at `/config`. `tautulli.db` is
+  irreplaceable historical data, so external keeps `down -v` from wiping it.
+- **Runs as PUID/PGID `2000`/`2000`** (`host.data.docker_{uid,gid}`) — matches
+  the Ansible original. No NFS, so no NAS-ACL reason to force PGID 100 (contrast
+  qbittorrent/sabnzbd). Migrated files were `1029:100` on the NAS → chowned
+  `2000:2000` on the way in.
+- **Homepage widget key → 1Password.** The Ansible template hardcoded the
+  Tautulli API key inline; moved to `tautulli_api_token`
+  (`op://Homelab/Tautulli/api key`) rendered via `[[ tautulli_api_token ]]`,
+  matching the portainer widget-key pattern. (User creates the 1Password item;
+  the field label is `api key` — verify the ref resolves via the SDK, not
+  `op read`.)
+- **Config migration** — same bridge-through-workstation pattern as sabnzbd
+  (NAS and docker_vm can't reach each other). **Stop the NAS tautulli first** to
+  quiesce the SQLite db (clean checkpoint, no lingering `-wal`), then:
+  ```
+  ssh <docker_vm> 'docker volume create tautulli-config'
+  ssh -p 22910 daanadmin@192.168.1.21 'tar -C /volume2/docker/tautulli/config -cf - .' \
+    | ssh <docker_vm> 'docker run --rm -i -v tautulli-config:/dest alpine tar --numeric-owner -xf - -C /dest'
+  ssh <docker_vm> 'docker run --rm -v tautulli-config:/dest alpine chown -R 2000:2000 /dest'
+  ```
+  Domain unchanged (`tautulli.dv.zone`), so no `config.ini` edit needed.
+- **Verified:** container healthy on `caddy-internal`; logs show the migrated db
+  loaded (`Database File: /config/tautulli.db`) and reconnected to Plex server
+  `NASty` from the carried-over `config.ini` (not a first-run); 884 history rows
+  in the volume; `tautulli.dv.zone` → 302 Authelia; file-mgmt ops idempotent.
+  NAS tautulli left stopped-but-present; Ansible decommission is the follow-up.

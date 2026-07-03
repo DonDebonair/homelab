@@ -124,6 +124,18 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="tautulli",
+        image="tautulli/tautulli",
+        version="v2.17.2",
+        domain="tautulli.dv.zone",
+        volumes=[
+            # tautulli.db holds all Plex watch history + stats -- irreplaceable
+            # historical data that can't be reconstructed -- so external=True
+            # keeps `down -v` from wiping it. Config (config.ini) lives here too.
+            NamedVolume(name="tautulli-config", mount_path="/config", external=True),
+        ],
+    ),
+    ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
         version="2.20.15",
