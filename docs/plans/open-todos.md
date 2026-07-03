@@ -27,6 +27,7 @@ data dir. Then flip nothing else — the tracker rows are already ✅.
 - ⬜ **pgadmin** — left stopped-but-present; Ansible decommission.
 - ⬜ **pinchflat** — left stopped-but-present; Ansible decommission.
 - ⬜ **n8n** — left stopped-but-present; remove entry + template, then delete `/volume2/docker/n8n` (holds the migrated `.n8n` incl. encryption key) once confident. ([docker-apps-migration.md](docker-apps-migration.md) "n8n" section)
+- ⬜ **nocodb** — fresh install (no data migrated); NAS instance left running. Stop it, remove entry + template, then delete `/volume2/docker/nocodb`. ([docker-apps-migration.md](docker-apps-migration.md) "nocodb" section)
 - ⬜ **cwa** — stop/remove NAS `cwa` stack + entry (`nas.yml` apps list + `roles/docker-apps/templates/cwa.yml.j2`); keep `/volume2/docker/cwa/config` + old library path until confident, then clean up. ([cwa-migration.md](cwa-migration.md) "Decommission")
 - ⬜ **qbittorrent / sabnzbd** — decommission NAS instances after verifying downloads land in the shared NFS tree. ([docker-apps-migration.md](docker-apps-migration.md))
 - ⬜ **Caddy proxies (NAS)** — the Ansible `proxies` role still re-creates the Caddy stack on the NAS when `nas.yml` runs; comment it out of `nas.yml` (or remove it) now that docker_vm serves the proxies. Flip any Cloudflare DNS still aimed at NAS macvlan IPs to the docker_vm IPs (192.168.50.20/.21). ([caddy-proxies-migration.md](caddy-proxies-migration.md) "Cut-over notes")
@@ -35,9 +36,10 @@ data dir. Then flip nothing else — the tracker rows are already ✅.
 
 ## 2. Remaining app migrations (NAS → docker_vm)
 
-Tracked in full in [docker-apps-migration.md](docker-apps-migration.md).
-
-- ⬜ **nocodb** — postgres-backed (`postgres_lxc` DB + user), `nocodb` vol, secrets. Reuses the NAS→postgres_lxc dump/restore path. **Last remaining app migration.**
+✅ **All 16 migratable apps are ported** (nocodb, the last one, done 2026-07-03).
+Nothing left here — remaining work is decommissioning (§1) and the fresh-app
+stand-ups that supersede migrated apps (§3). Tracked in full in
+[docker-apps-migration.md](docker-apps-migration.md).
 
 ## 3. New apps to stand up (fresh, not migrations)
 

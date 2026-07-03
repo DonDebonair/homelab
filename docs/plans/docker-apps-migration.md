@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 19 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **15 ported, 1 left to port (`nocodb`), 3
+`roles/docker-apps/vars/main.yml`). **16 ported (all migratable apps done), 3
 won't be ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -30,7 +30,7 @@ won't be ported** (superseded/dropped). Ported apps live in
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
-| nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
+| nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb-data` vol (external); **fresh install, no data migrated** (barely used); self-auth (no `import secure`) | ✅ Ported |
 | n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n-data` vol (external, uid/gid 1000) holding the encryption key; DB + vol bridged from NAS — see runbook below | ✅ Ported |
 | pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat-config` vol (external) + NAS youtube library over NFS; runs `2000:100`, config bridged from NAS | ✅ Ported |
 | cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa-config` vol (external), `cwa/ingest` bind, NAS `calibre-library` over NFS + `NETWORK_SHARE_MODE`; see [cwa-migration.md](cwa-migration.md) | ✅ Ported |
@@ -598,3 +598,42 @@ entries in the dump). **Decisive check: `n8n export:credentials --all
 which is the whole point of bridging the volume with the DB. `https://n8n.dv.zone/`
 → **200** serving n8n's own login (not an Authelia 302). NAS n8n left
 stopped-but-present (`Exited (0)`); Ansible decommission is the follow-up.
+
+## nocodb — fresh install, no data migration (done 2026-07-03)
+
+**The last migratable app.** No-code database/spreadsheet app. Postgres-backed
+but a **clean install** — the NAS instance was barely used, so no data is
+migrated (no DB dump, no volume bridge, no NAS quiesce): the overseerr "fresh
+install" shape with a Postgres DB. Internal on `caddy-internal`
+(`nocodb.dv.zone`, container port **8080**), Databases homepage tile,
+`nocodb/nocodb:2026.06.2` (NocoDB uses calver; pinned the current `:latest`,
+verified the tag exists on Docker Hub).
+
+- **DB → postgres_lxc.** The `nocodb` DB + user are **already provisioned**
+  (`deploys/postgres_lxc/databases/vars.py`; secret `nocodb_password` at
+  `op://Homelab/PostgreSQL NocoDB user/password`). NocoDB reads its whole DB from
+  a single `NC_DB` connection string, repointed from the NAS `postgres-db` to
+  `host.data.postgres_lxc_ip`. App-side secret `nocodb_db_password` (same ref) in
+  `apps/secrets.py`. NocoDB creates its own schema on first start.
+- **State — `nocodb-data`, `external=True`** at `/usr/app/data`. Holds uploaded
+  attachments + local tool state (not the relational data). Fresh volume, but
+  `external=True` still protects attachments going forward so `down -v` can't
+  wipe them ([[feedback_named_volumes_external]]).
+- **Self-auth, NOT behind Authelia.** NocoDB has its own user management and its
+  public shared views / API must be reachable without an SSO round-trip, so the
+  template carries **no `import secure *`** (matches the NAS `exposure: internal`;
+  same reasoning as n8n).
+- **Deployed:** `uv run pyinfra inventory.py --limit docker_vm deploy.py -y`.
+- **Verified 2026-07-03:** container healthy on `caddy-internal`,
+  `nocodb/nocodb:2026.06.2`; clean first-run init against the empty `nocodb` DB
+  (schema migrations ran, **129 tables** created, `App started successfully`, no
+  DB/connection errors); external `nocodb-data` volume created; `nocodb.dv.zone`
+  → **200** serving NocoDB's own UI (not an Authelia 302). NAS nocodb left
+  running (barely used, no state to lose); Ansible decommission is the follow-up.
+
+---
+
+**🎉 All 16 migratable docker apps are now on `docker_vm`.** What's left is
+cleanup, not migration: NAS/Ansible decommissioning (`docs/plans/open-todos.md`
+§1), the two fresh-app stand-ups that supersede migrated apps (Shelfmark ← cwa-dl,
+Seerr ← overseerr), and Renovate for version bumps.

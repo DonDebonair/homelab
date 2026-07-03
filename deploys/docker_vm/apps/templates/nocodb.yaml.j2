@@ -1,0 +1,30 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  nocodb:
+    container_name: nocodb
+    image: [[ app.image ]]:[[ app.version ]]
+    networks:
+      - caddy-internal
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      # Metadata + project data on the postgres_lxc over the LAN (like the other
+      # DB-backed apps). NocoDB reads its DB from this single connection string.
+      NC_DB: "pg://[[ host.data.postgres_lxc_ip ]]:5432?u=nocodb&p=[[ nocodb_db_password ]]&d=nocodb"
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8080}}"
+      # No `import secure`: NocoDB has its own user management and its public
+      # shared views / API must be reachable without Authelia SSO (matches NAS).
+      homepage.group: Databases
+      homepage.name: NocoDB
+      homepage.icon: nocodb
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 2000
+    expose:
+      - 8080
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

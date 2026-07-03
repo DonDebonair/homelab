@@ -235,6 +235,21 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="nocodb",
+        image="nocodb/nocodb",
+        # NocoDB uses calver; pin the current :latest (also what the NAS runs).
+        version="2026.06.2",
+        domain="nocodb.dv.zone",
+        volumes=[
+            # /usr/app/data holds uploaded attachments + local tool state (the
+            # relational data itself lives in the postgres_lxc `nocodb` DB via
+            # NC_DB). Fresh volume -- this is a clean install, the barely-used NAS
+            # data is not migrated -- but external=True still protects attachments
+            # going forward so `down -v` can't wipe them.
+            NamedVolume(name="nocodb-data", mount_path="/usr/app/data", external=True),
+        ],
+    ),
+    ComposeApp(
         name="n8n",
         image="docker.n8n.io/n8nio/n8n",
         # Pin the exact version the NAS runs (was the floating :latest) so n8n's

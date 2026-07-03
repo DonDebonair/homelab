@@ -9,6 +9,9 @@ forgejo_db_password = SecretString("op://Homelab/PostgreSQL Forgejo user/passwor
 # (deploys/postgres_lxc/databases/secrets.py) so app and DB agree on the password.
 n8n_db_password = SecretString("op://Homelab/PostgreSQL n8n user/password")
 
+# nocodb DB user on the postgres_lxc (same ref the lxc side provisions it with).
+nocodb_db_password = SecretString("op://Homelab/PostgreSQL NocoDB user/password")
+
 # pgAdmin. The OIDC client secret MUST be the same plaintext whose pbkdf2 hash is
 # registered for the `pgadmin` client in deploys/docker_vm/proxies/vars.py (i.e.
 # the value carried over from the Ansible `pgadmin.oidc.secret` vault entry) --
