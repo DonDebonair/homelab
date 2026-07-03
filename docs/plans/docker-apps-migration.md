@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 19 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **13 ported, 3 left to port, 3 won't be
+`roles/docker-apps/vars/main.yml`). **14 ported, 2 left to port, 3 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -26,7 +26,7 @@ ported** (superseded/dropped). Ported apps live in
 | pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin-data` vol (external, uid/gid 5050), single-file `config_local.py` bind, OIDC (self-auth, no `import secure`); data bridged from NAS — see runbook below | ✅ Ported |
 | portainer | docker.dv.zone | Admin | internal | `portainer-data` vol (external), docker socket; EE, `/data` bridged from NAS | ✅ Ported |
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol (external), config migrated from NAS | ✅ Ported |
-| overseerr | requests.dv.zone | Entertainment | internal | `overseerr` vol | ⬜ To port |
+| overseerr | requests.dv.zone | Entertainment | internal | `overseerr-config` vol (external); **fresh install, no data migrated**; self-auths via Plex (no `import secure`); **TODO: replace with [Seerr](https://seerr.dev/)** | ✅ Ported |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
@@ -475,3 +475,44 @@ newer builds only as `:latest`/`:dev`; NAS ran `:latest`).
   "No JS runtime" errors in the log are pre-existing upstream YouTube issues,
   not migration-related. NAS pinchflat left stopped-but-present; Ansible
   decommission is the follow-up.
+
+## overseerr — fresh install, no data migration (done 2026-07-03)
+
+Plex media request/discovery app. The **simplest kind of port**: no data is
+migrated — this is a clean install, so no bridge-through-workstation step and no
+NAS quiesce. Internal on `caddy-internal` (`requests.dv.zone`, container port
+**5055**), Entertainment homepage tile, `sctx/overseerr:1.35.0` (NAS ran
+`:latest`).
+
+- **State — `overseerr-config`, `external=True`** at `/app/config`. Holds
+  `settings.json` + `db/db.sqlite3` (request history, Plex-linked user accounts,
+  Plex/Radarr/Sonarr service config). Non-trivial recovery cost, so external=True
+  keeps `down -v` from wiping it — even for a fresh volume it protects the state
+  going forward ([[feedback_named_volumes_external]]).
+- **Self-auths via Plex — NOT behind Authelia.** Overseerr has its own Plex-OAuth
+  login, and the request UI must be reachable for users to sign in, so the
+  template carries **no `import secure *`** (contrast the download UIs). Verified:
+  `https://requests.dv.zone` → **307** to overseerr's own `/login` (not a 302 to
+  `auth.dv.zone`).
+- **No PUID/PGID.** The `sctx/overseerr` image runs as root and doesn't read
+  PUID/PGID env (contrast the linuxserver images); the NAS template set none
+  either. Fresh named volume, so no ownership migration.
+- **Homepage widget.** The Ansible template hardcoded an inline
+  `homepage.widget.key` (the old instance's API key), which was useless here —
+  a fresh install generates a **new** API key on first setup. Initially shipped
+  with group/name/icon/href only; once the user set up Overseerr and provided the
+  new key's 1Password ref, `overseerr_api_token` =
+  `op://Homelab/Overseerr/password` was added to `secrets.py` and
+  `homepage.widget.{type,url,key}` wired into the template (tautulli's shape).
+- **Deployed:** `uv run pyinfra inventory.py --limit docker_vm deploy.py -y`.
+- **Verified 2026-07-03:** `overseerr` up on `sctx/overseerr:1.35.0`,
+  `caddy-internal`; clean first-run init in the logs (built-in discovery sliders
+  created, scheduled jobs loaded, `Server ready on port 5055`); external
+  `overseerr-config` volume created; `requests.dv.zone` → 307 to overseerr's
+  Plex login. No NAS instance to decommission beyond the usual Ansible cleanup.
+  **First-run setup completed 2026-07-03** — Overseerr is fully configured (Plex +
+  Radarr/Sonarr connections); the homepage widget key was then wired in (see above).
+- **TODO — replace with Seerr.** Overseerr is superseded by
+  [Seerr](https://seerr.dev/) (the maintained successor). In the future we want
+  to migrate `requests.dv.zone` off `sctx/overseerr` onto Seerr. Since this was a
+  fresh install with little state, the eventual swap should be low-cost.

@@ -24,6 +24,10 @@ paperless_api_token = SecretString("op://Homelab/Paperless secrets/api token")
 # the NAS deploy; still valid because the /config volume is migrated intact.
 tautulli_api_token = SecretString("op://Homelab/Tautulli/api token")
 
+# homepage Overseerr widget access token (Overseerr API key). Fresh install --
+# generated at first-run setup, then stored in 1Password (not carried over).
+overseerr_api_token = SecretString("op://Homelab/Overseerr/password")
+
 # homepage portainer widget access token (existing value carried over from the
 # NAS deploy; still valid because the /data volume is migrated intact).
 portainer_api_token = SecretString("op://Homelab/Portainer/api token")

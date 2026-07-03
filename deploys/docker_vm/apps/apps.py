@@ -194,6 +194,21 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="overseerr",
+        image="sctx/overseerr",
+        version="1.35.0",
+        domain="requests.dv.zone",
+        volumes=[
+            # settings.json + the SQLite db (db.sqlite3) holding request history,
+            # user accounts (Plex-linked), and service (Plex/Radarr/Sonarr)
+            # config. Non-trivial recovery cost -- losing it re-does the whole
+            # setup and loses request history -- so external=True keeps `down -v`
+            # from wiping it. Fresh volume: this is a clean install, no data is
+            # migrated from the NAS instance.
+            NamedVolume(name="overseerr-config", mount_path="/app/config", external=True),
+        ],
+    ),
+    ComposeApp(
         name="pgadmin",
         image="dpage/pgadmin4",
         version="9.16",

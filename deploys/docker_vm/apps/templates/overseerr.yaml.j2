@@ -1,0 +1,36 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  overseerr:
+    container_name: overseerr
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      LOG_LEVEL: info
+      PORT: 5055
+    networks:
+      - caddy-internal
+    labels:
+      # Overseerr self-authenticates via Plex login, so it is NOT behind the
+      # Authelia forward-auth layer (no `import secure`) -- users need the
+      # request UI reachable to sign in with Plex.
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 5055}}"
+      homepage.group: Entertainment
+      homepage.name: Overseerr
+      homepage.icon: overseerr
+      homepage.href: https://[[ app.domain ]]
+      homepage.widget.type: overseerr
+      homepage.widget.url: https://[[ app.domain ]]
+      # Overseerr API key (Settings -> General), generated at first-run setup and
+      # stored in 1Password (this is a fresh install -- not carried over).
+      homepage.widget.key: [[ overseerr_api_token ]]
+      homepage.weight: 100
+    expose:
+      - 5055
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]
