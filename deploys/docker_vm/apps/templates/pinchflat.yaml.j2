@@ -1,0 +1,33 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  pinchflat:
+    container_name: pinchflat
+    image: [[ app.image ]]:[[ app.version ]]
+    # Downloads land on the NAS over NFS (maps by numeric id) and are served by
+    # Plex, so run as the docker_vm docker user (2000) / NAS `users` group (100)
+    # -- matching qbittorrent/sabnzbd/cwa -- rather than root. Pinchflat's own
+    # docs recommend against root for exactly this shared-media reason. The
+    # bridged /config volume is chowned 2000:100 so this user owns its SQLite db.
+    user: "[[ host.data.docker_uid ]]:100"
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8945}}"
+      caddy_internal.import: secure *
+      homepage.group: Entertainment
+      homepage.name: Pinchflat
+      homepage.icon: pinchflat
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 330
+    expose:
+      - 8945
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

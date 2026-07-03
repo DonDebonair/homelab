@@ -137,6 +137,34 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="pinchflat",
+        image="ghcr.io/kieraneglin/pinchflat",
+        # Newest dated tag published to ghcr (later builds ship only as
+        # :latest/:dev, which we don't pin to). Bump when a new vYYYY.M.D lands.
+        version="v2025.6.6",
+        domain="pinchflat.dv.zone",
+        volumes=[
+            # SQLite db (db/) tracking sources, per-video download history, and
+            # settings. High recovery cost -- losing it re-adds every channel /
+            # playlist and re-downloads everything -- so external=True keeps
+            # `down -v` from wiping it. Bridged from the NAS
+            # (/volume2/docker/pinchflat/config). Local volume (not NFS), so
+            # SQLite WAL is fine here -- no JOURNAL_MODE override needed.
+            NamedVolume(name="pinchflat-config", mount_path="/config", external=True),
+            # The YouTube library lives on the NAS under
+            # /volume1/entertainment/media/youtube -- a subdir of the same
+            # entertainment tree qbittorrent/sabnzbd/cwa mount, so the existing
+            # dockervm (uid 2000) ACL already covers it. Plex serves these files,
+            # so pinchflat writes them as 2000:100 (see the template's `user:`).
+            NfsVolume(
+                name="pinchflat-downloads",
+                mount_path="/downloads",
+                server=nas_ip,
+                path="/volume1/entertainment/media/youtube",
+            ),
+        ],
+    ),
+    ComposeApp(
         name="cwa",
         # Calibre-Web-Automated. Pinned stable (no :latest); bump via the version
         # field and redeploy.

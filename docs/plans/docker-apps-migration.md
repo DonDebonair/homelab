@@ -12,7 +12,7 @@ stateless docker log viewer) end-to-end as the proving case.
 ## Migration tracker
 
 19 apps in the Ansible `roles/docker-apps` role (source of truth:
-`roles/docker-apps/vars/main.yml`). **12 ported, 4 left to port, 3 won't be
+`roles/docker-apps/vars/main.yml`). **13 ported, 3 left to port, 3 won't be
 ported** (superseded/dropped). Ported apps live in
 `deploys/docker_vm/apps/apps.py` with a `templates/<app>.yaml.j2` each.
 
@@ -32,7 +32,7 @@ ported** (superseded/dropped). Ported apps live in
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
 | nocodb | nocodb.dv.zone | Databases | internal | postgres `nocodb`, `nocodb` vol | ⬜ To port |
 | n8n | n8n.dv.zone | Automation | internal | postgres `n8n`, `n8n` vol (uid/gid 1000) | ⬜ To port |
-| pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat/config` vol | ⬜ To port |
+| pinchflat | pinchflat.dv.zone | Entertainment | internal | `pinchflat-config` vol (external) + NAS youtube library over NFS; runs `2000:100`, config bridged from NAS | ✅ Ported |
 | cwa (calibre-web-automated) | books.dv.zone | Entertainment | internal | `cwa-config` vol (external), `cwa/ingest` bind, NAS `calibre-library` over NFS + `NETWORK_SHARE_MODE`; see [cwa-migration.md](cwa-migration.md) | ✅ Ported |
 | cwa-dl | books-dl.dv.zone | Entertainment | internal | **superseded** by [Shelfmark](https://github.com/calibrain/shelfmark) — deploy fresh on docker_vm (clean slate), don't migrate cwa-dl or its data; see [cwa-migration.md](cwa-migration.md) follow-ups | 🚫 Won't port |
 | pihole | — | Admin | — | **superseded** by the Technitium DNS migration (already on docker_vm) — not ported | 🚫 Won't port |
@@ -421,3 +421,57 @@ forgejo — **not** behind `import secure`), Databases homepage tile,
   (user `daan@dv.email`, 1 server def present, not a first-run);
   `pgadmin.dv.zone` → 302 Authelia with the OAuth2 login button. NAS pgadmin left
   stopped-but-present; Ansible decommission is the follow-up.
+
+## pinchflat — config migration + NFS library (done 2026-07-03)
+
+YouTube channel/playlist downloader. Stateful config + an NFS-mounted media
+library — the qbittorrent/sabnzbd shape without the whole-tree mount. Internal on
+`caddy-internal` (`pinchflat.dv.zone`, container port **8945**, behind
+`import secure *` Authelia SSO like the other download UIs), Entertainment
+homepage tile, `ghcr.io/kieraneglin/pinchflat:v2025.6.6` — the newest **dated**
+tag on ghcr (upstream stopped publishing `vYYYY.M.D` tags after it and ships
+newer builds only as `:latest`/`:dev`; NAS ran `:latest`).
+
+- **State — `pinchflat-config`, `external=True`** at `/config`. Holds the SQLite
+  db (`db/pinchflat.db`) tracking sources + per-video download history, plus
+  `metadata/`/`extras/`/`logs/`. High recovery cost (losing it re-adds every
+  channel/playlist and re-downloads everything), so external keeps `down -v`
+  from wiping it. It's a **local** volume, so SQLite WAL is fine — no
+  `JOURNAL_MODE=delete` override (contrast the NFS-hosted SQLite in cwa).
+- **Library — `pinchflat-downloads` (`NfsVolume`)** at `/downloads`, backed by
+  the NAS `/volume1/entertainment/media/youtube`. That's a subdir of the same
+  `/volume1/entertainment` tree qbittorrent/sabnzbd/cwa mount, so the existing
+  `dockervm` (uid 2000) Synology ACL already covers it — **no new NAS-side
+  setup**. The library files stay in place on the NAS; only the config is
+  migrated.
+- **Runs as `2000:100` via the compose `user:` directive** (not PUID/PGID —
+  pinchflat has no such env; it uses docker's `user`). NFS maps by numeric id,
+  so writes to the shared youtube tree need uid 2000 / gid 100 (the NAS `users`
+  group), matching qbittorrent/sabnzbd/cwa. Pinchflat's own docs also recommend
+  against root so Plex/other apps can read the media. The bridged `/config`
+  volume is chowned `2000:100` so this user owns its db.
+- **Config migration** — same bridge-through-workstation pattern as tautulli
+  (NAS and docker_vm can't reach each other). **Stop the NAS pinchflat first**
+  (DSM docker is `/usr/local/bin/docker`, not on the ssh PATH) to quiesce the
+  SQLite db (clean checkpoint — no lingering `-wal`), then:
+  ```
+  ssh nas.dv.zone 'sudo /usr/local/bin/docker stop pinchflat'
+  ssh dockervm.dv.zone 'docker volume create pinchflat-config'
+  ssh nas.dv.zone 'sudo tar -C /volume2/docker/pinchflat/config -cf - .' \
+    | ssh dockervm.dv.zone 'docker run --rm -i -v pinchflat-config:/dest alpine tar --numeric-owner -xf - -C /dest'
+  ssh dockervm.dv.zone 'docker run --rm -v pinchflat-config:/dest alpine chown -R 2000:100 /dest'
+  ```
+  Domain unchanged (`pinchflat.dv.zone`), so no in-config edit needed.
+- **Deployed:** `uv run pyinfra inventory.py --limit docker_vm deploy.py -y`.
+  (First attempt pinned `v2025.9.26` — the GitHub *release* tag — which ghcr
+  returned `manifest unknown` for; upstream's newest *ghcr* dated tag is
+  `v2025.6.6`. Corrected and redeployed.)
+- **Verified 2026-07-03:** container healthy on `caddy-internal`, running
+  `2000:100` (`id` → `uid=2000 gid=100(users)`); migrated `pinchflat.db` loaded
+  (Oban queue processing existing media_items #51xxxx — not a first-run);
+  `/downloads` NFS mount writable as the container user and the carried-over
+  library (`channels/Veritasium`, `playlists/…`) visible; `pinchflat.dv.zone` →
+  302 `auth.dv.zone` (Authelia). The yt-dlp "Sign in to confirm your age" /
+  "No JS runtime" errors in the log are pre-existing upstream YouTube issues,
+  not migration-related. NAS pinchflat left stopped-but-present; Ansible
+  decommission is the follow-up.
