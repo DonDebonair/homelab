@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from pyinfra import host
 from pyinfra.api import deploy, DeployError
 from pyinfra.facts.server import Arch, OsRelease
 from pyinfra.operations import apt, files, server, docker
+
+files_dir = Path(__file__).resolve().parent / "files"
 
 
 @deploy("Install and configure Docker")
@@ -82,6 +86,31 @@ def docker_setup():
         # showmount for diagnostics.
         packages=["nfs-common"],
         _sudo=True,
+    )
+    # Gate dockerd startup on DNS being ready so boot-time containers don't come
+    # up with an empty resolver (see the drop-in's comments for the full race).
+    files.directory(
+        name="Create docker.service systemd drop-in directory",
+        path="/etc/systemd/system/docker.service.d",
+        mode="0755",
+        user="root",
+        group="root",
+        _sudo=True,
+    )
+    dns_dropin = files.put(
+        name="Install docker DNS-readiness drop-in",
+        src=str(files_dir / "wait-for-dns.conf"),
+        dest="/etc/systemd/system/docker.service.d/wait-for-dns.conf",
+        mode="0644",
+        user="root",
+        group="root",
+        _sudo=True,
+    )
+    server.shell(
+        name="Reload systemd after writing docker drop-in",
+        commands=["systemctl daemon-reload"],
+        _sudo=True,
+        _if=dns_dropin.did_change,
     )
     server.user(
         name=f"Add user '{host.data.user}' to 'docker' group",
