@@ -4,12 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Configuration for a personal homelab running on a Minisforum MS-A2 (Proxmox host) and a Synology DS1621+ NAS. The repo holds **two parallel configuration management systems** that target different hosts:
+Configuration for a personal homelab running on a Minisforum MS-A2 (Proxmox host) and a Synology DS1621+ NAS, managed with **pyinfra**. The entrypoint is `deploy.py` and the inventory is `inventory.py`; pyinfra drives the Proxmox host, the PostgreSQL LXC, the Docker VM, and the Synology NAS.
 
-- **Ansible** (legacy) — entrypoint `nas.yml`, drives the Synology NAS via roles in `roles/`. Uses `ansible-vault` (password in `.vault_pass`).
-- **pyinfra** (current) — entrypoint `deploy.py`, drives the Proxmox host, the PostgreSQL LXC, and the Docker VM. Inventory is `inventory.py`. The intended direction is to migrate everything off Ansible onto pyinfra; new work happens here.
-
-Both systems coexist; do not assume one replaces the other unless the task says so.
+The legacy Ansible setup that used to live alongside this (driving the NAS via `roles/` + `nas.yml`) was split out into a separate archived repo (`homelab-old`) — this repo is pyinfra-only.
 
 ## Toolchain
 
@@ -28,21 +25,14 @@ uv run pyinfra inventory.py deploy.py
 # pyinfra: limit to one host group (groups defined by list names in inventory.py)
 uv run pyinfra inventory.py --limit docker_vm deploy.py
 
-# Ansible: run NAS playbook (tags scope it to a subset of roles)
-ansible-playbook nas.yml
-ansible-playbook -t docker-apps nas.yml
-
-# Ansible: encrypt a value for inline use
-ansible-vault encrypt_string -n <name> '<value>'
-
 # Tests — data-driven harness over custom pyinfra facts/operations under tests/
 uv run pytest
 uv run pytest tests/test_facts.py        # just the fact suites
 uv run pytest tests/test_operations.py   # just the operation suites
 
-# Helper CLI (cyclopts) for Ansible-side config edits
-uv run python script.py db add-db <name> [--user <u>] [--extensions ext1 ext2] [--dry-run]
-uv run python script.py oidc add-client <name> <redirect_url> [--dry-run]
+# Helper CLI (cyclopts, entrypoint cmd.py) for provisioning new credentials — see commands/README.md
+uv run python cmd.py db add-db <name> [--user <u>] [--display-name <Display>] [--dry-run]
+uv run python cmd.py oidc add-client <name> <redirect_url> [--dry-run]
 ```
 
 ## Architecture
@@ -66,7 +56,7 @@ Layered, reusable extensions to pyinfra live at the repo root:
 - For compose services, pinning is enforced through the **required `image` and `version` fields on `ComposeApp`** (`deploys/common/docker_compose/models.py`). They have no defaults, so a new app can't be constructed without them. The compose template renders the image as `image: [[ app.image ]]:[[ app.version ]]` — do not hardcode an image/tag in a template.
 - The version literal lives on the `ComposeApp` in the group's `apps.py`, co-located with the app. **Exception:** `caddy_version` stays in `deploys/docker_vm/proxies/vars.py` because the custom-image *build* (`docker.build`) needs the same value; `apps.py` imports it so there's still one source of truth.
 - **Secondary images** (a sidecar like authelia's `redis`, which the single-image `ComposeApp` can't express) and **non-compose images** (`docker.plugin`, `docker.build` base images) are pinned inline where they're declared. Note the loki log-driver plugin uses an **arch-suffixed** tag (`grafana/loki-docker-driver:<ver>-amd64`) because it publishes no multi-arch tag.
-- To bump a version: change the `version` field (or the inline tag), then redeploy. Look up the current tag on the registry rather than guessing. Automating bumps with Renovate is planned once all apps are migrated off Ansible onto the docker_vm.
+- To bump a version: change the `version` field (or the inline tag), then redeploy. Look up the current tag on the registry rather than guessing. Automating bumps with Renovate is planned.
 
 ### Testing (pyinfra facts & operations)
 
@@ -83,10 +73,6 @@ Custom facts and operations are tested **exclusively** through the `pyinfra-test
 `op_secrets.SecretString` is a `str` subclass that holds an `op://...` reference and resolves the real value lazily via the 1Password SDK. `SecretString.populate_cache_sync()` must be called once after constructing all references (already done in `inventory.py` and `deploys/*/secrets.py` modules) — this batches the lookups. `str(secret)` and string concatenation transparently expand to the real value; the bare object still prints as the reference, so it's safe to log.
 
 Use `SecretString` for any new secret rather than passing plaintext through code.
-
-### Ansible side
-
-Standard role layout under `roles/<role>/{tasks,templates,vars,files}`. `nas.yml` defines all variables inline (including some `!vault`-encrypted secrets). `script.py` (commands `db` and `oidc`) edits these YAML files programmatically using `ruamel.yaml` round-trip mode while preserving `!vault` tagged scalars — when modifying that script, keep round-trip semantics intact or comments/encryption blocks will be lost.
 
 ### Bootstrap note
 
