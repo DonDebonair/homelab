@@ -4,41 +4,33 @@ A single index of the outstanding follow-ups scattered across the individual
 plan docs in `docs/plans/`. Each item links to the source doc, which keeps the
 full detail/runbook — this file is just the master list so nothing gets lost.
 
-Status legend: ⬜ not started · 🔶 in progress / partially done
+Status legend: ⬜ not started · 🔶 in progress / partially done · ✅ done
 
-Last reviewed: 2026-07-03.
+Last reviewed: 2026-07-04.
 
 ---
 
 ## 1. NAS / Ansible decommissioning
 
-Every app migrated to `docker_vm` was left **stopped-but-present** on the NAS
-(kept as a fallback for a few days). Once confident, decommission each: stop the
-NAS container, remove its entry from `roles/docker-apps/vars/main.yml` (+ delete
-the `roles/docker-apps/templates/<app>.yml.j2`), and only then delete its NAS
-data dir. Then flip nothing else — the tracker rows are already ✅.
+✅ **Runtime decommission done.** Every app migrated to `docker_vm` has had its
+NAS container **stopped and removed**, and its NAS bind-mount data
+**deleted** (dozzle, miniflux, paperless, forgejo, portainer, tautulli, pgadmin,
+pinchflat, n8n, nocodb, cwa, qbittorrent, sabnzbd, and the monitoring stack).
+Nothing is left running on the NAS for these.
 
-- ⬜ **dozzle** — remove from NAS / Ansible `roles/docker-apps`. ([docker-apps-migration.md](docker-apps-migration.md) "Out of scope")
-- ⬜ **miniflux** — Ansible config left in place as fallback; decommission.
-- ⬜ **paperless** — stop NAS containers, remove `paperless` from `roles/docker-apps/`, then delete `/volume2/docker/paperless`. ([paperless-migration.md](paperless-migration.md) "Follow-ups")
-- ⬜ **forgejo** — stop NAS container, remove entry + template, then delete `/volume2/docker/forgejo` and `forgejo-db.dump`. ([forgejo-migration.md](forgejo-migration.md) "Decommission")
-- ⬜ **portainer** — NAS/Ansible portainer decommission.
-- ⬜ **tautulli** — left stopped-but-present; Ansible decommission.
-- ⬜ **pgadmin** — left stopped-but-present; Ansible decommission.
-- ⬜ **pinchflat** — left stopped-but-present; Ansible decommission.
-- ⬜ **n8n** — left stopped-but-present; remove entry + template, then delete `/volume2/docker/n8n` (holds the migrated `.n8n` incl. encryption key) once confident. ([docker-apps-migration.md](docker-apps-migration.md) "n8n" section)
-- ⬜ **nocodb** — fresh install (no data migrated); NAS instance left running. Stop it, remove entry + template, then delete `/volume2/docker/nocodb`. ([docker-apps-migration.md](docker-apps-migration.md) "nocodb" section)
-- ⬜ **cwa** — stop/remove NAS `cwa` stack + entry (`nas.yml` apps list + `roles/docker-apps/templates/cwa.yml.j2`); keep `/volume2/docker/cwa/config` + old library path until confident, then clean up. ([cwa-migration.md](cwa-migration.md) "Decommission")
-- ⬜ **qbittorrent / sabnzbd** — decommission NAS instances after verifying downloads land in the shared NFS tree. ([docker-apps-migration.md](docker-apps-migration.md))
-- ⬜ **Caddy proxies (NAS)** — the Ansible `proxies` role still re-creates the Caddy stack on the NAS when `nas.yml` runs; comment it out of `nas.yml` (or remove it) now that docker_vm serves the proxies. Flip any Cloudflare DNS still aimed at NAS macvlan IPs to the docker_vm IPs (192.168.50.20/.21). ([caddy-proxies-migration.md](caddy-proxies-migration.md) "Cut-over notes")
-- ⬜ **pi-hole + `roles/dns-setup`** — decommission once Technitium DNS is fully cut over. ([technitium-dns.md](technitium-dns.md) "Out of scope")
-- ⬜ **NAS monitoring** — remove `roles/monitoring/`, the Loki bits in `roles/docker-setup/`, the NAS `dockerd.json` log-driver override, then drop the stale NAS containers/volumes. ([monitoring-migration.md](monitoring-migration.md) "Step 7")
+The Ansible **config** (entries in `roles/docker-apps`, `roles/monitoring`,
+`roles/proxies`, the `nas.yml` app lists, per-app `*.yml.j2` templates, etc.) is
+**intentionally kept in place** — see the repo-split TODO in §7. It is no longer
+tracked as per-app removal work here.
+
+✅ **Cloudflare tunnel flipped** to the docker_vm proxy — external traffic no
+longer routes through the NAS. Nothing left in this section.
 
 ## 2. Remaining app migrations (NAS → docker_vm)
 
 ✅ **All 16 migratable apps are ported** (nocodb, the last one, done 2026-07-03).
-Nothing left here — remaining work is decommissioning (§1) and the fresh-app
-stand-ups that supersede migrated apps (§3). Tracked in full in
+Nothing left here — remaining work is the fresh-app stand-ups that supersede
+migrated apps (§3). Tracked in full in
 [docker-apps-migration.md](docker-apps-migration.md).
 
 ## 3. New apps to stand up (fresh, not migrations)
@@ -48,28 +40,22 @@ stand-ups that supersede migrated apps (§3). Tracked in full in
 
 ## 4. Per-app functional follow-ups
 
-- ⬜ **pgadmin** — repoint the migrated `PostgreSQL Main` server (host `postgres-db`, unresolvable on the VM) to a reachable IP (`192.168.1.195` NAS pg / `192.168.1.41` postgres_lxc). UI step. ([docker-apps-migration.md](docker-apps-migration.md) pgadmin section)
 - ⬜ **cwa — native OIDC.** Currently only Authelia forward-auth at the proxy; add CWA's native OIDC client against Authelia (Authelia client in `proxies/vars.py`, secret in 1Password + `apps/secrets.py`, OAuth env in `cwa.yaml.j2`) so SSO identities map to CWA users/permissions. ([cwa-migration.md](cwa-migration.md) "Follow-ups #1")
-- ⬜ **paperless — homepage widget.** Optionally regenerate a Paperless API token and add it as `homepage.widget.key` (the NAS's hardcoded key was dropped). ([paperless-migration.md](paperless-migration.md) "Follow-ups")
-- ⬜ **paperless — cleanup.** Remove the leftover import dump: `sudo rm -rf /srv/docker/volumes/paperless/export/*` on docker_vm (~2.9 G; data now in `paperless-media`). ([paperless-migration.md](paperless-migration.md))
 
 ## 5. Monitoring follow-ups
 
 All from [monitoring-migration.md](monitoring-migration.md) "Risks / follow-ups".
 
-- ⬜ **snmp_exporter config compat** — `snmp.j2` is the NAS-generated config; if snmp-exporter v0.30.1 rejects it, regenerate with the matching `generator` or pin an older snmp-exporter.
 - ⬜ **node-exporter scope** — ported verbatim (container-namespaced metrics, no host `/proc`,`/sys`,`/` mounts, no `pid: host`). Add host mounts + `pid: host` if true host metrics are wanted.
-- ⬜ **Loki volume ownership** — if Loki logs permission errors writing `/loki/chunks` on first start, `chown` the fresh `loki-data` volume to the image's loki uid.
-- ⬜ **Dozzle** — redundant once logs live in Loki; either drop it or override its service back to the `json-file` log driver if you still want `docker logs`.
 
 ## 6. DNS follow-ups
 
 From [technitium-dns.md](technitium-dns.md) "Out of scope (future phases)".
 
 - ⬜ **Second Technitium instance on `nas` → form a cluster.** Stand up a second Technitium instance on the NAS and cluster it with the docker_vm instance for HA/redundancy (config + zone sync across nodes). Add `dns_ip` to `group_data/nas.py`, call `setup_technitium_dns()` in the `nas` block (same `deploys/dns/` code), then configure clustering per [Understanding Clustering in Technitium](https://blog.technitium.com/2025/11/understanding-clustering-and-how-to.html).
-- ⬜ **pi-hole decommission** — see §1.
 
 ## 7. Infra / tooling
 
+- ⬜ **Split the repo in two** — carve the legacy Ansible setup into its own repo (`homelab-old`) and keep this one (`homelab`) as the pyinfra-only setup. This supersedes the per-app "remove from Ansible" cleanup that used to live in §1: the Ansible config stays as-is until the split. Will be tackled with Claude's help at a later stage.
 - ⬜ **Renovate** — automate Docker image version bumps once all apps are off Ansible onto docker_vm (replaces the dropped `watchtower`). ([CLAUDE.md](../../CLAUDE.md) "Docker image versioning"; [docker-apps-migration.md](docker-apps-migration.md) tracker)
 - ⬜ **Shared external NFS volume op** — qbittorrent/sabnzbd/etc. each keep their own inline `NfsVolume` for `/volume1/entertainment` because pyinfra's built-in `docker.volume` can't set `--opt` driver options. A custom op for a shared external NFS volume would be tidier. Deferred. ([docker-apps-migration.md](docker-apps-migration.md) NFS notes)
