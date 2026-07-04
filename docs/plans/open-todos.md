@@ -56,6 +56,6 @@ From [technitium-dns.md](technitium-dns.md) "Out of scope (future phases)".
 
 ## 7. Infra / tooling
 
-- ⬜ **Split the repo in two** — carve the legacy Ansible setup into its own repo (`homelab-old`) and keep this one (`homelab`) as the pyinfra-only setup. This supersedes the per-app "remove from Ansible" cleanup that used to live in §1: the Ansible config stays as-is until the split. Will be tackled with Claude's help at a later stage.
+- ✅ **Split the repo in two** (done 2026-07-04) — the legacy Ansible setup was carved into its own repo (`homelab-old`) and this repo (`homelab`) is now the pyinfra-only setup. A full-history archive of the original combined repo lives in `homelab-evolution-archive`. All three had secrets scrubbed before `homelab`/`homelab-old` were made public (`homelab-evolution-archive` stays private).
 - ⬜ **Renovate** — automate Docker image version bumps once all apps are off Ansible onto docker_vm (replaces the dropped `watchtower`). ([CLAUDE.md](../../CLAUDE.md) "Docker image versioning"; [docker-apps-migration.md](docker-apps-migration.md) tracker)
 - ⬜ **Shared external NFS volume op** — qbittorrent/sabnzbd/etc. each keep their own inline `NfsVolume` for `/volume1/entertainment` because pyinfra's built-in `docker.volume` can't set `--opt` driver options. A custom op for a shared external NFS volume would be tidier. Deferred. ([docker-apps-migration.md](docker-apps-migration.md) NFS notes)

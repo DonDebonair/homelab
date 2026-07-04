@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Configuration for a personal homelab running on a Minisforum MS-A2 (Proxmox host) and a Synology DS1621+ NAS, managed with **pyinfra**. The entrypoint is `deploy.py` and the inventory is `inventory.py`; pyinfra drives the Proxmox host, the PostgreSQL LXC, the Docker VM, and the Synology NAS.
 
-The legacy Ansible setup that used to live alongside this (driving the NAS via `roles/` + `nas.yml`) was split out into a separate archived repo (`homelab-old`) — this repo is pyinfra-only.
+The legacy Ansible setup that used to live alongside this (driving the NAS via `roles/` + `nas.yml`) was split out into a separate archived repo (`homelab-old`) — this repo is pyinfra-only. The Ansible→pyinfra migration is **complete**: nothing in this repo targets Ansible, and no migration work is pending. Remaining open work (new features/enhancements, not migration) is tracked in `docs/plans/open-todos.md`.
 
 ## Toolchain
 
