@@ -180,5 +180,6 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-# Claude Code personal settings
+# Claude Code personal settings + local runtime state
 .claude/settings.local.json
+.claude/*.lock
