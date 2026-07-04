@@ -2,6 +2,7 @@
 .vault_pass
 .python-version
 .idea/
+.envrc
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
