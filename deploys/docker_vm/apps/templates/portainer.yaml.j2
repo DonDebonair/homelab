@@ -4,6 +4,16 @@ services:
     container_name: portainer
     image: [[ app.image ]]:[[ app.version ]]
     volumes:[[ vol.service_volumes(app) ]]
+    # Pin the DNS upstream. Portainer is the one app that resolves an external
+    # hostname at runtime (the OIDC token exchange to auth.dv.zone). On a
+    # user-defined network Docker still serves 127.0.0.11 for service discovery
+    # and forwards external queries here, so this only fixes the upstream --
+    # instead of snapshotting whatever /etc/resolv.conf held at container-create
+    # time. That snapshot is racy: if the container starts before dhcpcd/the DNS
+    # shim settle the resolver, it captures a stale upstream and every OIDC login
+    # fails with "server misbehaving" until a restart.
+    dns:
+      - [[ host.data.dns_ip ]]
     networks:
       - caddy-internal
     environment:
