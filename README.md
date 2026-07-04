@@ -25,7 +25,7 @@ flowchart TB
     subgraph msa2["🖥️ Minisforum MS-A2 — Proxmox VE · pve · 192.168.1.22"]
         direction TB
         dockervm["<b>Docker VM</b> · vmid 200 · 192.168.50.10<br/>apps · Caddy reverse proxies · Technitium DNS<br/>Prometheus / Loki / Grafana · Samba"]
-        pglxc["<b>PostgreSQL LXC</b><br/>vmid 100 · postgres · 192.168.1.41"]
+        pglxc["<b>PostgreSQL LXC</b><br/>ctid 100 · postgres · 192.168.1.41"]
     end
 
     subgraph nas["📦 Synology DS1621+ NAS · NASty · 192.168.1.21"]
