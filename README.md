@@ -39,8 +39,8 @@ flowchart TB
     dockervm -->|databases| pglxc
     dockervm -->|app data| nfs
     pbs -->|datastore| iscsi
-    pglxc -. "vzdump backup · 02:00" .-> pbs
-    dockervm -. "vzdump backup · 02:00" .-> pbs
+    pglxc -. "vzdump ctid 100 · 02:00" .-> pbs
+    dockervm -. "vzdump vmid 200 · 02:00" .-> pbs
 ```
 
 ## Pyinfra
