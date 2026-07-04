@@ -42,4 +42,16 @@ portainer_api_token = SecretString("op://Homelab/Portainer/api token")
 # NAS agent). Must match AGENT_SECRET on every agent -- see deploys/nas/docker.
 portainer_agent_secret = SecretString("op://Homelab/Portainer/shared agent secret")
 
+# homepage widget API tokens for services homepage only links to -- Plex and the
+# *arr stack live elsewhere; these keys just let the homepage widgets query them.
+plex_api_token = SecretString("op://Homelab/Plex/api token")
+sonarr_api_token = SecretString("op://Homelab/Sonarr/api token")
+radarr_api_token = SecretString("op://Homelab/Radarr/api token")
+prowlarr_api_token = SecretString("op://Homelab/Prowlarr/api token")
+
+# homepage widget API tokens for apps deployed here (carried over unchanged with
+# the migrated configs).
+miniflux_api_token = SecretString("op://Homelab/Miniflux/api token")
+sabnzbd_api_token = SecretString("op://Homelab/SABnzbd/api token")
+
 SecretString.populate_cache_sync()

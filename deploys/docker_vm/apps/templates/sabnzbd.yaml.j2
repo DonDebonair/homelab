@@ -26,8 +26,8 @@ services:
       homepage.href: https://[[ app.domain ]]
       homepage.widget.type: sabnzbd
       homepage.widget.url: https://[[ app.domain ]]
-      # sabnzbd API key -- carried over unchanged with the migrated config.
-      homepage.widget.key: "secret"
+      # sabnzbd API key -- resolved from 1Password at render time.
+      homepage.widget.key: [[ sabnzbd_api_token ]]
       homepage.weight: 1000
     expose:
       - 8080

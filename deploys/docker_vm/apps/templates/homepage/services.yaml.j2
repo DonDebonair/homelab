@@ -9,7 +9,7 @@
         widget:
           type: plex
           url: https://plex.[[ host.data.domain ]]
-          key: secret
+          key: [[ plex_api_token ]]
         weight: 100
     - Sonarr:
         href: https://tv.[[ host.data.domain ]]
@@ -18,7 +18,7 @@
         widget:
           type: sonarr
           url: https://tv.[[ host.data.domain ]]
-          key: secret
+          key: [[ sonarr_api_token ]]
         weight: 200
     - Radarr:
         href: https://movies.[[ host.data.domain ]]
@@ -27,7 +27,7 @@
         widget:
           type: radarr
           url: https://movies.[[ host.data.domain ]]
-          key: secret
+          key: [[ radarr_api_token ]]
         weight: 300
     - Prowlarr:
         href: https://indexers.[[ host.data.domain ]]
@@ -35,7 +35,7 @@
         widget:
           type: prowlarr
           url: https://indexers.[[ host.data.domain ]]
-          key: secret
+          key: [[ prowlarr_api_token ]]
         weight: 400
 - Office:
     - Synology Drive:
