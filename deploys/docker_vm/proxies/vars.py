@@ -90,7 +90,10 @@ oidc_clients = [
         "name": "Technitium DNS",
         "secret_hash": "$pbkdf2-sha512$310000$DNnvqm.hvRbHHMEy5Pvekg$XKdBrvs.aXC.S2HIoR3kIjr0Rrh.XYO4gX8LTpmxYaX3cB/3X9zf3TF1Dqz5fD/w108ApmQmDZ9A5SRbDUlSCA",
         "policy": "two_factor",
-        "redirect_uris": ["https://dns.dv.zone/sso/callback"],
+        "redirect_uris": [
+            "https://dns1.dv.zone/sso/callback",
+            "https://dns2.dv.zone/sso/callback",
+        ],
         "scopes": ["openid", "groups", "email", "profile"],
         "auth_method": "client_secret_post",
         "require_pkce": True,

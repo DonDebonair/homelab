@@ -106,9 +106,9 @@ Technitium's built-in SSO (`DNS_SERVER_SSO_*` env vars) — not caddy forward_au
 
 ## Out of scope (future phases)
 
-- Second Technitium instance on `nas` (add `dns_ip` to `group_data/nas.py`, call
-  `setup_technitium_dns()` in the `nas` block — same `deploys/dns/` code).
-- Decommissioning pi-hole and the Ansible `roles/dns-setup` role.
+- ~~Second Technitium instance on `nas`~~ → now **Phase 2** below (done).
+- ~~Decommissioning pi-hole and the Ansible `roles/dns-setup` role~~ → done; pi-hole is
+  decommissioned and the Ansible config lives in the archived `homelab-old` repo.
 
 ## Verification
 
@@ -130,3 +130,207 @@ Technitium's built-in SSO (`DNS_SERVER_SSO_*` env vars) — not caddy forward_au
 
 > Note: Technitium applies `DNS_SERVER_*` env vars on startup. If env config and later UI
 > edits to the same settings diverge, treat the env vars as the source of truth.
+
+---
+
+# Phase 2: NAS secondary instance + Technitium clustering
+
+## Goal
+
+Stand up a **second** Technitium instance on the `nas` host and cluster it with the
+docker_vm instance so the two form an HA pair — config, blocklists, users, and zones sync
+across both, and either can answer LAN DNS if the other is down. Reuses the same
+group-agnostic `deploys/dns/` code, parameterised per host through `group_data`.
+
+## Decisions (confirmed with user)
+
+- **Rename the existing (docker_vm) console domain** `dns.dv.zone` → **`dns1.dv.zone`**.
+- **New NAS instance console domain** → **`dns2.dv.zone`**.
+- **NAS instance macvlan IP** → **`192.168.1.210`** (inside the NAS macvlan range
+  `192.168.1.192/27`; `.223` is the host aux-address, `.193–.222` otherwise free — only
+  cAdvisor/portainer-agent run on the NAS and they use *host* ports, not macvlan).
+- **SSO enabled on both nodes**, mirroring the same `DNS_SERVER_SSO_*` env (same Authelia
+  client id/secret/authority). Admin-password login remains as a fallback on both.
+- **Clustering is configured in the Technitium web UI** (Administration → Cluster) — it has
+  **no `DNS_SERVER_*` env-var support**. pyinfra stands up the node; the cluster *join* is a
+  one-time manual UI step. Nodes talk **node-to-node over TCP `53443`** (the HTTPS web
+  service) authenticated with **DANE-EE**. Config/blocklists/users/API-tokens/catalog-zones
+  sync primary→secondary; cache, logs and login sessions stay per-node.
+  Ref: <https://blog.technitium.com/2025/11/understanding-clustering-and-how-to.html>.
+- **Primary = docker_vm (`dns1`)**, **secondary = NAS (`dns2`)**.
+
+## Reachability findings (verified during planning, from the NAS)
+
+Cross-subnet routing between the NAS LAN (`192.168.1.0/24`) and the docker_vm macvlan
+(`192.168.50.0/24`) works via the gateway (`192.168.1.1`):
+
+- NAS → `192.168.50.30:53` (**live primary DNS**) — **open**.
+- NAS → `192.168.50.10:22` (docker_vm host) — **open**.
+- NAS → `auth.dv.zone` → `192.168.50.21:443`, `GET /.well-known/openid-configuration` →
+  **HTTP 200**. So the secondary **can** complete a server-side SSO token exchange.
+- NAS → `192.168.50.30:53443` — *refused* today, only because the HTTPS web service /
+  cluster port isn't enabled on the primary yet (**not** a routing block). Enabling it on
+  both nodes is part of the cluster-init step.
+
+> A bare-TCP `/dev/tcp` probe to the caddy IPs gave a false "unreachable"; the authoritative
+> `curl` (real TLS handshake) returns 200. Trust the `curl`/`dig` result, not `/dev/tcp`.
+
+## Code changes
+
+### 1. Parameterise the console subdomain (template currently hardcodes `dns.`)
+
+- `group_data/docker_vm.py`: add `dns_console_subdomain = "dns1"`.
+- `group_data/nas.py`: add `dns_console_subdomain = "dns2"`, `dns_ip = "192.168.1.210"`, and
+  `external_reverse_proxy_ip = "192.168.50.21"` (the template's `extra_hosts` auth-pin reads
+  it; confirmed reachable from the NAS).
+- `deploys/dns/templates/technitium-dns.yaml.j2`: replace every literal `dns.[[ host.data.domain ]]`
+  with `[[ host.data.dns_console_subdomain ]].[[ host.data.domain ]]` (in `DNS_SERVER_DOMAIN`
+  and the `caddy_internal` label). The `sso/callback` redirect is derived by Technitium from
+  the request host, so no template change there.
+
+### 2. Branch the console-proxy path (caddy-internal exists only on docker_vm)
+
+The NAS has no `caddy-internal` network and no caddy — so the container's caddy network
+membership + `caddy_internal*` labels must be docker_vm-only.
+
+- `group_data/docker_vm.py`: add `dns_console_via_caddy_labels = True`.
+- `group_data/nas.py`: leave it unset/`False`.
+- Template: wrap the `caddy-internal:` network entry **and** the `labels:` block in
+  `[% if host.data.dns_console_via_caddy_labels %] … [% endif %]`. On the NAS the container
+  joins only `macvlan`, and the top-level `caddy-internal` external network is likewise
+  guarded out.
+- Proxy the NAS console from the **docker_vm** caddy instead: add to
+  `group_data/docker_vm.py` `extra_proxied_domains`:
+  `{"domain": "dns2.dv.zone", "ip": "192.168.1.210", "port": 5380}`. The caddy-internal
+  template already supports the optional `ip` override
+  (`domain.ip | default(host.data.nas_ip, true)`).
+
+### 3. Authelia OIDC client (`deploys/docker_vm/proxies/vars.py`)
+
+In the existing `technitium-dns` client (reused by both nodes):
+
+- Change `redirect_uris` `https://dns.dv.zone/sso/callback` → `https://dns1.dv.zone/sso/callback`.
+- **Add** `https://dns2.dv.zone/sso/callback` to the same list.
+
+### 4. Wire the NAS deploy (`deploy.py`)
+
+`setup_technitium_dns` is already imported. In the `if "nas" in host.groups:` block, call
+`setup_technitium_dns()` **after** `nas_docker_setup()` (which creates the NAS `macvlan`
+network and compose dirs the stack references).
+
+### 5. Domain-rename touchpoints (`dns` → `dns1`) — summary
+
+- `group_data/docker_vm.py` — `dns_console_subdomain = "dns1"` (item 1).
+- `deploys/docker_vm/proxies/vars.py` — redirect_uri rename (item 3).
+- This doc — Phase-1 references to `dns.dv.zone` (verification step 6, the SSO section) become
+  `dns1.dv.zone`.
+- **No client reconfiguration:** LAN resolvers point at the *IP* `192.168.50.30`, not at
+  `dns.dv.zone` (that's only the console/OIDC hostname), and `.30` is unchanged. Nothing on
+  the resolution path breaks from the rename.
+
+### External volume note
+
+`technitium-dns-config` is `external=True`; the `docker_compose` helper auto-creates it via
+`docker.volume(present=True)` on whichever host runs the stack — **no manual pre-creation on
+the NAS**. The secondary can boot with an empty config volume; clustering then syncs state
+from the primary.
+
+### 6. Cluster domain + multi-domain caddy support (deployed 2026-07-04)
+
+Technitium clustering requires a **cluster domain that has no existing primary zone** — so
+**not `dv.zone`** (which is served as a zone). We use **`cluster.dv.zone`**, giving the nodes
+the FQDNs **`dns1.cluster.dv.zone`** / **`dns2.cluster.dv.zone`**
+([discussion #1722](https://github.com/TechnitiumSoftware/DnsServer/discussions/1722#discussioncomment-15725615)).
+Those node FQDNs need **real TLS certs** for node-to-node HTTPS. Technitium's HTTP service
+ignores the `Host` header, so each node is reachable under *both* its console name and its
+cluster name on the same `:5380` upstream — so caddy just serves both names (one LE cert each,
+same reverse_proxy).
+
+To let a single Technitium container advertise two console domains, caddy now accepts
+**multiple domains per service** (the caddy-docker-proxy `caddy: a.com, b.com` form):
+
+- **Labels path (dns1, on docker_vm):** `group_data/docker_vm.py` gains
+  `dns_console_domains = ["dns1.dv.zone", "dns1.cluster.dv.zone"]`; the Technitium template
+  renders `caddy_internal: [[ host.data.dns_console_domains | join(', ') ]]`. (`DNS_SERVER_DOMAIN`
+  still uses `dns_console_subdomain` and stays `dns1.dv.zone`.)
+- **extra_proxied_domains path (dns2, proxied from docker_vm caddy):** an entry may now carry a
+  `domains` list instead of a single `domain`; `caddy-internal.yaml.j2` renders
+  `[[ (domain.get('domains') or [domain.domain]) | join(', ') ]]` (back-compatible — existing
+  single-`domain` entries are untouched). The dns2 entry is
+  `{"domains": ["dns2.dv.zone", "dns2.cluster.dv.zone"], "ip": "192.168.1.210", "port": 5380}`.
+
+**Verified:** all four names return HTTP 200 through caddy `.20`, and both `*.cluster.dv.zone`
+names present a valid Let's Encrypt cert (`SSL certificate verify ok`, obtained via DNS-01).
+For the cluster to actually *use* those names, `dns1/dns2.cluster.dv.zone` must resolve to the
+nodes — set up in the Technitium cluster zone during cluster init (below).
+
+## Manual post-deploy step: form the cluster (web UI) — ✅ DONE 2026-07-04
+
+The cluster is **formed and working** (dns1 primary + dns2 secondary, config/blocklists/users
+syncing). Steps that were performed:
+
+0. Cluster domain = **`cluster.dv.zone`** (no primary zone exists for it); node names
+   **`dns1.cluster.dv.zone`** / **`dns2.cluster.dv.zone`** (caddy already serves valid certs
+   for both — see §6).
+1. Enable the **HTTPS web service on `53443`** on **both** nodes (self-signed cert is fine —
+   DANE-EE pins it). Do this in each console's *Settings → Web Service*, or pre-set the
+   `DNS_SERVER_WEB_SERVICE_*` env (exact var names TBD during implementation — confirm
+   against the Technitium docker README; UI is the fallback).
+2. On **dns1** (primary): *Administration → Cluster* → initialise the cluster.
+3. On **dns2** (secondary): *Administration → Cluster* → join, pointing at the primary.
+   Nodes exchange over `53443`/DANE-EE and populate the cluster catalog zone.
+4. Confirm blocklists, users, and settings replicate to dns2.
+
+## Router / DHCP (manual, outside pyinfra)
+
+Hand out **both** resolvers to LAN clients so redundancy is real: add `192.168.1.210` as the
+secondary DNS alongside `192.168.50.30` in the router's DHCP scope. (Not required for the
+deploy itself; needed for clients to actually fail over.)
+
+## Tests
+
+Any change to the `technitium-dns.yaml.j2` template is not fact/operation-covered (it's a
+compose template, not a custom fact/op), so no `pyinfra-testing` cases are added. Still run
+`uv run pytest` to confirm nothing regressed.
+
+## Verification
+
+1. `uv run pytest` green.
+2. Dry-run both: `uv run pyinfra inventory.py --limit nas deploy.py --dry` and
+   `--limit docker_vm deploy.py --dry`; review the rendered NAS compose (only `macvlan`, no
+   caddy network/labels) and the docker_vm `dns2` proxy entry.
+3. Apply (`-y`): `--limit nas` then `--limit docker_vm`.
+4. On the NAS: `docker ps` shows `technitium-dns` at `192.168.1.210` on `macvlan`; rendered
+   compose at `<compose_base>/technitium-dns/compose.yaml`, secret files under
+   `<volumes_base>/technitium-dns/secrets/`.
+5. From a LAN client: `dig @192.168.1.210 example.com` answers; `dig @192.168.1.210 <ad-domain>`
+   returns `0.0.0.0`/NXDOMAIN (blocking works).
+6. Consoles: `https://dns1.dv.zone` **and** `https://dns2.dv.zone` both load with valid LE
+   certs; SSO login works on both.
+7. Form the cluster (above); change a block rule on dns1 → confirm it appears on dns2.
+
+## Status — ✅ COMPLETE (2026-07-04)
+
+Phase 2 is **fully done**: both instances deployed *and* clustered.
+
+- ✅ docker_vm primary renamed `dns` → **`dns1.dv.zone`** (console via caddy → HTTP 200, LE
+  cert); primary DNS answering on `192.168.50.30`.
+- ✅ NAS secondary **`dns2.dv.zone`** up at macvlan `192.168.1.210` — resolves on `:53` and its
+  console loads through the docker_vm caddy (HTTP 200, valid LE cert), confirming the
+  cross-subnet `caddy(.20) → NAS(192.168.1.210:5380)` proxy path works.
+- ✅ Authelia `technitium-dns` OIDC client lists both `dns1`/`dns2` `sso/callback` URIs; SSO
+  works on both.
+- ✅ Cluster domain `cluster.dv.zone`; nodes `dns1/dns2.cluster.dv.zone` serve valid LE certs
+  (caddy multi-domain). **Cluster formed and working** — config/blocklists/users sync
+  primary→secondary.
+
+pi-hole is decommissioned. The only remaining follow-up is the router-DHCP secondary-resolver
+handout (manual, outside pyinfra) — see the "Router / DHCP" section above.
+
+## Resolved verification items
+
+- ✅ **Primary (`192.168.50.30`) ↔ secondary (`192.168.1.210`) on `53443`** — cluster link is
+  up; nodes exchange over `53443`/DANE-EE. (Routing was already proven; the `53443` listener
+  was enabled during cluster init.)
+- Moot: pre-enabling HTTPS/`53443` via `DNS_SERVER_WEB_SERVICE_*` env was never needed — the
+  listener was enabled in the UI as part of cluster init.

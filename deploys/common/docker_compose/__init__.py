@@ -4,8 +4,9 @@ from typing import Any
 
 from jinja2 import ChoiceLoader, FileSystemLoader
 from pyinfra.api import deploy
+from pyinfra.api.operation import OperationMeta
 from pyinfra import host
-from pyinfra.operations import files, docker
+from pyinfra.operations import files, docker, server
 
 from .models import ComposeApp, BindMount, NamedVolume
 from utils.variables import normalize_vars
@@ -22,11 +23,12 @@ def docker_compose(
     cleaned_vars = normalize_vars(variables) if variables else {}
     create_docker_volume_dirs(apps)
     create_external_named_volumes(apps)
-    copy_templates(apps, template_dir, cleaned_vars)
+    restart_metas = copy_templates(apps, template_dir, cleaned_vars)
     copy_files(apps)
     create_compose_dirs(apps)
     copy_compose_files(apps, template_dir, cleaned_vars)
     deploy_compose_files(apps)
+    restart_services_on_config_change(apps, restart_metas)
 
 
 def create_docker_volume_dirs(apps: list[ComposeApp]):
@@ -55,13 +57,21 @@ def create_external_named_volumes(apps: list[ComposeApp]):
                     )
 
 
-def copy_templates(apps: list[ComposeApp], template_dir: Path, variables: dict[str, Any] | None = None):
+def copy_templates(
+        apps: list[ComposeApp],
+        template_dir: Path,
+        variables: dict[str, Any] | None = None,
+) -> dict[str, list[OperationMeta]]:
+    """Render each app's templates. Returns, per app name, the OperationMeta of
+    every template flagged ``restart_on_change`` so the caller can restart the
+    service if any of them actually changed."""
+    restart_metas: dict[str, list[OperationMeta]] = {}
     for app in apps:
         if app.templates:
             for template in app.templates:
                 src = str(template_dir / f"{template.src}.j2")
                 dest = f"{host.data.docker_volumes_base}/{template.dest}"
-                files.template(
+                op = files.template(
                     name=f"Copy template {src} to {dest} for app {app.name}",
                     src=src,
                     dest=dest,
@@ -76,6 +86,35 @@ def copy_templates(apps: list[ComposeApp], template_dir: Path, variables: dict[s
                     **variables,
                     _sudo=True
                 )
+                if template.restart_on_change:
+                    restart_metas.setdefault(app.name, []).append(op)
+    return restart_metas
+
+
+def restart_services_on_config_change(
+        apps: list[ComposeApp],
+        restart_metas: dict[str, list[OperationMeta]],
+):
+    """After the stacks are (re)deployed, restart the primary service of any app
+    whose ``restart_on_change`` config template changed this run. `compose up -d`
+    does not recreate a container when only a bind-mounted file's contents change,
+    so config the container reads once at startup (e.g. Authelia's OIDC clients)
+    would otherwise stay stale. Restarts only the service named after the app, so
+    sidecars (e.g. authelia's `redis` session store) keep running."""
+    for app in apps:
+        metas = restart_metas.get(app.name)
+        if not metas:
+            continue
+        server.shell(
+            name=f"Restart {app.name} to load changed config",
+            commands=[
+                f"docker compose --project-directory "
+                f"{host.data.docker_compose_base}/{app.name} "
+                f"--project-name {app.name} restart {app.name}"
+            ],
+            # Only fire when a flagged template actually changed this run.
+            _if=[lambda metas=metas: any(m.did_change() for m in metas)],
+        )
 
 
 def copy_files(apps: list[ComposeApp]):

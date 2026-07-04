@@ -52,7 +52,13 @@ All from [monitoring-migration.md](monitoring-migration.md) "Risks / follow-ups"
 
 From [technitium-dns.md](technitium-dns.md) "Out of scope (future phases)".
 
-- ⬜ **Second Technitium instance on `nas` → form a cluster.** Stand up a second Technitium instance on the NAS and cluster it with the docker_vm instance for HA/redundancy (config + zone sync across nodes). Add `dns_ip` to `group_data/nas.py`, call `setup_technitium_dns()` in the `nas` block (same `deploys/dns/` code), then configure clustering per [Understanding Clustering in Technitium](https://blog.technitium.com/2025/11/understanding-clustering-and-how-to.html).
+- ✅ **Second Technitium instance on `nas` → form a cluster** (done 2026-07-04). Detailed as
+  **Phase 2** of [technitium-dns.md](technitium-dns.md). docker_vm primary renamed
+  `dns.dv.zone`→`dns1.dv.zone`; NAS secondary `dns2.dv.zone` up at macvlan `192.168.1.210`; SSO
+  on both; cluster domain `cluster.dv.zone` with `dns1/dns2.cluster.dv.zone` served by caddy
+  (multi-domain) with valid LE certs. **Cluster formed and working** (config/blocklists/users
+  sync primary→secondary). Only follow-up left: add `192.168.1.210` as a secondary resolver in
+  the router's DHCP scope so LAN clients actually fail over (manual, outside pyinfra).
 
 ## 7. Infra / tooling
 

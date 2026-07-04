@@ -36,7 +36,14 @@ apps = [
             NamedVolume(name="redis-data", mount_path="/data"),
         ],
         templates=[
-            TemplateFile(src="configuration.yml", dest="authelia/config/configuration.yml"),
+            # Authelia reads OIDC clients / config only at startup; restart it
+            # when this file changes so `compose up -d` (which won't recreate a
+            # container on a bind-mount content change) doesn't leave it stale.
+            TemplateFile(
+                src="configuration.yml",
+                dest="authelia/config/configuration.yml",
+                restart_on_change=True,
+            ),
             TemplateFile(src="STORAGE_PASSWORD", dest="authelia/config/secrets/STORAGE_PASSWORD"),
             TemplateFile(src="REDIS_PASSWORD", dest="authelia/config/secrets/REDIS_PASSWORD"),
             TemplateFile(src="SMTP_PASSWORD", dest="authelia/config/secrets/SMTP_PASSWORD"),

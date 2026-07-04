@@ -7,9 +7,11 @@ services:
     networks:
       macvlan:
         ipv4_address: [[ host.data.dns_ip ]]
+[% if host.data.dns_console_via_caddy_labels %]
       caddy-internal:
+[% endif %]
     environment:
-      - DNS_SERVER_DOMAIN=dns.[[ host.data.domain ]]
+      - DNS_SERVER_DOMAIN=[[ host.data.dns_console_subdomain ]].[[ host.data.domain ]]
       - DNS_SERVER_ADMIN_PASSWORD_FILE=/run/secrets/ADMIN_PASSWORD
       - DNS_SERVER_FORWARDERS=[[ dns_forwarders ]]
       - DNS_SERVER_RECURSION=AllowOnlyForPrivateNetworks
@@ -27,15 +29,19 @@ services:
     restart: unless-stopped
     sysctls:
       - net.ipv4.ip_local_port_range=1024 65535
+[% if host.data.dns_console_via_caddy_labels %]
     labels:
-      caddy_internal: dns.[[ host.data.domain ]]
+      caddy_internal: [[ host.data.dns_console_domains | join(', ') ]]
       caddy_internal.reverse_proxy: "{{upstreams 5380}}"
+[% endif %]
     extra_hosts:
       auth.[[ host.data.domain ]]: "[[ host.data.external_reverse_proxy_ip ]]"
 
 networks:
   macvlan:
     external: true
+[% if host.data.dns_console_via_caddy_labels %]
   caddy-internal:
     external: true
+[% endif %]
 [[ vol.top_level_volumes(app) ]]

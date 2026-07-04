@@ -12,6 +12,22 @@ main_network_interface = "ens18"
 internal_reverse_proxy_ip = "192.168.50.20"
 external_reverse_proxy_ip = "192.168.50.21"
 dns_ip = "192.168.50.30"
+# Technitium console subdomain for this host (dns1.dv.zone) -- used for the
+# server's own DNS_SERVER_DOMAIN. The NAS runs the secondary on dns2 -- see
+# group_data/nas.py.
+dns_console_subdomain = "dns1"
+# All domains caddy should serve for this node's Technitium web console (each
+# gets its own LE cert; all reverse-proxy to the same :5380 upstream because
+# Technitium's HTTP service ignores the Host header). Besides the normal console
+# name this includes the cluster node FQDN under `cluster.dv.zone`: Technitium
+# clustering needs a cluster domain with no existing primary zone (so not
+# dv.zone), and the nodes -- dns1/dns2.cluster.dv.zone -- need real certs for
+# node-to-node HTTPS. See docs/plans/technitium-dns.md (Phase 2, clustering).
+dns_console_domains = ["dns1.dv.zone", "dns1.cluster.dv.zone"]
+# This host runs caddy-internal, so the Technitium console is proxied via
+# caddy-docker-proxy labels on the container. The NAS has no local caddy, so its
+# console is proxied from *this* host's caddy via extra_proxied_domains instead.
+dns_console_via_caddy_labels = True
 # Host's address on the macvlan-shim interface (lets the host reach the
 # macvlan-only containers). Must be a free LAN IP, ideally outside the router's
 # DHCP pool.
@@ -28,6 +44,12 @@ extra_proxied_domains = [
     {"domain": "plex.dv.zone",     "port": 32400},
     {"domain": "indexers.dv.zone", "port": 9696},
     {"domain": "cmd.dv.zone",      "port": 1337},
+    # Secondary Technitium console lives on the NAS macvlan; proxy to it directly
+    # (caddy-docker-proxy labels only cover containers on this host). Serves both
+    # the console name and the cluster node FQDN -- a proxied entry may carry a
+    # `domains` list (rendered comma-separated, one caddy site per name) instead
+    # of a single `domain`; both share the one reverse_proxy upstream.
+    {"domains": ["dns2.dv.zone", "dns2.cluster.dv.zone"], "ip": "192.168.1.210", "port": 5380},
 ]
 
 # Docker network configuration

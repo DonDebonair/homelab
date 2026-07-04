@@ -18,6 +18,10 @@ if "nas" in host.groups:
     networking()
     nas_docker_setup()
     nas_setup_docker_apps()
+    # Secondary Technitium DNS instance (clusters with the docker_vm primary).
+    # Runs after nas_docker_setup(), which creates the macvlan network + compose
+    # dirs the stack references. Same group-agnostic deploys/dns/ code.
+    setup_technitium_dns()
 
 if "proxmox_host" in host.groups:
     prepare_proxmox_host()

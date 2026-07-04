@@ -21,7 +21,7 @@ services:
       caddy_internal_0.email: [[ host.data.email ]]
       caddy_internal_0.acme_dns: cloudflare [[ cloudflare_api_token ]]
       [% for domain in host.data.extra_proxied_domains -%]
-      caddy_internal_[[ loop.index ]]: [[ domain.domain ]]
+      caddy_internal_[[ loop.index ]]: [[ (domain.get('domains') or [domain.domain]) | join(', ') ]]
       caddy_internal_[[ loop.index ]].reverse_proxy: [[ domain.ip | default(host.data.nas_ip, true) ]]:[[ domain.port ]]
       [% endfor -%]
       caddy_internal_90: (secure)

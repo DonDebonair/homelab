@@ -65,10 +65,22 @@ class NfsVolume:
 
 @dataclass
 class TemplateFile:
+    """A Jinja template rendered onto the host under docker_volumes_base.
+
+    restart_on_change: when True, and this template's content actually changed on
+    this run, the helper restarts the app's primary service (the compose service
+    named after ``ComposeApp.name``) after the stack is (re)deployed. Needed for
+    bind-mounted config that the container only reads at startup: `compose up -d`
+    does NOT recreate a container when a bind-mounted file's *contents* change, so
+    e.g. Authelia would otherwise keep serving stale OIDC config until a manual
+    restart. Only the named service is restarted, not the whole project, so
+    sidecars (e.g. authelia's session `redis`) are left untouched.
+    """
     src: str
     dest: str
     uid: int | None = None
     gid: int | None = None
+    restart_on_change: bool = False
 
 
 @dataclass
