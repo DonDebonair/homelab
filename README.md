@@ -42,6 +42,9 @@ management tool.
 - `models/`: models for custom pyinfra facts and operations.
 - `op_secrets/`: custom string class for handling secrets in pyinfra with 1password.
 - `group_data/`: data for pyinfra groups of hosts.
+- `commands/`: CLI helpers (entrypoint `cmd.py`) for provisioning new PostgreSQL databases
+  and OIDC clients — generating credentials, creating the 1Password items, and editing the
+  relevant deploy config. See `commands/README.md`.
 
 **Main commands**:
 
