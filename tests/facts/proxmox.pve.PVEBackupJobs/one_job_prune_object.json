@@ -1,0 +1,20 @@
+{
+  "command": "pvesh get /cluster/backup --output-format json",
+  "requires_command": "pvesh",
+  "output": [
+    "[{\"id\":\"pve-to-pbs\",\"enabled\":1,\"schedule\":\"02:00\",\"storage\":\"pbs\",\"vmid\":\"100,101\",\"mode\":\"snapshot\",\"notes-template\":\"{{guestname}}\",\"prune-backups\":{\"keep-last\":3,\"keep-daily\":7,\"keep-weekly\":4,\"keep-monthly\":2},\"type\":\"vzdump\"}]"
+  ],
+  "fact": {
+    "pve-to-pbs": {
+      "id": "pve-to-pbs",
+      "enabled": true,
+      "schedule": "02:00",
+      "storage": "pbs",
+      "vmid": "100,101",
+      "mode": "snapshot",
+      "notes_template": "{{guestname}}",
+      "prune_backups": "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2",
+      "comment": null
+    }
+  }
+}

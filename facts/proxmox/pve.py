@@ -339,6 +339,19 @@ class PVEStorages(FactBase[dict[str, PVEStorageInfo]]):
         return storages
 
 
+def _normalize_prune_backups(value: "str | dict | None") -> str | None:
+    """Normalise PVE's ``prune-backups`` to the CSV form the model declares.
+
+    Older PVE renders it as a property-string (``keep-last=3,keep-daily=7``);
+    newer PVE renders it as a JSON object (``{"keep-last": 3, ...}``). Collapsing
+    the object back to CSV keeps the ``prune_backups: str | None`` model contract
+    intact so ``operations.proxmox.pve._norm_csv`` can diff it (a raw dict has no
+    ``.split`` and crashed the backup_job reconcile)."""
+    if isinstance(value, dict):
+        return ",".join(f"{k}={v}" for k, v in value.items())
+    return value
+
+
 class PVEBackupJobs(FactBase[dict[str, PVEBackupJobInfo]]):
 
     @override
@@ -365,7 +378,7 @@ class PVEBackupJobs(FactBase[dict[str, PVEBackupJobInfo]]):
                 vmid=job.get("vmid", ""),
                 mode=PVEBackupMode(job["mode"]),
                 notes_template=job.get("notes-template"),
-                prune_backups=job.get("prune-backups"),
+                prune_backups=_normalize_prune_backups(job.get("prune-backups")),
                 comment=job.get("comment"),
             )
         return jobs
