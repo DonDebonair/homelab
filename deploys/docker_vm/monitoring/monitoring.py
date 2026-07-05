@@ -4,6 +4,23 @@ from deploys.common.docker_compose.models import ComposeApp, BindMount, NamedVol
 # Sidecar images (node-exporter, snmp-exporter, cadvisor) and the loki log
 # driver are pinned inline in templates/deploys where they're declared.
 
+# As-code Grafana dashboards, provisioned as raw JSON files (see the generic
+# `file-provisioned` provider in templates/grafana/dashboards-provider.yaml.j2).
+# Each path is relative to files/grafana/; the leading "<Folder>/" segment is
+# BOTH the on-disk subdir and -- via foldersFromFilesStructure -- the Grafana
+# folder the dashboard lands in, so src, dest and folder stay in sync from one
+# list. Downloaded from grafana.com / GitHub, then normalised: __inputs/
+# __requires/__elements stripped, id=null, and the Prometheus datasource bound
+# to this stack's uid (see the normalisation notes in the monitoring plan doc).
+_dashboard_files = [
+    "Node Exporter/node-exporter-full.json",   # grafana.com 1860
+    "Synology/synology-comprehensive.json",     # github: wozniakpawel
+    "Synology/synology-nas-details.json",        # grafana.com 14284
+    "Synology/synology-snmp.json",               # grafana.com 18643
+    "cAdvisor/cadvisor-dashboard.json",          # grafana.com 19792
+    "cAdvisor/cadvisor-docker-insights.json",    # grafana.com 19908
+]
+
 apps = [
     ComposeApp(
         name="loki",
@@ -73,18 +90,16 @@ apps = [
                 restart_on_change=True,
             ),
         ],
+        # Raw copies (not templates) -- the dashboard JSON has no Jinja, and
+        # running it through the renderer would only risk a false hit on the
+        # [[ ]]/[% %] delimiters. The generic file provider auto-reloads them on
+        # its poll interval, so no restart is needed on change.
         files=[
-            # "Node Exporter Full" (grafana.com id 1860, rev 45), bound to the
-            # existing Prometheus datasource. Raw copy (not a template) -- it has
-            # no Jinja, and running dashboard JSON through the renderer would only
-            # risk a false hit on the [[ ]]/[% %] delimiters. The generic file
-            # provider auto-reloads it on its poll interval, so no restart needed.
-            # The "Node Exporter" path segment is the Grafana folder it lands in
-            # (foldersFromFilesStructure in dashboards-provider.yaml).
             TemplateFile(
-                src="grafana/node-exporter-full.json",
-                dest="grafana/provisioning/dashboards/json/Node Exporter/node-exporter-full.json",
-            ),
+                src=f"grafana/{p}",
+                dest=f"grafana/provisioning/dashboards/json/{p}",
+            )
+            for p in _dashboard_files
         ],
     ),
 ]
