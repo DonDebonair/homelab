@@ -274,12 +274,17 @@ Remove `roles/monitoring/`, the Loki bits in `roles/docker-setup/`, and the NAS
   Synology-specific and was copied verbatim.
 - **node-exporter scope:** ✅ reports true host metrics (fixed 2026-07-05). Runs
   with `pid: host`, `network_mode: host`, a `/:/host:ro,rslave` bind and
-  `--path.rootfs=/host` (the upstream single-mount pattern). The `filesystem` and
-  `netdev` collectors are enabled on top of the original cpu/mem/etc set; netdev
-  excludes the container `veth*`/`br-*` interfaces. Host networking takes it off
-  the monitoring bridge, so Prometheus scrapes it by host IP
-  (`host.data.docker_vm_ip`) rather than by service name, and the scrape-config
-  template is `restart_on_change=True` so Prometheus reloads on change.
+  `--path.rootfs=/host` (the upstream single-mount pattern), and node-exporter's
+  **default collector set** -- the same as the apt-installed exporters on the
+  other hosts, so all four report a consistent metric set (incl. `node_uname_info`,
+  which the Node Exporter Full dashboard needs for its host selector). The only
+  docker_vm-specific tuning is `--collector.netdev.device-exclude` +
+  `--collector.netclass.ignored-devices` to drop the ~48 container `veth*`/`br-*`
+  NICs host networking exposes. Host networking takes it off the monitoring
+  bridge, so Prometheus scrapes it by host IP (`host.data.docker_vm_ip`) rather
+  than by service name, and the scrape-config template is `restart_on_change=True`
+  so Prometheus reloads on change. (The original NAS-ported `--collector.disable-defaults`
+  explicit list was dropped -- it kept missing collectors the dashboard expected.)
 - **Loki volume ownership:** if Loki logs permission errors writing `/loki/chunks`
   on first start, `chown` the fresh `loki-data` volume to the image's loki uid.
 - **Dozzle:** redundant once logs live in Loki; either drop it or override its

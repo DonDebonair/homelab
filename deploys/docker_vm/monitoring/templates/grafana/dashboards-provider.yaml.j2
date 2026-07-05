@@ -1,0 +1,17 @@
+# Grafana dashboard provisioning provider. Loads JSON dashboards from the
+# mounted path below at startup and re-syncs them on the poll interval. These
+# dashboards are read-only in the UI (source of truth is the repo file); they
+# coexist with the DB-stored dashboards without touching them.
+apiVersion: 1
+
+providers:
+  - name: node-exporter
+    orgId: 1
+    folder: Node Exporter
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

@@ -31,21 +31,18 @@ services:
     container_name: node-exporter
     image: prom/node-exporter:v1.11.1
     command:
+      # Run node-exporter's default collector set -- same as the apt-installed
+      # exporters on the other hosts, so all four report a consistent set of
+      # metrics and populate the Node Exporter Full dashboard identically.
       - --path.rootfs=/host
-      - --collector.disable-defaults
-      - --collector.stat
-      - --collector.time
-      - --collector.cpu
-      - --collector.loadavg
-      - --collector.hwmon
-      - --collector.meminfo
-      - --collector.diskstats
-      - --collector.filesystem
-      - --collector.netdev
       # network_mode: host exposes every container veth / docker bridge as a NIC
       # (~48 devices). Keep only the real host uplinks (ens18, macvlan-shim, lo)
-      # to avoid a per-container time-series explosion.
+      # to avoid a per-container time-series explosion -- this is the one place
+      # docker_vm differs from the other (non-Docker) hosts. netdev (traffic
+      # counters) and netclass (link state/info) are separate collectors with
+      # separate exclude flags, so filter both with the same pattern.
       - --collector.netdev.device-exclude=^(veth.*|br-[0-9a-f]+|docker[0-9]+)$
+      - --collector.netclass.ignored-devices=^(veth.*|br-[0-9a-f]+|docker[0-9]+)$
     # Host PID + network namespaces plus a bind of the host root give every
     # collector the host's view: pid/net sharing makes the container's own /proc
     # & /sys host-correct (so cpu/mem/hwmon/netdev report the host), and

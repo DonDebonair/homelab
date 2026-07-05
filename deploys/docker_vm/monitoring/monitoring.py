@@ -53,9 +53,32 @@ apps = [
         version="13.1.0",
         domain="grafana.dv.zone",
         volumes=[
-            # Plugins/renders only -- dashboards/users/datasources live in the
-            # migrated Postgres DB, so this volume is low-recovery-cost.
+            # Plugins/renders only -- users/datasources and hand-built dashboards
+            # live in the migrated Postgres DB, so this volume is low-recovery-cost.
             NamedVolume(name="grafana-data", mount_path="/var/lib/grafana"),
+            # Provisioned (as-code) dashboards, read-only. These are loaded from
+            # disk and re-synced by Grafana; they coexist with the DB dashboards
+            # without touching them. See templates/grafana/.
+            BindMount(
+                source="grafana/provisioning",
+                mount_path="/etc/grafana/provisioning",
+                read_only=True,
+            ),
+        ],
+        templates=[
+            # Provider config is read only at startup -> restart grafana on change.
+            TemplateFile(
+                src="grafana/dashboards-provider.yaml",
+                dest="grafana/provisioning/dashboards/dashboards-provider.yaml",
+                restart_on_change=True,
+            ),
+            # "Node Exporter Full" (grafana.com id 1860, rev 45), bound to the
+            # existing Prometheus datasource. The file provider auto-reloads
+            # dashboard JSON on its poll interval, so no restart needed here.
+            TemplateFile(
+                src="grafana/node-exporter-full.json",
+                dest="grafana/provisioning/dashboards/json/node-exporter-full.json",
+            ),
         ],
     ),
 ]
