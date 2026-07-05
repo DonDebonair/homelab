@@ -31,6 +31,7 @@ services:
     container_name: node-exporter
     image: prom/node-exporter:v1.11.1
     command:
+      - --path.rootfs=/host
       - --collector.disable-defaults
       - --collector.stat
       - --collector.time
@@ -39,8 +40,24 @@ services:
       - --collector.hwmon
       - --collector.meminfo
       - --collector.diskstats
-    networks:
-      - monitoring
+      - --collector.filesystem
+      - --collector.netdev
+      # network_mode: host exposes every container veth / docker bridge as a NIC
+      # (~48 devices). Keep only the real host uplinks (ens18, macvlan-shim, lo)
+      # to avoid a per-container time-series explosion.
+      - --collector.netdev.device-exclude=^(veth.*|br-[0-9a-f]+|docker[0-9]+)$
+    # Host PID + network namespaces plus a bind of the host root give every
+    # collector the host's view: pid/net sharing makes the container's own /proc
+    # & /sys host-correct (so cpu/mem/hwmon/netdev report the host), and
+    # --path.rootfs=/host matches the /host bind so the filesystem collector
+    # enumerates the host's mountpoints (stripping the /host prefix from names).
+    # network_mode: host is required for netdev to see the host NICs -- it takes
+    # the exporter off the monitoring bridge, so Prometheus scrapes it by host IP
+    # (see the nodeexporter job in prometheus-config.yml.j2).
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/host:ro,rslave
     restart: unless-stopped
 
   snmp-exporter:

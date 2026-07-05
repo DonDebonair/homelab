@@ -272,9 +272,14 @@ Remove `roles/monitoring/`, the Loki bits in `roles/docker-setup/`, and the NAS
   (auths/modules format). If snmp-exporter v0.30.1 rejects it, regenerate with the
   matching `generator`, or pin an older snmp-exporter. The 79 KB module block is
   Synology-specific and was copied verbatim.
-- **node-exporter scope:** ported verbatim from the NAS (no host `/proc`,`/sys`,`/`
-  mounts, no `pid: host`), so it reports container-namespaced metrics. Add host
-  mounts + `pid: host` later if true host metrics are wanted.
+- **node-exporter scope:** ✅ reports true host metrics (fixed 2026-07-05). Runs
+  with `pid: host`, `network_mode: host`, a `/:/host:ro,rslave` bind and
+  `--path.rootfs=/host` (the upstream single-mount pattern). The `filesystem` and
+  `netdev` collectors are enabled on top of the original cpu/mem/etc set; netdev
+  excludes the container `veth*`/`br-*` interfaces. Host networking takes it off
+  the monitoring bridge, so Prometheus scrapes it by host IP
+  (`host.data.docker_vm_ip`) rather than by service name, and the scrape-config
+  template is `restart_on_change=True` so Prometheus reloads on change.
 - **Loki volume ownership:** if Loki logs permission errors writing `/loki/chunks`
   on first start, `chown` the fresh `loki-data` volume to the image's loki uid.
 - **Dozzle:** redundant once logs live in Loki; either drop it or override its

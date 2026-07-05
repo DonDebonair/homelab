@@ -2,6 +2,7 @@ from pyinfra import host
 from pyinfra.facts.server import LinuxName
 
 from deploys.common.debian import common_debian_setup
+from deploys.common.node_exporter import setup_node_exporter
 from deploys.docker_vm import users as docker_vm_users, docker_setup, setup_caddy_proxies, setup_apps, \
     setup_guest_agent, setup_macvlan_shim, setup_samba, setup_monitoring, setup_loki_log_driver
 from deploys.dns import setup_technitium_dns
@@ -30,6 +31,7 @@ if "proxmox_host" in host.groups:
     setup_lxc_containers()
     setup_vms()
     configure_backups()
+    setup_node_exporter()
 
 if "postgres_lxc" in host.groups:
     postgres_users()
@@ -42,6 +44,7 @@ if "pbs_vm" in host.groups:
     pbs_vm_users()
     configure_datastore()
     configure_backup_access()
+    setup_node_exporter()
 
 if host.get_fact(LinuxName) == "Debian":
     common_debian_setup()
@@ -49,6 +52,7 @@ if host.get_fact(LinuxName) == "Debian":
 if "postgres_lxc" in host.groups:
     setup_postgres()
     databases_and_users()
+    setup_node_exporter()
 
 if "docker_vm" in host.groups:
     docker_setup()

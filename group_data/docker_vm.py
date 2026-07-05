@@ -4,6 +4,10 @@ docker_user = "dockerlimited"
 docker_uid = 2000
 docker_gid = 2000
 default_group = docker_user
+# This host's own LAN address (matches the inventory connection target). Used
+# as the Prometheus scrape target for node-exporter, which runs with
+# network_mode: host and so binds the host's :9100 instead of a bridge IP.
+docker_vm_ip = "192.168.50.10"
 docker_volumes_base = "/srv/docker/volumes"
 docker_compose_base = "/srv/docker/compose"
 docker_build_base = "/srv/docker/build"

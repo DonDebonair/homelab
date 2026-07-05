@@ -34,7 +34,14 @@ apps = [
             BindMount(source="snmp", mount_path="/etc/snmp_exporter", read_only=True),
         ],
         templates=[
-            TemplateFile(src="prometheus-config.yml", dest="prometheus/config/prometheus.yml"),
+            # Prometheus reads its scrape config only at startup, and `compose up
+            # -d` won't recreate the container when only a bind-mounted file's
+            # content changes -> restart the primary service when it changes.
+            TemplateFile(
+                src="prometheus-config.yml",
+                dest="prometheus/config/prometheus.yml",
+                restart_on_change=True,
+            ),
             TemplateFile(src="snmp.yml", dest="snmp/snmp.yml"),
         ],
     ),

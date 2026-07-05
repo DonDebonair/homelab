@@ -6,7 +6,22 @@ scrape_configs:
   - job_name: 'nodeexporter'
     scrape_interval: 5s
     static_configs:
-      - targets: ['node-exporter:9100']
+      # docker_vm's exporter runs with network_mode: host (see prometheus.yaml.j2),
+      # so it binds the host's :9100 rather than a monitoring-bridge IP.
+      - targets: ['[[ host.data.docker_vm_ip ]]:9100']
+        labels:
+          instance: docker_vm
+      # Native (apt) node-exporters on the non-Docker Debian hosts -- installed
+      # via deploys/common/node_exporter -- scraped over the LAN on :9100.
+      - targets: ['[[ host.data.proxmox_ip ]]:9100']
+        labels:
+          instance: proxmox_host
+      - targets: ['[[ host.data.pbs_ip ]]:9100']
+        labels:
+          instance: pbs_vm
+      - targets: ['[[ host.data.postgres_lxc_ip ]]:9100']
+        labels:
+          instance: postgres_lxc
   - job_name: 'snmp'
     scrape_interval: 5s
     static_configs:
