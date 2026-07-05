@@ -1,17 +1,25 @@
-# Grafana dashboard provisioning provider. Loads JSON dashboards from the
-# mounted path below at startup and re-syncs them on the poll interval. These
-# dashboards are read-only in the UI (source of truth is the repo file); they
-# coexist with the DB-stored dashboards without touching them.
+# Generic file-based dashboard provider. It scans the mounted path below and
+# loads *every* JSON dashboard found there at startup, re-syncing on the poll
+# interval. It is deliberately NOT specific to one dashboard: to provision
+# another as-code dashboard, drop its JSON into a subfolder under json/ and add
+# a `files=` entry on the grafana ComposeApp -- no second provider needed.
+#
+# foldersFromFilesStructure: true makes each dashboard's Grafana folder mirror
+# its subdirectory (json/Node Exporter/*.json -> "Node Exporter" folder), so the
+# folder is decided per-file by where it lives rather than a fixed value here.
+#
+# All provisioned dashboards are read-only in the UI (the repo file is the
+# source of truth); they coexist with the DB-stored dashboards without touching
+# them.
 apiVersion: 1
 
 providers:
-  - name: node-exporter
+  - name: file-provisioned
     orgId: 1
-    folder: Node Exporter
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
     allowUiUpdates: false
     options:
       path: /etc/grafana/provisioning/dashboards/json
-      foldersFromFilesStructure: false
+      foldersFromFilesStructure: true

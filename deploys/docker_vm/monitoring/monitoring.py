@@ -72,12 +72,18 @@ apps = [
                 dest="grafana/provisioning/dashboards/dashboards-provider.yaml",
                 restart_on_change=True,
             ),
+        ],
+        files=[
             # "Node Exporter Full" (grafana.com id 1860, rev 45), bound to the
-            # existing Prometheus datasource. The file provider auto-reloads
-            # dashboard JSON on its poll interval, so no restart needed here.
+            # existing Prometheus datasource. Raw copy (not a template) -- it has
+            # no Jinja, and running dashboard JSON through the renderer would only
+            # risk a false hit on the [[ ]]/[% %] delimiters. The generic file
+            # provider auto-reloads it on its poll interval, so no restart needed.
+            # The "Node Exporter" path segment is the Grafana folder it lands in
+            # (foldersFromFilesStructure in dashboards-provider.yaml).
             TemplateFile(
                 src="grafana/node-exporter-full.json",
-                dest="grafana/provisioning/dashboards/json/node-exporter-full.json",
+                dest="grafana/provisioning/dashboards/json/Node Exporter/node-exporter-full.json",
             ),
         ],
     ),

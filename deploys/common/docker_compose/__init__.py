@@ -19,12 +19,17 @@ def docker_compose(
         apps: list[ComposeApp],
         template_dir: Path,
         variables: dict[str, Any] | types.ModuleType | None = None,
+        files_dir: Path | None = None,
 ):
+    # Raw (non-templated) files live in a `files/` dir adjacent to `templates/`
+    # by default, mirroring how `template_dir` roots the Jinja templates.
+    if files_dir is None:
+        files_dir = template_dir.parent / "files"
     cleaned_vars = normalize_vars(variables) if variables else {}
     create_docker_volume_dirs(apps)
     create_external_named_volumes(apps)
     restart_metas = copy_templates(apps, template_dir, cleaned_vars)
-    copy_files(apps)
+    copy_files(apps, files_dir)
     create_compose_dirs(apps)
     copy_compose_files(apps, template_dir, cleaned_vars)
     deploy_compose_files(apps)
@@ -117,16 +122,17 @@ def restart_services_on_config_change(
         )
 
 
-def copy_files(apps: list[ComposeApp]):
+def copy_files(apps: list[ComposeApp], files_dir: Path):
     for app in apps:
         if app.files:
             for file in app.files:
+                src = str(files_dir / file.src)
                 files.put(
-                    name=f"Copy file {file.src} to {file.dest} for app {app.name}",
-                    src=file.src,
+                    name=f"Copy file {src} to {file.dest} for app {app.name}",
+                    src=src,
                     dest=f"{host.data.docker_volumes_base}/{file.dest}",
-                    user=file.uid if file.uid is not None else host.data.docker_user,
-                    group=file.gid if file.gid is not None else host.data.default_group,
+                    user=str(file.uid) if file.uid is not None else host.data.docker_user,
+                    group=str(file.gid) if file.gid is not None else host.data.default_group,
                     _sudo=True
                 )
 
