@@ -2,10 +2,19 @@ title: "🏠 DV Home"
 description: "Home is where the ❤️ is"
 useEqualHeights: true
 statusStyle: "dot"
+# Boxed group headers for stronger visual separation between sections.
+headerStyle: boxed
 # Let every label-discovered card surface live CPU/mem/net for its container
 # (read from the docker socket). Cards without a local container (static NAS/PVE
 # entries) simply have no stats to show.
 showStats: true
+# Homepage arranges top-level groups in a grid whose rows align to the tallest
+# group, so a group with many services (Admin) stacked vertically towers over its
+# short neighbours and leaves big gaps beside them. Fix: the big groups (Admin,
+# Monitoring) become full-width row bands -- they span the width and wrap their
+# cards instead of stacking in one tall column -- and sit at the bottom. The
+# small 1-2 card groups keep the compact default grid above. Group membership is
+# unchanged; only Admin/Monitoring rendering and the group order differ.
 layout:
   Entertainment:
     style: row
@@ -16,5 +25,10 @@ layout:
   Downloaders:
   Development:
   Automation:
-  Admin:
   Databases:
+  Admin:
+    style: row
+    columns: 3
+  Monitoring:
+    style: row
+    columns: 2
