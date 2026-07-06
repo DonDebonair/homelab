@@ -35,3 +35,27 @@ def users():
         subject=admin_auth_id,
         _sudo=True,
     )
+
+    # Read-only service identity for the Homepage `proxmoxbackupserver` widget. A
+    # `@pbs`-realm user needs no password -- it authenticates only via an API
+    # token. `Audit` is the built-in read-only role, enough for the widget's
+    # datastore-usage / task / cpu / memory stats. The token is bootstrapped by
+    # hand (PBS reveals a token secret only once; there is no pyinfra token op)
+    # and stored in 1Password, mirroring `pve@pbs!backup`. Tokens are
+    # privilege-separated by default (effective rights = user ACL ∩ token ACL),
+    # so the same Audit role must be granted to `homepage@pbs!homepage` during
+    # that bootstrap.
+    widget_auth_id = "homepage@pbs"
+    pbs.user(
+        name=f"Ensure PBS user '{widget_auth_id}' exists",
+        user_id=widget_auth_id,
+        comment="Homepage proxmoxbackupserver widget (read-only)",
+        _sudo=True,
+    )
+    pbs.acl(
+        name=f"Grant Audit on '/' to '{widget_auth_id}'",
+        path="/",
+        role_id="Audit",
+        subject=widget_auth_id,
+        _sudo=True,
+    )

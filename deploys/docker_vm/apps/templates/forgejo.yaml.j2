@@ -31,8 +31,14 @@ services:
       homepage.icon: forgejo
       homepage.href: https://[[ app.domain ]]
       homepage.weight: 1000
-      # homepage gitea widget omitted: it needs an API token. Regenerate one
-      # post-migration and add homepage.widget.{type=gitea,url,key} if wanted.
+      # The gitea widget is Forgejo-compatible. Forgejo isn't behind caddy
+      # forward-auth (it does its own OIDC), so the public URL works; the token
+      # authenticates the API directly. Token is read-only
+      # (repository/issue/notification) -- the widget only calls repos/search,
+      # repos/issues/search, notifications.
+      homepage.widget.type: gitea
+      homepage.widget.url: https://[[ app.domain ]]
+      homepage.widget.key: [[ forgejo_api_token ]]
     expose:
       - 3000
       - 22

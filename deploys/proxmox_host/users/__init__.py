@@ -56,3 +56,29 @@ def users_and_groups():
         groups=["admins"],
         _sudo=True
     )
+
+    # Read-only service identity for the Homepage `proxmox` widget. A `@pve`-realm
+    # user needs no Linux/PAM account and no password -- it authenticates only via
+    # an API token. `PVEAuditor` is the built-in read-only role (grants
+    # {Sys,VM,Datastore}.Audit), enough for the widget's cluster/VM/CPU/memory
+    # stats. The token itself is bootstrapped by hand (PVE reveals a token secret
+    # only once; there is no pyinfra token op) and stored in 1Password, mirroring
+    # the `pve@pbs!backup` flow. Because tokens are privilege-separated by default
+    # (effective rights = user ACL ∩ token ACL), the same PVEAuditor role must be
+    # granted to the token `homepage@pve!homepage` during that bootstrap.
+    pve.user(
+        name="Ensure 'homepage@pve' read-only widget user exists",
+        user_id="homepage@pve",
+        enabled=True,
+        comment="Homepage proxmox widget (read-only)",
+        _sudo=True,
+    )
+    pve.acl(
+        name="Grant PVEAuditor on '/' to 'homepage@pve'",
+        path="/",
+        role_id="PVEAuditor",
+        subject="homepage@pve",
+        acl_type=PVEAclType.USER,
+        propagate=True,
+        _sudo=True,
+    )

@@ -51,4 +51,37 @@
     - Synology Diskstation:
         href: https://nas.[[ host.data.domain ]]
         icon: synology-dsm
+        siteMonitor: https://nas.[[ host.data.domain ]]
+        # diskstation widget: DSM login API via the caddy-proxied host (DSM does
+        # its own auth, so nas.dv.zone isn't behind Authelia forward-auth). Uses
+        # a dedicated DSM admin user with 2FA disabled (the widget can't do 2FA).
+        widget:
+          type: diskstation
+          url: https://nas.[[ host.data.domain ]]
+          username: [[ synology_widget_username ]]
+          password: [[ synology_widget_password ]]
         weight: 100
+    - Proxmox VE:
+        href: https://pve.[[ host.data.domain ]]:8006
+        icon: proxmox
+        siteMonitor: https://pve.[[ host.data.domain ]]:8006
+        # Valid TLS on the FQDN. Auth is the read-only homepage@pve token
+        # (PVEAuditor): the widget takes the token id as username, secret as
+        # password.
+        widget:
+          type: proxmox
+          url: https://pve.[[ host.data.domain ]]:8006
+          username: [[ proxmox_widget_token_id ]]
+          password: [[ proxmox_widget_secret ]]
+        weight: 200
+    - Proxmox Backup Server:
+        href: https://pbs.[[ host.data.domain ]]:8007
+        icon: proxmox-backup-server
+        siteMonitor: https://pbs.[[ host.data.domain ]]:8007
+        # Read-only homepage@pbs token (Audit role on / for both user and token).
+        widget:
+          type: proxmoxbackupserver
+          url: https://pbs.[[ host.data.domain ]]:8007
+          username: [[ pbs_widget_token_id ]]
+          password: [[ pbs_widget_secret ]]
+        weight: 300

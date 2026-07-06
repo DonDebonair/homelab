@@ -2,6 +2,10 @@ title: "🏠 DV Home"
 description: "Home is where the ❤️ is"
 useEqualHeights: true
 statusStyle: "dot"
+# Let every label-discovered card surface live CPU/mem/net for its container
+# (read from the docker socket). Cards without a local container (static NAS/PVE
+# entries) simply have no stats to show.
+showStats: true
 layout:
   Entertainment:
     style: row

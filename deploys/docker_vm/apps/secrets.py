@@ -54,4 +54,27 @@ prowlarr_api_token = SecretString("op://Homelab/Prowlarr/api token")
 miniflux_api_token = SecretString("op://Homelab/Miniflux/api token")
 sabnzbd_api_token = SecretString("op://Homelab/SABnzbd/api token")
 
+# Forgejo (gitea widget): a read-only token (repository/issue/notification).
+forgejo_api_token = SecretString("op://Homelab/Forgejo/api token")
+
+# Calibre-Web (calibreweb widget): dedicated read-only CWA user, basic auth.
+cwa_widget_username = SecretString("op://Homelab/CWA Homepage user/username")
+cwa_widget_password = SecretString("op://Homelab/CWA Homepage user/password")
+
+# Synology DiskStation (diskstation widget, static entry in services.yaml): a
+# dedicated DSM admin user, provisioned in code by the NAS users deploy
+# (deploys/nas/users) and added to `administrators`. 2FA is disabled for it by
+# hand in DSM -- the diskstation widget can't complete a 2FA challenge.
+synology_widget_username = SecretString("op://Homelab/Synology homepage user/username")
+synology_widget_password = SecretString("op://Homelab/Synology homepage user/password")
+
+# Proxmox VE / PBS widgets (static entries in services.yaml). API tokens on the
+# read-only homepage@pve (PVEAuditor) / homepage@pbs (Audit) users provisioned by
+# deploys/proxmox_host/users and deploys/pbs_vm/users. The widget takes the token
+# id as `username` and the token secret as `password`.
+proxmox_widget_token_id = SecretString("op://Homelab/PVE Homepage widget/token id")
+proxmox_widget_secret = SecretString("op://Homelab/PVE Homepage widget/secret")
+pbs_widget_token_id = SecretString("op://Homelab/PBS Homepage widget/token id")
+pbs_widget_secret = SecretString("op://Homelab/PBS Homepage widget/secret")
+
 SecretString.populate_cache_sync()

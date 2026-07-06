@@ -27,6 +27,13 @@ services:
       homepage.name: Calibre-Web Automated
       homepage.icon: calibre-web
       homepage.href: https://[[ app.domain ]]
+      # Widget talks to the container directly (cwa:8083), bypassing the `import
+      # secure` forward-auth above -- the public URL would bounce the widget's
+      # basic-auth call to the Authelia login page. Dedicated read-only CWA user.
+      homepage.widget.type: calibreweb
+      homepage.widget.url: http://cwa:8083
+      homepage.widget.username: [[ cwa_widget_username ]]
+      homepage.widget.password: [[ cwa_widget_password ]]
       homepage.weight: 310
     expose:
       - 8083

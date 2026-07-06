@@ -7,6 +7,12 @@ grafana_db_password = SecretString("op://Homelab/PostgreSQL Grafana user/passwor
 # for the "grafana" client in deploys/docker_vm/proxies/vars.py.
 grafana_oidc_client_secret = SecretString("op://Homelab/Grafana OIDC client/password")
 
+# Grafana homepage widget (basic auth): a dedicated Grafana Viewer user. Grafana
+# keeps local login enabled alongside Authelia OIDC, so a Viewer's user/pass
+# authenticates the widget's read-only API calls (dashboards/datasources/alerts).
+grafana_widget_username = SecretString("op://Homelab/Grafana Homepage user/username")
+grafana_widget_password = SecretString("op://Homelab/Grafana Homepage user/password")
+
 # SNMPv3 credentials the snmp-exporter uses to poll the Synology NAS.
 # NB: the username field's *id* is `username` (its display label is "rouser"); the
 # 1Password SDK resolves by id, not label, so the reference must use `username`.

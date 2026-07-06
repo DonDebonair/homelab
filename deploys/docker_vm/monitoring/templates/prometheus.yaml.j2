@@ -22,6 +22,11 @@ services:
       homepage.name: Prometheus
       homepage.icon: prometheus
       homepage.href: https://[[ app.domain ]]
+      # Widget talks to the container directly (prometheus:9090), bypassing the
+      # `import secure` forward-auth above -- the public URL would bounce the
+      # widget's API call to the Authelia login page. Prometheus needs no auth.
+      homepage.widget.type: prometheus
+      homepage.widget.url: http://prometheus:9090
       homepage.weight: 2000
     expose:
       - 9090

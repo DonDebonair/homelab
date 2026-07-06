@@ -29,6 +29,14 @@ services:
       homepage.name: qBittorrent
       homepage.icon: qbittorrent
       homepage.href: https://[[ app.domain ]]
+      # Widget talks to the container directly (qbittorrent:8080), bypassing the
+      # caddy `import secure` forward-auth above -- the public URL would bounce
+      # the widget's API call to the Authelia login page. No credentials: the
+      # WebUI whitelists the internal docker subnet ("Bypass authentication for
+      # clients on whitelisted IP subnets"), which covers homepage's source IP
+      # on caddy-internal.
+      homepage.widget.type: qbittorrent
+      homepage.widget.url: http://qbittorrent:8080
       homepage.weight: 2000
     expose:
       - 8080

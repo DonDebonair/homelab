@@ -33,6 +33,22 @@ services:
     labels:
       caddy_internal: [[ host.data.dns_console_domains | join(', ') ]]
       caddy_internal.reverse_proxy: "{{upstreams 5380}}"
+      # Homepage discovers this (docker_vm-primary) instance via the docker
+      # socket. The widget must use the canonical console URL over HTTPS: hitting
+      # the container directly (http://technitium-dns:5380) makes Technitium
+      # 301-redirect to its configured https domain, and homepage's HTTP agent
+      # refuses to follow http->https (ERR_INVALID_PROTOCOL). caddy terminates
+      # TLS with a valid cert and reverse-proxies to :5380; the API token in the
+      # query bypasses the console's Authelia SSO. Token is scoped to
+      # Dashboard->View only (the widget calls dashboard/stats/get).
+      homepage.group: Admin
+      homepage.name: Technitium
+      homepage.icon: technitium
+      homepage.href: https://[[ host.data.dns_console_subdomain ]].[[ host.data.domain ]]
+      homepage.widget.type: technitium
+      homepage.widget.url: https://[[ host.data.dns_console_subdomain ]].[[ host.data.domain ]]
+      homepage.widget.key: [[ technitium_api_token ]]
+      homepage.weight: 1500
 [% endif %]
     extra_hosts:
       auth.[[ host.data.domain ]]: "[[ host.data.external_reverse_proxy_ip ]]"
