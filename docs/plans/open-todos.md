@@ -36,7 +36,7 @@ migrated apps (§3). Tracked in full in
 ## 3. New apps to stand up (fresh, not migrations)
 
 - ⬜ **Shelfmark** — replaces `cwa-dl` (superseded). Stand up fresh on docker_vm (own `ComposeApp` + template), pointed at the same `/srv/docker/volumes/cwa/ingest` bind so downloads flow into CWA's auto-ingest. No `cwa-dl` config/state carried over. Then decommission the NAS `cwa-dl` stack + its `cloudflarebypass` sidecar. Check whether Shelfmark still needs a cloudflare-bypass sidecar or bundles it. ([cwa-migration.md](cwa-migration.md) "Follow-ups #2")
-- ⬜ **Seerr** — replaces **overseerr** (superseded by [Seerr](https://seerr.dev/)). Migrate `requests.dv.zone` off `sctx/overseerr` onto Seerr. Low-cost swap since overseerr was a fresh install with little state. ([docker-apps-migration.md](docker-apps-migration.md) overseerr section)
+- ✅ **Seerr** — replaces **overseerr** (superseded by [Seerr](https://seerr.dev/), done 2026-07-06). `requests.dv.zone` now serves `ghcr.io/seerr-team/seerr` (v3.3.0) in place of `sctx/overseerr`; the overseerr `ComposeApp` + `overseerr.yaml.j2` were removed and a fresh `seerr` `ComposeApp` + `seerr.yaml.j2` stand up on a new external `seerr-config` volume (no data carried over — overseerr itself carried nothing over either). Seerr keeps Overseerr's `/api/v1` surface, so the homepage `overseerr` widget is reused, pointed at a fresh API key in `op://Homelab/Seerr/password`. Template adds `init: true` (the image ships no init process upstream). Not behind Authelia — it self-auths via Plex, same as overseerr. ([docker-apps-migration.md](docker-apps-migration.md) overseerr section)
 
 ## 4. Per-app functional follow-ups
 

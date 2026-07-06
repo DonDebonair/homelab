@@ -26,7 +26,7 @@ won't be ported** (superseded/dropped). Ported apps live in
 | pgadmin | pgadmin.dv.zone | Databases | internal | `pgadmin-data` vol (external, uid/gid 5050), single-file `config_local.py` bind, OIDC (self-auth, no `import secure`); data bridged from NAS — see runbook below | ✅ Ported |
 | portainer | docker.dv.zone | Admin | internal | `portainer-data` vol (external), docker socket; EE, `/data` bridged from NAS | ✅ Ported |
 | tautulli | tautulli.dv.zone | Entertainment | internal | `tautulli/config` vol (external), config migrated from NAS | ✅ Ported |
-| overseerr | requests.dv.zone | Entertainment | internal | `overseerr-config` vol (external); **fresh install, no data migrated**; self-auths via Plex (no `import secure`); **TODO: replace with [Seerr](https://seerr.dev/)** | ✅ Ported |
+| seerr | requests.dv.zone | Entertainment | internal | `seerr-config` vol (external); **fresh install, no data migrated**; self-auths via Plex (no `import secure`); `init: true`; replaced `sctx/overseerr` 2026-07-06 | ✅ Ported |
 | sabnzbd | nzb.dv.zone | Downloaders | internal | `sabnzbd/config` vol + NAS usenet library over NFS | ✅ Ported |
 | qbittorrent | torrent.dv.zone | Downloaders | internal | `qbittorrent/config` vol + NAS torrent library over NFS | ✅ Ported |
 | forgejo | git.dv.zone | Development | internal | postgres `forgejo`, external `forgejo-data` vol, git-over-SSH via caddy-internal layer4; upgraded 8→15.0.3 (LTS) | ✅ Ported |
@@ -512,10 +512,31 @@ NAS quiesce. Internal on `caddy-internal` (`requests.dv.zone`, container port
   Plex login. No NAS instance to decommission beyond the usual Ansible cleanup.
   **First-run setup completed 2026-07-03** — Overseerr is fully configured (Plex +
   Radarr/Sonarr connections); the homepage widget key was then wired in (see above).
-- **TODO — replace with Seerr.** Overseerr is superseded by
-  [Seerr](https://seerr.dev/) (the maintained successor). In the future we want
-  to migrate `requests.dv.zone` off `sctx/overseerr` onto Seerr. Since this was a
-  fresh install with little state, the eventual swap should be low-cost.
+### Replaced with Seerr (done 2026-07-06)
+
+`requests.dv.zone` was swapped off `sctx/overseerr:1.35.0` onto
+`ghcr.io/seerr-team/seerr:v3.3.0` — [Seerr](https://seerr.dev/), the maintained
+Overseerr/Jellyseerr successor. A **fresh install, no data migrated** (overseerr
+itself carried nothing over, and no migration was wanted).
+
+- The overseerr `ComposeApp` + `overseerr.yaml.j2` were removed; a new `seerr`
+  `ComposeApp` + `seerr.yaml.j2` take over the same domain, port (**5055**),
+  Entertainment tile, and internal-only (`caddy-internal`, no `import secure`)
+  posture — Seerr self-auths via Plex just like overseerr.
+- **State — `seerr-config`, `external=True`** at `/app/config` (fresh volume;
+  same `settings.json` + `db/db.sqlite3` layout Overseerr used).
+- **`init: true`.** The Seerr image ships **no init process** upstream (unlike
+  `sctx/overseerr`), so the template sets `init: true` to reap zombies.
+- **Runs as `node` (UID 1000)** with a named volume — no PUID/PGID needed.
+- **Homepage widget.** Seerr keeps Overseerr's `/api/v1` surface, so the
+  `overseerr` widget type/icon are reused. Fresh API key (generated at first-run
+  setup) stored at `op://Homelab/Seerr/password`; `seerr_api_token` in
+  `secrets.py` replaced `overseerr_api_token`.
+- **Deploy:** `uv run pyinfra inventory.py --limit docker_vm deploy.py -y` — but
+  the 1Password `Seerr` item must exist first (secret resolution happens at
+  import; a missing item fails the run). Do first-run setup (Plex + Radarr/Sonarr
+  connections), generate the API key, store it in the `Seerr` item, then redeploy
+  so the homepage widget resolves.
 
 ## n8n — DB + volume migration (done 2026-07-03)
 
@@ -635,5 +656,6 @@ verified the tag exists on Docker Hub).
 
 **🎉 All 16 migratable docker apps are now on `docker_vm`.** What's left is
 cleanup, not migration: NAS/Ansible decommissioning (`docs/plans/open-todos.md`
-§1), the two fresh-app stand-ups that supersede migrated apps (Shelfmark ← cwa-dl,
-Seerr ← overseerr), and Renovate for version bumps.
+§1), the remaining fresh-app stand-up that supersedes a migrated app
+(Shelfmark ← cwa-dl; Seerr ← overseerr done 2026-07-06), and Renovate for
+version bumps.

@@ -194,18 +194,21 @@ apps = [
         ],
     ),
     ComposeApp(
-        name="overseerr",
-        image="sctx/overseerr",
-        version="1.35.0",
+        name="seerr",
+        # Overseerr/Jellyseerr successor (seerr.dev); replaces the short-lived
+        # sctx/overseerr install. Keeps Overseerr's /api/v1 surface and the
+        # /app/config layout. Pinned stable; bump the version field and redeploy.
+        image="ghcr.io/seerr-team/seerr",
+        version="v3.3.0",
         domain="requests.dv.zone",
         volumes=[
             # settings.json + the SQLite db (db.sqlite3) holding request history,
             # user accounts (Plex-linked), and service (Plex/Radarr/Sonarr)
             # config. Non-trivial recovery cost -- losing it re-does the whole
             # setup and loses request history -- so external=True keeps `down -v`
-            # from wiping it. Fresh volume: this is a clean install, no data is
-            # migrated from the NAS instance.
-            NamedVolume(name="overseerr-config", mount_path="/app/config", external=True),
+            # from wiping it. Fresh volume: clean install, no data migrated from
+            # the overseerr instance (which itself carried nothing over).
+            NamedVolume(name="seerr-config", mount_path="/app/config", external=True),
         ],
     ),
     ComposeApp(
