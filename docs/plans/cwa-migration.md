@@ -126,15 +126,63 @@ with the migrated config volume and the NFS library, working end-to-end.
 
 ## Follow-ups (TODO)
 
-### 1. Add OIDC auth to CWA
+### 1. Add OIDC auth to CWA — ✅ done 2026-07-07
 
-CWA is currently protected only by Authelia forward-auth at the proxy layer
-(`caddy_internal.import: secure *`) — there is no native OIDC client, so login is
-Authelia's portal, not CWA's own accounts. Wire up CWA's native OIDC against
-Authelia: add an Authelia client in `deploys/docker_vm/proxies/vars.py`, store the
-client secret in 1Password + `deploys/docker_vm/apps/secrets.py`, and set CWA's
-OAuth env/config in `cwa.yaml.j2`. This lets CWA map SSO identities to its own
-users/permissions instead of treating everyone past the forward-auth gate the same.
+**Verified:** native OIDC login via Authelia works end-to-end; standard login is
+disabled, so CWA's own OIDC is the sole gate.
+
+CWA now authenticates with its own **native generic-OIDC client** against Authelia
+instead of a blanket Authelia forward-auth gate, so SSO identities map to CWA
+users/permissions (incl. admin-by-group) rather than everyone past the gate being
+treated the same.
+
+**Important constraint — CWA has no env/config-file OIDC.** Unlike paperless
+(env-driven `PAPERLESS_SOCIALACCOUNT_PROVIDERS`), CWA v4 configures generic OIDC
+**only through its admin UI**, persisting it in the `oauthProvider` table +
+`config_login_type` inside `app.db`. That DB lives on the external `cwa-config`
+volume, so the config survives redeploys/`down -v` and only has to be entered once.
+Consequently there is **nothing OIDC-related in `cwa.yaml.j2` and no secret in
+`apps/secrets.py`** — the template can't carry it. CWA reads `preferred_username` /
+`email` / `groups` from Authelia's **userinfo endpoint** (not the ID token), so —
+unlike Grafana — **no Authelia `claims_policy` is needed**; the `groups`/`profile`/
+`email` scopes deliver those claims at userinfo directly. The blueprint uses no
+PKCE and `client_secret_basic`.
+
+**Done as code:**
+- Authelia client `calibre-web` registered in `deploys/docker_vm/proxies/vars.py`
+  (via `uv run python cmd.py oidc add-client "Calibre-Web"
+  "https://books.dv.zone/login/generic/authorized"`): `two_factor`,
+  `client_secret_basic`, scopes `openid groups email profile`, no PKCE, no claims
+  policy. Redirect URI is CWA's generic-provider callback
+  `https://books.dv.zone/login/generic/authorized`.
+- Client secret stored in 1Password at `op://Homelab/Calibre-Web OIDC client/password`
+  (the run's token is read-only for writes, so the item is created by hand — the
+  script prints the raw secret + the exact fields). Only the pbkdf2 hash lives in
+  `vars.py`; nothing resolves the `op://` ref at deploy time.
+- `caddy_internal.import: secure *` **removed** from `cwa.yaml.j2` so CWA's own OIDC
+  is the sole gate (matches `paperless.yaml.j2`, which carries no `import secure`).
+
+**One-time manual setup (rollout order matters — avoids lockout/exposure):**
+1. `uv run pyinfra inventory.py --limit docker_vm deploy.py -y` — deploys the
+   Authelia client (so it knows `calibre-web`) **and** drops the forward-auth gate.
+   CWA stays reachable via its migrated local admin account until step 4.
+2. In CWA: **Admin → Edit Basic Configuration → Feature Configuration**, set
+   **Login type = "Use OAuth (requires HTTPS)"**, then under **Generic OAuth
+   Provider**:
+   - **OAuth Metadata URL** = `https://auth.dv.zone/.well-known/openid-configuration`
+     → click **Test Metadata** to auto-fill base/authorize/token/userinfo endpoints.
+   - **OAuth Scopes** = `openid profile email groups`
+   - **OAuth Client Id** = `calibre-web`
+   - **OAuth Client Secret** = the value from `op://Homelab/Calibre-Web OIDC client/password`
+   - **Username Field** = `preferred_username`, **Email Field** = `email` (defaults)
+   - **OAuth group for Admin** = your Authelia/LLDAP admin group (grants CWA admin)
+   - **Login Button Text** = `Authelia`
+3. Save, log out, and verify the **"Login with Authelia"** button completes the
+   round-trip — a first login auto-creates the CWA user; confirm an admin-group
+   member lands with admin rights.
+4. Only after OIDC works: re-open the config and tick **Disable Standard Login
+   (Username/Password)** so OIDC is the sole gate. (CWA warns about lockout if you
+   disable standard login without a working OAuth setup — hence the ordering.)
 
 ### 2. Replace `cwa-dl` with Shelfmark (not a migration — clean slate)
 

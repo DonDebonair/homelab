@@ -40,7 +40,7 @@ migrated apps (§3). Tracked in full in
 
 ## 4. Per-app functional follow-ups
 
-- ⬜ **cwa — native OIDC.** Currently only Authelia forward-auth at the proxy; add CWA's native OIDC client against Authelia (Authelia client in `proxies/vars.py`, secret in 1Password + `apps/secrets.py`, OAuth env in `cwa.yaml.j2`) so SSO identities map to CWA users/permissions. ([cwa-migration.md](cwa-migration.md) "Follow-ups #1")
+- ✅ **cwa — native OIDC** (done 2026-07-07). Authelia client `calibre-web` registered in `proxies/vars.py` (redirect `https://books.dv.zone/login/generic/authorized`, `client_secret_basic`, scopes incl. `groups`, no PKCE/claims-policy — CWA reads claims from userinfo), secret in `op://Homelab/Calibre-Web OIDC client/password`, and `import secure *` removed from `cwa.yaml.j2` so native OIDC is the sole gate. **CWA has no env/config-file OIDC** — the provider is configured once in CWA's admin UI (persists in `app.db` on the `cwa-config` volume), so there's nothing in `cwa.yaml.j2`/`apps/secrets.py`. Verified end-to-end (OIDC login works, standard login disabled). Full runbook in [cwa-migration.md](cwa-migration.md) "Follow-ups #1". ([cwa-migration.md](cwa-migration.md) "Follow-ups #1")
 
 ## 5. Monitoring follow-ups
 

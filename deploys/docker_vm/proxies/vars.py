@@ -99,4 +99,13 @@ oidc_clients = [
         "require_pkce": True,
         "pkce_challenge_method": "S256",
     },
+    {
+        "id": "calibre-web",
+        "name": "Calibre-Web",
+        "secret_hash": "$pbkdf2-sha512$310000$HAPgXIvROofQuncuxdjbew$5oU3XRQU55YmiMmswtfQNGRHpYFuUf/KJakViMwQhvhBq/i2vBXdaTjWLKErheW9kYtIOwuA2EKreTBD0HfAXQ",
+        "policy": "two_factor",
+        "redirect_uris": ["https://books.dv.zone/login/generic/authorized"],
+        "scopes": ["openid", "groups", "email", "profile"],
+        "auth_method": "client_secret_basic",
+    },
 ]

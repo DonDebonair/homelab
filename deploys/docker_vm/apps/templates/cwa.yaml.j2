@@ -22,14 +22,18 @@ services:
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 8083}}"
-      caddy_internal.import: secure *
+      # No `import secure` here: CWA gates itself with native OIDC against Authelia
+      # (client `calibre-web` in proxies/vars.py; provider set up once in CWA's
+      # admin UI -- see docs/plans/cwa-migration.md). Standard login is disabled in
+      # CWA so OIDC is the sole gate, mapping SSO identities to CWA users instead of
+      # treating everyone past a forward-auth gate the same.
       homepage.group: Entertainment
       homepage.name: Calibre-Web Automated
       homepage.icon: calibre-web
       homepage.href: https://[[ app.domain ]]
-      # Widget talks to the container directly (cwa:8083), bypassing the `import
-      # secure` forward-auth above -- the public URL would bounce the widget's
-      # basic-auth call to the Authelia login page. Dedicated read-only CWA user.
+      # Widget talks to the container directly (cwa:8083) with a dedicated
+      # read-only CWA user over basic auth -- the public URL redirects to the
+      # OIDC login, which the widget's basic-auth call can't complete.
       homepage.widget.type: calibreweb
       homepage.widget.url: http://cwa:8083
       homepage.widget.username: [[ cwa_widget_username ]]
