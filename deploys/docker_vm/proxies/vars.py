@@ -108,4 +108,15 @@ oidc_clients = [
         "scopes": ["openid", "groups", "email", "profile"],
         "auth_method": "client_secret_basic",
     },
+    {
+        "id": "shelfmark",
+        "name": "Shelfmark",
+        "secret_hash": "$pbkdf2-sha512$310000$Mua8d671XktJKSVkjFFqjQ$LbUQprrlqe9uSVBxvT0ozVmVzbUvTh4nDnzKDGDTGBemhpto6aSJf1kQ1ts1z/fRcPe7WYLVoQFOE5Ga3fUTgw",
+        "policy": "two_factor",
+        "redirect_uris": ["https://shelfmark.dv.zone/api/auth/oidc/callback"],
+        "scopes": ["openid", "groups", "email", "profile"],
+        "auth_method": "client_secret_basic",
+        "require_pkce": True,
+        "pkce_challenge_method": "S256",
+    },
 ]

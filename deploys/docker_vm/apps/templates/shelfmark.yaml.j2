@@ -1,0 +1,42 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  shelfmark:
+    container_name: shelfmark
+    image: [[ app.image ]]:[[ app.version ]]
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # PUID 2000 / PGID 100 matches CWA (see cwa.yaml.j2): Shelfmark writes
+      # completed downloads into CWA's ingest bind and CWA (same uid) ingests +
+      # removes them, so ownership must line up.
+      PUID: [[ host.data.docker_uid ]]
+      PGID: 100
+      # Where completed downloads are written. Points at the CWA ingest bind
+      # (mounted at /cwa-book-ingest below) so books flow into CWA's auto-ingest.
+      INGEST_DIR: /cwa-book-ingest
+      # OIDC is configured once in Shelfmark's UI (Settings -> Security -> OIDC)
+      # and persisted on the /config volume -- nothing here. To make OIDC the
+      # sole gate after it's verified, uncomment (see docs/plans/shelfmark.md):
+      # DISABLE_LOCAL_AUTH: "true"
+    networks:
+      - caddy-internal
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8084}}"
+      # No `import secure`: Shelfmark gates itself with native OIDC against
+      # Authelia (client `shelfmark` in proxies/vars.py; provider set up once in
+      # Shelfmark's admin UI -- see docs/plans/shelfmark.md). This maps SSO
+      # identities to Shelfmark users/requests instead of a blanket forward-auth.
+      homepage.group: Entertainment
+      homepage.name: Shelfmark
+      homepage.icon: shelfmark.png
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 320
+    expose:
+      - 8084
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

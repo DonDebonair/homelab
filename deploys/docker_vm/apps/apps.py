@@ -194,6 +194,29 @@ apps = [
         ],
     ),
     ComposeApp(
+        name="shelfmark",
+        # Book search/request + downloader (github.com/calibrain/shelfmark).
+        # Fresh stand-up replacing the NAS cwa-dl stack (superseded) -- no
+        # config/state carried over. The full image bundles Cloudflare bypass
+        # (USE_CF_BYPASS=true), so unlike cwa-dl there is no cloudflarebypass
+        # sidecar. Pinned stable; project is frozen as of May 2026.
+        image="ghcr.io/calibrain/shelfmark",
+        version="v1.3.2",
+        domain="shelfmark.dv.zone",
+        volumes=[
+            # App config + users + sources + the request queue + the OIDC
+            # provider config (entered once in Shelfmark's UI, like CWA). Fresh
+            # install, but non-trivial recovery cost, so external=True keeps
+            # `down -v` from wiping it.
+            NamedVolume(name="shelfmark-config", mount_path="/config", external=True),
+            # Downloads land here (INGEST_DIR in the template) -- the SAME bind
+            # CWA watches (/srv/docker/volumes/cwa/ingest), so completed books
+            # flow straight into CWA's auto-ingest. Reuses cwa's dir; the helper
+            # creates it idempotently.
+            BindMount(source="cwa/ingest", mount_path="/cwa-book-ingest"),
+        ],
+    ),
+    ComposeApp(
         name="seerr",
         # Overseerr/Jellyseerr successor (seerr.dev); replaces the short-lived
         # sctx/overseerr install. Keeps Overseerr's /api/v1 surface and the
