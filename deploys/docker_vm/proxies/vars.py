@@ -16,7 +16,7 @@ from deploys.docker_vm.proxies.secrets import (
     cloudflared_credentials_json,
 )
 
-caddy_version = "2.11.3"
+caddy_version = "2.11.4"
 
 smtp_server = "smtp.eu.mailgun.org"
 smtp_port = 587
