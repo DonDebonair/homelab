@@ -1,0 +1,51 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  # Isolated Docker daemon for CI jobs. Privileged, but scoped to this container
+  # so job containers never touch the host daemon (which runs the whole prod
+  # stack). 2375 is plaintext but stays on the project-internal network -- it is
+  # deliberately NOT published on a host port.
+  forgejo-runner-dind:
+    container_name: forgejo-runner-dind
+    image: docker:28.3.3-dind
+    privileged: true
+    restart: unless-stopped
+    # --dns pins the Technitium resolver for the containers dind spawns (the CI
+    # job containers). Without it, dind sees only Docker's loopback resolver
+    # (127.0.0.11) and falls back to public DNS for nested containers -- which
+    # can't resolve the split-horizon `git.dv.zone` (internal-only; it points at
+    # caddy-internal .20, not the Cloudflare tunnel). With it, a Renovate job
+    # resolves git.dv.zone -> .20 and reaches the Forgejo API over the host's
+    # macvlan-shim route (same path a normal bridge container already uses).
+    command: ["dockerd", "-H", "tcp://0.0.0.0:2375", "--tls=false", "--dns", "[[ host.data.dns_ip ]]"]
+    networks:
+      - forgejo-runner
+    volumes:
+      - forgejo-runner-dind-data:/var/lib/docker
+
+  # The runner daemon. Named after the app so the compose helper's
+  # restart-on-change targeting (`restart forgejo-runner`) hits it. Connects
+  # declaratively via server.connections in the mounted config.yaml.
+  forgejo-runner:
+    container_name: forgejo-runner
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      forgejo-runner-dind:
+        condition: service_started
+    user: "1000:1000"
+    working_dir: /data
+    networks:
+      - forgejo-runner       # reach dind at forgejo-runner-dind:2375
+      - caddy-internal        # reach the Forgejo API at forgejo:3000
+    environment:
+      DOCKER_HOST: tcp://forgejo-runner-dind:2375
+    volumes:
+      - forgejo-runner-data:/data
+      - [[ host.data.docker_volumes_base ]]/forgejo-runner/config.yaml:/config.yaml:ro
+    restart: unless-stopped
+    command: ["forgejo-runner", "daemon", "--config", "/config.yaml"]
+
+networks:
+  forgejo-runner:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

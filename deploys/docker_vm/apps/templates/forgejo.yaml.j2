@@ -23,6 +23,10 @@ services:
       # is the port Forgejo advertises in clone URLs (git@git.dv.zone:user/repo).
       FORGEJO__server__SSH_DOMAIN: [[ app.domain ]]
       FORGEJO__server__SSH_PORT: "22"
+      # Enable Forgejo Actions so the self-hosted runner (forgejo-runner) can pick
+      # up workflows -- e.g. the scheduled Renovate run. See
+      # docs/plans/renovate-forgejo-actions.md.
+      FORGEJO__actions__ENABLED: "true"
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 3000}}"
@@ -38,7 +42,7 @@ services:
       # repos/issues/search, notifications.
       homepage.widget.type: gitea
       homepage.widget.url: https://[[ app.domain ]]
-      homepage.widget.key: [[ forgejo_api_token ]]
+      homepage.widget.key: [[ forgejo_api_token_homepage ]]
     expose:
       - 3000
       - 22

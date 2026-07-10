@@ -1,0 +1,75 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "enabledManagers": ["custom.regex"],
+  "customManagers": [
+    {
+      "description": "M1 (Option A): ComposeApp image=/version= pairs. image= MUST sit directly above version= (only comments/whitespace between). caddy-custom is skipped automatically because its version is an unquoted variable (version=caddy_version), so the quoted-version match never fires -- its base image is tracked by M2 instead.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/deploys/docker_vm/apps/apps\\.py$/",
+        "/deploys/docker_vm/proxies/apps\\.py$/",
+        "/deploys/nas/docker/apps\\.py$/",
+        "/deploys/dns/apps\\.py$/",
+        "/deploys/docker_vm/monitoring/monitoring\\.py$/"
+      ],
+      "matchStrings": [
+        "image=\"(?<depName>[^\"]+)\",?\\s*(?:#[^\\n]*\\s*)*version=\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "description": "M2: the caddy base image behind the locally-built caddy-custom (docker.build in proxies/__init__.py uses caddy:${CADDY_VERSION}). Tracks the upstream caddy tag on Docker Hub; bumping caddy_version rebuilds the custom image.",
+      "customType": "regex",
+      "managerFilePatterns": ["/deploys/docker_vm/proxies/vars\\.py$/"],
+      "matchStrings": ["caddy_version = \"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "caddy",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "description": "M3: secondary/sidecar images pinned inline in compose templates (redis, gotenberg, tika, node-exporter, snmp-exporter, cadvisor). Requires depName to start [a-z0-9] so the templated 'image: [[ app.image ]]:[[ app.version ]]' lines are never matched.",
+      "customType": "regex",
+      "managerFilePatterns": ["/deploys/.*\\.yaml\\.j2$/"],
+      "matchStrings": [
+        "image:\\s+(?<depName>[a-z0-9][^:\\s\\[\\]]*):(?<currentValue>[^\\s\"'\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "description": "M4: grafana/loki-docker-driver plugin (docker.plugin). Uses an arch-suffixed tag (X.Y.Z-amd64) because the driver publishes no multi-arch tag; the regex versioning restricts candidates to -amd64 tags and compares them by semver.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/deploys/docker_vm/monitoring/__init__\\.py$/",
+        "/deploys/nas/docker/__init__\\.py$/"
+      ],
+      "matchStrings": [
+        "plugin=\"(?<depName>grafana/loki-docker-driver):(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-amd64$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "LinuxServer.io images carry a build suffix (e.g. 5.0.4-ls261); keep their PRs grouped and clearly labelled since the upstream-version part is what matters.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["lscr.io/linuxserver/**"],
+      "addLabels": ["linuxserver"]
+    },
+    {
+      "description": "apache/tika pins the -full variant (3.3.1.0-full); restrict candidate tags to that variant so Renovate doesn't propose the slim tag.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["apache/tika"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-full$"
+    },
+    {
+      "description": "The forgejo-runner's docker-in-docker image pins the -dind variant (e.g. 28.3.3-dind); restrict candidates to -dind tags so Renovate compares like-for-like.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["docker"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-dind$"
+    }
+  ]
+}

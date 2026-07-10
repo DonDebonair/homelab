@@ -1,0 +1,33 @@
+name: Renovate
+
+# Renovate runs as an ephemeral job on the self-hosted forgejo-runner (docker_vm),
+# not as a long-lived service. Repo policy lives in /renovate.json; the bot/platform
+# config below is passed as env. Forgejo Actions secrets on this repo: RENOVATE_TOKEN
+# (a Forgejo PAT for renovate-bot) and GH_COM_TOKEN (a github.com read-only PAT for
+# changelogs). The github.com token is passed via RENOVATE_HOST_RULES rather than the
+# usual GITHUB_COM_TOKEN env var, because Forgejo forbids any variable/secret name
+# starting with GITHUB_. See docs/plans/renovate-forgejo-actions.md.
+on:
+  schedule:
+    - cron: "0 4 * * 1"   # Mondays 04:00
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    container:
+      image: renovate/renovate:43.256.2
+    steps:
+      - name: Run Renovate
+        run: renovate
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          # github.com PAT for changelog/release-note fetches, via hostRules
+          # (avoids the reserved GITHUB_ env prefix).
+          RENOVATE_HOST_RULES: '[{"hostType":"github","matchHost":"github.com","token":"${{ secrets.GH_COM_TOKEN }}"}]'
+          RENOVATE_PLATFORM: forgejo
+          RENOVATE_ENDPOINT: https://git.dv.zone/api/v1
+          RENOVATE_AUTODISCOVER: "false"
+          RENOVATE_REPOSITORIES: daan/homelab
+          RENOVATE_GIT_AUTHOR: "Renovate Bot <renovate@dv.zone>"
+          LOG_LEVEL: info

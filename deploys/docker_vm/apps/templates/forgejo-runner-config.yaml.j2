@@ -1,0 +1,23 @@
+log:
+  level: info
+runner:
+  capacity: 2
+  timeout: 3h
+container:
+  # CI job containers run on the isolated dind daemon, never the host docker.
+  docker_host: tcp://forgejo-runner-dind:2375
+  # Let dind create a per-job network (it inherits dind's --dns pin).
+  network: ""
+# Declarative connection (Forgejo runner >=12.7). The UUID+token pair comes from
+# Forgejo's "Create runner" dialog; labels map workflow `runs-on` values to job
+# base images (catthehacker = GitHub-runner-like). No `register` step.
+server:
+  connections:
+    forgejo:
+      url: http://forgejo:3000
+      uuid: [[ forgejo_runner_uuid ]]
+      token: [[ forgejo_runner_token ]]
+      labels:
+        - "docker:docker://ghcr.io/catthehacker/ubuntu:runner-latest"
+        - "ubuntu-latest:docker://ghcr.io/catthehacker/ubuntu:runner-latest"
+        - "ubuntu-22.04:docker://ghcr.io/catthehacker/ubuntu:runner-22.04"

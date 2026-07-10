@@ -54,8 +54,8 @@ prowlarr_api_token = SecretString("op://Homelab/Prowlarr/api token")
 miniflux_api_token = SecretString("op://Homelab/Miniflux/api token")
 sabnzbd_api_token = SecretString("op://Homelab/SABnzbd/api token")
 
-# Forgejo (gitea widget): a read-only token (repository/issue/notification).
-forgejo_api_token = SecretString("op://Homelab/Forgejo/api token")
+# Forgejo (gitea widget): a read-only token (repository/issue/notification) for homepage.
+forgejo_api_token_homepage = SecretString("op://Homelab/Forgejo/api token homepage")
 
 # Calibre-Web (calibreweb widget): dedicated read-only CWA user, basic auth.
 cwa_widget_username = SecretString("op://Homelab/CWA Homepage user/username")
@@ -76,5 +76,15 @@ proxmox_widget_token_id = SecretString("op://Homelab/PVE Homepage widget/token i
 proxmox_widget_secret = SecretString("op://Homelab/PVE Homepage widget/secret")
 pbs_widget_token_id = SecretString("op://Homelab/PBS Homepage widget/token id")
 pbs_widget_secret = SecretString("op://Homelab/PBS Homepage widget/secret")
+
+# Forgejo Actions runner connection token (the secret half of the UUID+Token pair
+# from Forgejo's "Create runner" dialog). Rendered into the runner's config.yaml
+# under server.connections. Forgejo runner >=12.7 consumes this declaratively --
+# no `register` step. See deploys/docker_vm/apps/templates/forgejo-runner-config.yaml.j2
+# and docs/plans/renovate-forgejo-actions.md.
+forgejo_runner_token = SecretString("op://Homelab/Forgejo/runner token")
+# The non-secret half of that pair -- the runner's UUID (shown in Site Admin ->
+# Actions -> Runners). Identifies this registration; not sensitive, so kept in code.
+forgejo_runner_uuid = "c3a69254-f967-4158-8779-fed50a8239e0"
 
 SecretString.populate_cache_sync()

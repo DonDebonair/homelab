@@ -312,4 +312,30 @@ apps = [
             BindMount(source="paperless/consume", mount_path="/usr/src/paperless/consume"),
         ],
     ),
+    # Forgejo Actions runner (+ its isolated docker-in-docker daemon). Ephemeral
+    # CI jobs -- including the scheduled Renovate run in
+    # .forgejo/workflows/renovate.yml -- execute inside `dind`, never on the host
+    # docker daemon. The runner connects declaratively via server.connections in
+    # its config.yaml (Forgejo runner >=12.7). See
+    # docs/plans/renovate-forgejo-actions.md.
+    ComposeApp(
+        name="forgejo-runner",
+        image="code.forgejo.org/forgejo/runner",
+        version="12.7.3",
+        volumes=[
+            # Runner cache/state. External so `down -v` can't wipe it.
+            NamedVolume(name="forgejo-runner-data", mount_path="/data", external=True),
+            # dind's image/layer cache -- disposable (re-pulls), so project-scoped.
+            NamedVolume(name="forgejo-runner-dind-data", mount_path="/var/lib/docker"),
+        ],
+        templates=[
+            # Holds the server.connections block (url + uuid + token + labels).
+            # restart_on_change so a token/label edit restarts the runner service.
+            TemplateFile(
+                src="forgejo-runner-config.yaml",
+                dest="forgejo-runner/config.yaml",
+                restart_on_change=True,
+            ),
+        ],
+    ),
 ]
