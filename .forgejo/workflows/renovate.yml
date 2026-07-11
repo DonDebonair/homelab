@@ -9,7 +9,7 @@ name: Renovate
 # starting with GITHUB_. See docs/plans/renovate-forgejo-actions.md.
 on:
   schedule:
-    - cron: "0 4 * * 1"   # Mondays 04:00
+    - cron: "0 4 * * *"   # Daily 04:00
   workflow_dispatch:
 
 jobs:
