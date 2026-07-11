@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard"],
+  "extends": ["config:recommended", ":dependencyDashboard", "abandonments:recommended", ],
   "enabledManagers": ["custom.regex"],
   "customManagers": [
     {
@@ -71,12 +71,9 @@
       "matchPackageNames": ["docker"],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-dind$",
       "allowedVersions": "/-dind$/"
-    },
-    {
-      "description": "Redis sidecars (authelia session store, paperless broker) stay on 7.x -- a major bump to 8 changes defaults/behaviour and needs manual vetting. Remove this rule (or raise the bound) to move to 8.",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["redis"],
-      "allowedVersions": "<8"
     }
-  ]
+  ],
+  "major": {
+    "dependencyDashboardApproval": true
+  }
 }
