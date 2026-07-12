@@ -4,6 +4,25 @@ from group_data.docker_vm import docker_volumes_base
 
 DOCKER_SOCKET = BindMount(source="/var/run/docker.sock", mount_path="/var/run/docker.sock")
 
+# The whole media library lives on the NAS under /volume1/entertainment. The
+# download clients (qbittorrent, sabnzbd) both mount that *root* at /data (not
+# just their torrents/ / usenet/ subdirs) so they share one tree with the *arr
+# stack and cross-directory hardlinks / instant moves work. Downloads land in
+# per-client subdirs (qBittorrent -> /data/torrents, sabnzbd -> /data/usenet).
+# It's a single external NFS volume shared across both compose projects
+# (external volumes are global by name, pre-created once by the docker_compose
+# helper) rather than each app inlining its own identical NfsVolume. Access is
+# via a Synology ACL entry for the container's id (2000); see the templates'
+# PUID/PGID note. NFS maps access by numeric id, so PUID/PGID must match the
+# NAS folder's ownership -- not necessarily host.data.docker_uid/gid.
+ENTERTAINMENT_NFS = NfsVolume(
+    name="entertainment",
+    mount_path="/data",
+    server=nas_ip,
+    path="/volume1/entertainment",
+    external=True,
+)
+
 apps = [
     ComposeApp(
         name="homepage",
@@ -67,19 +86,10 @@ apps = [
             # recovery cost (losing it means re-adding every torrent and
             # force-rechecking), so external=True keeps `down -v` from wiping it.
             NamedVolume(name="qbittorrent-config", mount_path="/config", external=True),
-            # The whole media library lives on the NAS under
-            # /volume1/entertainment; we mount that *root* (not just /torrents) at
-            # /data so the download client and the *arr apps share one tree and
-            # cross-directory hardlinks / instant moves work. Downloads land in
-            # the `torrents/` subdir (qBittorrent's Session\DefaultSavePath is
-            # /data/torrents). Access is via a Synology ACL entry for the
-            # container's id (2000); see the template's PUID/PGID note.
-            NfsVolume(
-                name="qbittorrent-data",
-                mount_path="/data",
-                server=nas_ip,
-                path="/volume1/entertainment",
-            ),
+            # Shared NAS media tree at /data (see ENTERTAINMENT_NFS above).
+            # Downloads land in the torrents/ subdir (qBittorrent's
+            # Session\DefaultSavePath is /data/torrents).
+            ENTERTAINMENT_NFS,
         ],
     ),
     ComposeApp(
@@ -93,18 +103,10 @@ apps = [
             # re-adding every news server and losing queue/history -- so
             # external=True keeps `down -v` from wiping it.
             NamedVolume(name="sabnzbd-config", mount_path="/config", external=True),
-            # Mount the whole /volume1/entertainment tree at /data (not just the
-            # usenet/ subdir) so downloads share the media library with the *arr
-            # apps for hardlinks. sabnzbd writes under the `usenet/` subdir
+            # Shared NAS media tree at /data (see ENTERTAINMENT_NFS above).
+            # sabnzbd writes under the usenet/ subdir
             # (download_dir=/data/usenet/incomplete, complete_dir=/data/usenet/complete).
-            # Access is via a Synology ACL entry for the container's id (2000);
-            # see the template's PUID/PGID note.
-            NfsVolume(
-                name="sabnzbd-data",
-                mount_path="/data",
-                server=nas_ip,
-                path="/volume1/entertainment",
-            ),
+            ENTERTAINMENT_NFS,
         ],
     ),
     ComposeApp(

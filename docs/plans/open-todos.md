@@ -6,7 +6,7 @@ full detail/runbook — this file is just the master list so nothing gets lost.
 
 Status legend: ⬜ not started · 🔶 in progress / partially done · ✅ done
 
-Last reviewed: 2026-07-04.
+Last reviewed: 2026-07-12. **All tracked items are now ✅ done** — nothing outstanding.
 
 ---
 
@@ -66,4 +66,17 @@ From [technitium-dns.md](technitium-dns.md) "Out of scope (future phases)".
 
 - ✅ **Split the repo in two** (done 2026-07-04) — the legacy Ansible setup was carved into its own repo (`homelab-old`) and this repo (`homelab`) is now the pyinfra-only setup. A full-history archive of the original combined repo lives in `homelab-evolution-archive`. All three had secrets scrubbed before `homelab`/`homelab-old` were made public (`homelab-evolution-archive` stays private).
 - ✅ **Renovate** (done 2026-07-10) — automates Docker image version bumps (replaces the dropped `watchtower`), running as a scheduled **Forgejo Actions** job on a self-hosted runner (Renovate itself is ephemeral; the `forgejo-runner` v12.7.3 + isolated dind is the only long-lived add). `renovate.json` has 4 custom managers covering every pinning surface (`ComposeApp` pairs, the `caddy` base image, inline sidecars, the arch-suffixed loki plugin) + `docker`/`tika`/`dind`/`redis` variant `packageRules`. The runner registers declaratively via `server.connections` (UUID+token) in a rendered `config.yaml`; dind pins the Technitium resolver so nested CI containers resolve the split-horizon `git.dv.zone`. github.com changelog token passes via `RENOVATE_HOST_RULES` (Forgejo forbids the `GITHUB_` prefix). Actions disabled on the ~155 `source-ag/*` repos (`disable-actions.sh`) so the instance-level runner only serves `daan/homelab`. **Verified end-to-end:** first run opened PRs (dozzle, caddy) + a Dependency Dashboard listing all detected updates across the four managers. Flow: Renovate PR → review/merge → `uv run pyinfra inventory.py deploy.py`. Plan: [renovate-forgejo-actions.md](renovate-forgejo-actions.md). ([CLAUDE.md](../../CLAUDE.md) "Docker image versioning")
-- ⬜ **Shared external NFS volume op** — qbittorrent/sabnzbd/etc. each keep their own inline `NfsVolume` for `/volume1/entertainment` because pyinfra's built-in `docker.volume` can't set `--opt` driver options. A custom op for a shared external NFS volume would be tidier. Deferred. ([docker-apps-migration.md](docker-apps-migration.md) NFS notes)
+- ✅ **Shared external NFS volume** (done 2026-07-12) — pyinfra's `docker.volume` now
+  supports `--opt` driver options, so `NfsVolume` gained an `external=True` mode: the
+  `docker_compose` helper pre-creates the volume once via
+  `docker.volume(driver="local", options=["type=nfs", "o=addr=…", "device=:…"])`
+  (deduped by name in `create_external_named_volumes` — an NFS volume is just a named
+  volume with driver opts) and the compose file marks it `external: true` instead of
+  inlining `driver_opts`. qbittorrent and sabnzbd now share a single global
+  `entertainment` volume (`/volume1/entertainment` at `/data`) defined once as
+  `ENTERTAINMENT_NFS` in `apps.py`, replacing their two inline `qbittorrent-data`/`sabnzbd-data`
+  volumes. cwa/pinchflat keep their own inline (non-external) `NfsVolume`s — they mount
+  distinct subdirs of the tree, so there's nothing to share. **Note:** the old
+  project-scoped `qbittorrent_qbittorrent-data`/`sabnzbd_sabnzbd-data` volumes become
+  orphaned on next deploy (harmless — the data lives on the NAS; `docker volume prune`
+  to clean up). ([docker-apps-migration.md](docker-apps-migration.md) NFS notes)

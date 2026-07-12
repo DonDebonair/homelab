@@ -8,7 +8,7 @@ from pyinfra.api.operation import OperationMeta
 from pyinfra import host
 from pyinfra.operations import files, docker, server
 
-from .models import ComposeApp, BindMount, NamedVolume
+from .models import ComposeApp, BindMount, NamedVolume, NfsVolume
 from utils.variables import normalize_vars
 
 COMMON_TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
@@ -51,15 +51,38 @@ def create_docker_volume_dirs(apps: list[ComposeApp]):
 
 
 def create_external_named_volumes(apps: list[ComposeApp]):
+    """Pre-create every external volume once -- both plain named volumes and
+    NFS-backed ones (an NFS volume is just a named volume with local/type=nfs
+    driver options). External volumes are global by name, so a volume shared
+    across compose projects -- e.g. the `/volume1/entertainment` NFS share used
+    by both qbittorrent and sabnzbd -- is deduped by name and created a single
+    time."""
+    seen: set[str] = set()
     for app in apps:
-        if app.volumes:
-            for volume in app.volumes:
-                if isinstance(volume, NamedVolume) and volume.external:
-                    docker.volume(
-                        name=f"Ensure external named volume {volume.name} exists for {app.name}",
-                        volume=volume.name,
-                        present=True,
-                    )
+        for volume in app.volumes or []:
+            if not isinstance(volume, (NamedVolume, NfsVolume)) or not volume.external:
+                continue
+            if volume.name in seen:
+                continue
+            seen.add(volume.name)
+            if isinstance(volume, NfsVolume):
+                docker.volume(
+                    name=f"Ensure external NFS volume {volume.name} exists",
+                    volume=volume.name,
+                    driver="local",
+                    options=[
+                        "type=nfs",
+                        f"o=addr={volume.server},{volume.options}",
+                        f"device=:{volume.path}",
+                    ],
+                    present=True,
+                )
+            else:
+                docker.volume(
+                    name=f"Ensure external named volume {volume.name} exists",
+                    volume=volume.name,
+                    present=True,
+                )
 
 
 def copy_templates(

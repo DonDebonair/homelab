@@ -43,10 +43,13 @@ Notes:
   `/volume1/entertainment` tree** at `/data` (not just their `torrents/` /
   `usenet/` subdir), so the download clients and the future *arr apps share one
   filesystem and cross-directory hardlinks / instant moves work (trash-guides
-  single-mount layout; the tree holds `torrents/`, `usenet/`, `media/`). Each app
-  keeps its **own inline `NfsVolume`** with `path=/volume1/entertainment` (a
-  shared *external* NFS volume would be tidier but needs a custom op — pyinfra's
-  built-in `docker.volume` can't set `--opt` driver options; deferred). Downloads
+  single-mount layout; the tree holds `torrents/`, `usenet/`, `media/`). Both
+  clients now **share a single external NFS volume** (`ENTERTAINMENT_NFS`, name
+  `entertainment`, in `apps.py`) rather than each inlining its own `NfsVolume`:
+  `NfsVolume(external=True)` makes the `docker_compose` helper pre-create the
+  volume once via `docker.volume(driver="local", options=[…])` (now that pyinfra's
+  `docker.volume` supports `--opt`) and the compose file marks it `external: true`.
+  Downloads
   are pinned into the right subdir **inside each app's config**, not via the
   mount: qbittorrent `Session\DefaultSavePath=/data/torrents` (categories relative:
   `/data/torrents/{movies,tv,music,books}`); sabnzbd `download_dir=/data/usenet/incomplete`,
@@ -57,7 +60,9 @@ Notes:
   lets you call the API from inside the container without login) once the files
   are visible at the new path.
   Expressed with the `NfsVolume` model (`deploys/common/docker_compose/models.py`) — a
-  compose `local`/`type=nfs` named volume, mounted lazily by the daemon on `up`.
+  `local`/`type=nfs` docker volume, mounted lazily by the daemon on `up`. (cwa and
+  pinchflat mount distinct **subdirs** of the same tree, so they keep their own
+  inline non-external `NfsVolume` — nothing to share there.)
   The container runs as the docker_vm docker user (`PUID` = `host.data.docker_uid`
   = `2000`, `PGID` = `100`). NFS maps access by numeric id and the NAS folder's
   access is Synology-ACL based (keyed on named accounts:

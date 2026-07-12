@@ -19,12 +19,15 @@ volumes:
 [%-   endif %]
 [%-   endfor %]
 [%-   for v in nfs %]
-  [[ v.name ]]:
+  [[ v.name ]]:[% if v.external %]
+    external: true
+[%-   else %]
     driver: local
     driver_opts:
       type: nfs
       o: "addr=[[ v.server ]],[[ v.options ]]"
       device: ":[[ v.path ]]"
+[%-   endif %]
 [%-   endfor %]
 [%- endif %]
 [% endmacro %]

@@ -44,15 +44,25 @@ class NamedVolume:
 class NfsVolume:
     """NFS-backed docker named volume (local driver, type=nfs).
 
-    Rendered as a top-level volume with `driver_opts` and referenced in a
-    service as `<name>:<mount_path>` like any named volume. The share is mounted
-    lazily by the docker daemon when the first container using it starts; the
-    helper does not pre-create anything (`compose up` handles it). `server` is
-    the NFS host, `path` the exported path on it.
-
-    NOTE: NFS passes ownership by numeric uid/gid, so the container's PUID/PGID
-    must match the ownership of the files on the NFS server -- not necessarily
+    Referenced in a service as `<name>:<mount_path>` like any named volume.
+    `server` is the NFS host, `path` the exported path on it. NFS passes
+    ownership by numeric uid/gid, so the container's PUID/PGID must match the
+    ownership of the files on the NFS server -- not necessarily
     host.data.docker_uid/gid.
+
+    external=False (default): rendered inline as a top-level volume with
+    `driver_opts`; compose creates a project-scoped volume and the share is
+    mounted lazily by the docker daemon when the first container using it starts.
+    The helper does not pre-create anything.
+
+    external=True: the helper pre-creates one global volume via
+    docker.volume(driver="local", options=[...]) and compose marks it
+    `external: true`, never touching driver_opts. Because the name is global (not
+    project-scoped), several apps can reference the SAME NfsVolume to share one
+    docker volume across compose projects -- e.g. qbittorrent and sabnzbd both
+    mounting the `/volume1/entertainment` tree. The helper dedupes the
+    pre-creation by name, so a shared volume is only created once. Survives
+    `down -v`.
     """
     kind: ClassVar[str] = "nfs"
     name: str
@@ -61,6 +71,7 @@ class NfsVolume:
     path: str
     options: str = "rw,nfsvers=4,soft,timeo=100,retrans=3"
     read_only: bool = False
+    external: bool = False
 
 
 @dataclass
