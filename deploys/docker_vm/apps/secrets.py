@@ -87,4 +87,7 @@ forgejo_runner_token = SecretString("op://Homelab/Forgejo/runner token")
 # Actions -> Runners). Identifies this registration; not sensitive, so kept in code.
 forgejo_runner_uuid = "c3a69254-f967-4158-8779-fed50a8239e0"
 
+unifi_controller_homepage_username = SecretString("op://Homelab/UniFi Controller/Homepage/username")
+unifi_controller_homepage_password = SecretString("op://Homelab/UniFi Controller/Homepage/password")
+
 SecretString.populate_cache_sync()

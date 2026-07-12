@@ -85,3 +85,12 @@
           username: [[ pbs_widget_token_id ]]
           password: [[ pbs_widget_secret ]]
         weight: 300
+    - Unifi Controller:
+        href: https://unifi.[[ host.data.domain ]]
+        icon: unifi
+        widget:
+          type: unifi
+          url: https://unifi.[[ host.data.domain ]]
+          username: [[ unifi_controller_homepage_username ]]
+          password: [[ unifi_controller_homepage_password ]]
+        weight: 400
