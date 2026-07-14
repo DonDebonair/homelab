@@ -16,4 +16,5 @@ databases = [
     PostgresDBConfig(name="nocodb", user="nocodb", password=str(secrets.nocodb_password)),
     PostgresDBConfig(name="n8n", user="n8n", password=str(secrets.n8n_password)),
     PostgresDBConfig(name="paperless", user="paperless", password=str(secrets.paperless_password)),
+    PostgresDBConfig(name="outline", user="outline", password=str(secrets.outline_password)),
 ]

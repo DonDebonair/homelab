@@ -27,6 +27,18 @@ paperless_gmail_oauth_client_id = SecretString("op://Homelab/Paperless secrets/G
 paperless_gmail_oauth_client_secret = SecretString("op://Homelab/Paperless secrets/Google APIs/secret")
 paperless_api_token = SecretString("op://Homelab/Paperless secrets/api token")
 
+# Outline. The DB password ref MUST match deploys/postgres_lxc/databases/secrets.py
+# so app and DB agree. The OIDC client secret is the raw plaintext whose pbkdf2 hash
+# is registered for the `outline` client in deploys/docker_vm/proxies/vars.py --
+# otherwise Authelia rejects the token exchange. SECRET_KEY/UTILS_SECRET are Outline's
+# own 32-byte-hex data-at-rest keys. SMTP is a dedicated Mailgun user for Outline.
+outline_db_password = SecretString("op://Homelab/PostgreSQL Outline user/password")
+outline_oidc_client_secret = SecretString("op://Homelab/Outline OIDC client/password")
+outline_secret_key = SecretString("op://Homelab/Outline secrets/secret key")
+outline_utils_secret = SecretString("op://Homelab/Outline secrets/utils secret")
+outline_smtp_username = SecretString("op://Homelab/Outline secrets/SMTP/username")
+outline_smtp_password = SecretString("op://Homelab/Outline secrets/SMTP/password")
+
 # homepage Tautulli widget access token (Tautulli API key). Carried over from
 # the NAS deploy; still valid because the /config volume is migrated intact.
 tautulli_api_token = SecretString("op://Homelab/Tautulli/api token")

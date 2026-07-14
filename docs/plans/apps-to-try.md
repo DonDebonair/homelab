@@ -1,13 +1,13 @@
 # Apps to try
 
-A running wishlist of self-hosted apps I want to install and try out in the homelab
+A running wishlist of self-hosted apps I want to install in the homelab
 (mostly on the **Docker VM**). Organized by category. Update the icon as each app moves along.
 
 Status legend:
 
 - ⬜ idea / not started
-- 🔶 installing / trying out
-- ✅ deployed & keeping
+- 🔶 installing
+- ✅ deployed
 - ❌ tried & dropped
 
 ## Knowledgebase & Note-taking
@@ -18,7 +18,7 @@ Status legend:
 - ⬜ **Joplin** — Open-source note-taking and to-do app with Markdown notes, end-to-end encryption, and sync across devices. Has an official server for self-hosted sync.
   - Repo: https://github.com/laurent22/joplin
   - Website: https://joplinapp.org
-- ⬜ **Outline** — Team knowledge base / wiki with a fast collaborative editor, real-time editing, and slick search. Great for structured, shared documentation.
+- ✅ **Outline** — Team knowledge base / wiki with a fast collaborative editor, real-time editing, and slick search. Great for structured, shared documentation.
   - Repo: https://github.com/outline/outline
   - Website: https://www.getoutline.com
 - ⬜ **AFFiNE** — Next-gen "Notion + Miro" workspace combining docs, whiteboards, and databases in one canvas. Privacy-first and open source (self-host under MIT).

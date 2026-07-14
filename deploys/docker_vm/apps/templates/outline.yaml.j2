@@ -1,0 +1,73 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  outline-redis:
+    container_name: outline-redis
+    image: redis:7.4.9
+    networks:
+      - outline
+    volumes:
+      - outline-redis:/data
+    restart: unless-stopped
+
+  outline:
+    container_name: outline
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      - outline-redis
+    networks:
+      - caddy-internal
+      - outline
+    volumes:
+      - outline-data:/var/lib/outline/data
+    environment:
+      NODE_ENV: production
+      URL: https://[[ app.domain ]]
+      PORT: 3000
+      # Caddy terminates TLS and forwards over http on the internal hop -- leaving
+      # FORCE_HTTPS on would cause a redirect loop. Outline still emits https URLs
+      # from URL above.
+      FORCE_HTTPS: "false"
+      SECRET_KEY: [[ outline_secret_key ]]
+      UTILS_SECRET: [[ outline_utils_secret ]]
+      DATABASE_URL: postgres://outline:[[ outline_db_password ]]@[[ host.data.postgres_lxc_ip ]]:5432/outline?sslmode=disable
+      PGSSLMODE: disable
+      REDIS_URL: redis://outline-redis:6379
+      FILE_STORAGE: local
+      FILE_STORAGE_LOCAL_ROOT_DIR: /var/lib/outline/data
+      # SSO via Authelia (client `outline` + redirect already registered in
+      # proxies/vars.py). Explicit endpoints rather than discovery.
+      OIDC_CLIENT_ID: outline
+      OIDC_CLIENT_SECRET: [[ outline_oidc_client_secret ]]
+      OIDC_AUTH_URI: https://auth.[[ host.data.domain ]]/api/oidc/authorization
+      OIDC_TOKEN_URI: https://auth.[[ host.data.domain ]]/api/oidc/token
+      OIDC_USERINFO_URI: https://auth.[[ host.data.domain ]]/api/oidc/userinfo
+      OIDC_USERNAME_CLAIM: preferred_username
+      OIDC_DISPLAY_NAME: Authelia
+      OIDC_SCOPES: openid offline_access profile email
+      # Dedicated Mailgun SMTP user (STARTTLS on 587 -> SMTP_SECURE false).
+      SMTP_HOST: smtp.eu.mailgun.org
+      SMTP_PORT: 587
+      SMTP_SECURE: "false"
+      SMTP_USERNAME: [[ outline_smtp_username ]]
+      SMTP_PASSWORD: [[ outline_smtp_password ]]
+      SMTP_FROM_EMAIL: outline@[[ host.data.domain ]]
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3000}}"
+      # No `import secure`: Outline gates itself with native OIDC against Authelia
+      # (a blanket forward-auth would double-gate and break the OAuth callback).
+      homepage.group: Office
+      homepage.name: Outline
+      homepage.icon: outline
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 1010
+    expose:
+      - 3000
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  outline:
+    driver: bridge
+[[ vol.top_level_volumes(app) ]]

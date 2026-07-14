@@ -314,6 +314,24 @@ apps = [
             BindMount(source="paperless/consume", mount_path="/usr/src/paperless/consume"),
         ],
     ),
+    ComposeApp(
+        name="outline",
+        # Team knowledge base / wiki. Native OIDC against Authelia (client
+        # `outline` in proxies/vars.py); postgres_lxc-backed + a redis sidecar
+        # (templated in outline.yaml.j2). LAN-only via caddy-internal. Docker tag
+        # tracks the GitHub release without the `v` (release v1.9.1).
+        image="docker.getoutline.com/outlinewiki/outline",
+        version="1.9.1",
+        domain="outline.dv.zone",
+        volumes=[
+            # Local file storage (uploaded attachments + avatars). High recovery
+            # cost, so external=True keeps `down -v` from wiping it.
+            NamedVolume(name="outline-data", mount_path="/var/lib/outline/data", external=True),
+            # Redis queue/cache broker data is disposable -> plain (project-scoped)
+            # named volume, mirroring paperless-redis.
+            NamedVolume(name="outline-redis", mount_path="/data"),
+        ],
+    ),
     # Forgejo Actions runner (+ its isolated docker-in-docker daemon). Ephemeral
     # CI jobs -- including the scheduled Renovate run in
     # .forgejo/workflows/renovate.yml -- execute inside `dind`, never on the host

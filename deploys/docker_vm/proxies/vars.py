@@ -119,4 +119,13 @@ oidc_clients = [
         "require_pkce": True,
         "pkce_challenge_method": "S256",
     },
+    {
+        "id": "outline",
+        "name": "outline",
+        "secret_hash": "$pbkdf2-sha512$310000$/L/3fq8VAiAkZMx5z/k/hw$dgEurJaC180NIZ0ljPVp90QCv0rXE8W/TVe2tSi2OKRXWgU7jc9h7rPOyvBfAik0k/UvvSVI1m84wtT5pB6s8A",
+        "policy": "two_factor",
+        "redirect_uris": ["https://outline.dv.zone/auth/oidc.callback"],
+        "scopes": ["openid", "offline_access", "profile", "email"],
+        "auth_method": "client_secret_post",
+    },
 ]
