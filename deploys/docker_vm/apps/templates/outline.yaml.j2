@@ -51,6 +51,10 @@ services:
       SMTP_USERNAME: [[ outline_smtp_username ]]
       SMTP_PASSWORD: [[ outline_smtp_password ]]
       SMTP_FROM_EMAIL: outline@[[ host.data.domain ]]
+      # Notion import (Settings -> Import -> Notion). Public Notion OAuth
+      # integration; redirect URI https://[[ app.domain ]]/api/notion.callback.
+      NOTION_CLIENT_ID: [[ outline_notion_client_id ]]
+      NOTION_CLIENT_SECRET: [[ outline_notion_client_secret ]]
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 3000}}"

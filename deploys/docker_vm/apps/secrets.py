@@ -38,6 +38,10 @@ outline_secret_key = SecretString("op://Homelab/Outline secrets/secret key")
 outline_utils_secret = SecretString("op://Homelab/Outline secrets/utils secret")
 outline_smtp_username = SecretString("op://Homelab/Outline secrets/SMTP/username")
 outline_smtp_password = SecretString("op://Homelab/Outline secrets/SMTP/password")
+# Public Notion OAuth integration for the Settings -> Import -> Notion importer.
+# Redirect URI registered in Notion: https://outline.dv.zone/api/notion.callback
+outline_notion_client_id = SecretString("op://Homelab/Outline secrets/Notion connection/client id")
+outline_notion_client_secret = SecretString("op://Homelab/Outline secrets/Notion connection/client secret")
 
 # homepage Tautulli widget access token (Tautulli API key). Carried over from
 # the NAS deploy; still valid because the /config volume is migrated intact.
