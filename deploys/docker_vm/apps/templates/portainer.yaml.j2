@@ -4,9 +4,9 @@ services:
     container_name: portainer
     image: [[ app.image ]]:[[ app.version ]]
     volumes:[[ vol.service_volumes(app) ]]
-    # Pin the DNS upstream. Portainer is the one app that resolves an external
-    # hostname at runtime (the OIDC token exchange to auth.dv.zone). On a
-    # user-defined network Docker still serves 127.0.0.11 for service discovery
+    # Pin the DNS upstream. Portainer resolves an external hostname at runtime (the
+    # OIDC token exchange to auth.dv.zone); affine pins this for the same reason. On
+    # a user-defined network Docker still serves 127.0.0.11 for service discovery
     # and forwards external queries here, so this only fixes the upstream --
     # instead of snapshotting whatever /etc/resolv.conf held at container-create
     # time. That snapshot is racy: if the container starts before dhcpcd/the DNS

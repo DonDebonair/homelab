@@ -128,4 +128,13 @@ oidc_clients = [
         "scopes": ["openid", "offline_access", "profile", "email"],
         "auth_method": "client_secret_post",
     },
+    {
+        "id": "affine",
+        "name": "AFFiNE",
+        "secret_hash": "$pbkdf2-sha512$310000$QCiF0JqzttY6B.C89/5f6w$C2/4eFn94FagKXh9z9GWqJdtd5H44dbA3JRVh6h6SfpD5P15Je/CyE7RanDJ3i.Us.UCPmOtNxCFclYv0PlM1w",
+        "policy": "two_factor",
+        "redirect_uris": ["https://affine.dv.zone/oauth/callback"],
+        "scopes": ["openid", "profile", "email"],
+        "auth_method": "client_secret_post",
+    },
 ]

@@ -358,4 +358,38 @@ apps = [
             ),
         ],
     ),
+    # Docs + whiteboards workspace ("Notion + Miro"). postgres_lxc-backed (needs the pgvector
+    # extension -- see deploys/postgres_lxc/databases/vars.py) with a redis sidecar and a
+    # one-shot migration job, both templated in affine.yaml.j2. Native OIDC against Authelia
+    # (client `affine` in proxies/vars.py). LAN-only via caddy-internal. Docker tag tracks the
+    # GitHub release without the `v` (release v0.26.3).
+    ComposeApp(
+        name="affine",
+        image="ghcr.io/toeverything/affine",
+        version="0.26.3",
+        domain="affine.dv.zone",
+        volumes=[
+            # Holds the templated config.json plus private.key, which the migration job
+            # generates on first run and never regenerates. A bind mount (not a named volume)
+            # because the config.json TemplateFile below has to land in it from the host.
+            BindMount(source="affine/config", mount_path="/root/.affine/config"),
+            # Uploaded blobs and attachments -- high recovery cost, so external keeps
+            # `down -v` from wiping them.
+            NamedVolume(name="affine-storage", mount_path="/root/.affine/storage", external=True),
+            # Redis cache/pubsub data is disposable -> plain (project-scoped) named volume,
+            # mirroring outline-redis.
+            NamedVolume(name="affine-redis", mount_path="/data"),
+        ],
+        templates=[
+            # AFFiNE merges this over its defaults at startup only, and `compose up -d` won't
+            # recreate a container when a bind-mounted file's contents change -- so restart the
+            # affine service when the OIDC config changes. The migration job's predeploy script
+            # only ever creates private.key if absent, so it never clobbers this file.
+            TemplateFile(
+                src="affine-config.json",
+                dest="affine/config/config.json",
+                restart_on_change=True,
+            ),
+        ],
+    ),
 ]

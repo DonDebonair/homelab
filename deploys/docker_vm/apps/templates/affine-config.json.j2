@@ -1,0 +1,38 @@
+{# AFFiNE merges this file over its built-in defaults at startup (it reads
+   ~/.affine/config/config.json, which is this app's config bind mount). The admin panel
+   writes the same settings to the database and would override this, so configure OIDC
+   here and leave the panel's OAuth section alone.
+
+   `providers.oidc` is deliberately one flattened key rather than nested providers -> oidc:
+   that is the key AFFiNE registers its config descriptor under, and it is what the override
+   merge matches on to replace the value wholesale.
+
+   `args.scope` is set explicitly because AFFiNE omits the scope parameter entirely when it
+   is unset (upstream issue #8752), and Authelia rejects the request without it. It must stay
+   in sync with the `affine` client's scopes in deploys/docker_vm/proxies/vars.py.
+
+   The default claim mapping (sub / email / name) already matches Authelia's userinfo
+   response, so no claim_* overrides are needed.
+
+   auth: both default to true, so allowSignup must be turned off explicitly -- otherwise
+   anyone who can reach the app on the LAN can register themselves an account by email.
+   The two flags are separate gates and both are load-bearing: allowSignup=false blocks
+   self-registration via email/magic-link (auth controller), while allowSignupForOauth=true
+   keeps Authelia SSO able to create accounts on first login (oauth controller). Setting
+   the latter to false would lock out every new user, SSO included. -#}
+{
+  "auth": {
+    "allowSignup": false,
+    "allowSignupForOauth": true
+  },
+  "oauth": {
+    "providers.oidc": {
+      "issuer": "https://auth.[[ host.data.domain ]]",
+      "clientId": "affine",
+      "clientSecret": "[[ affine_oidc_client_secret ]]",
+      "args": {
+        "scope": "openid profile email"
+      }
+    }
+  }
+}

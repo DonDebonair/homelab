@@ -1,0 +1,95 @@
+[%- import '_volumes.j2' as vol with context -%]
+{# The password is percent-encoded in secrets.py, not here: jinja's |urlencode would silently
+   encode the op:// reference rather than the secret behind it. See affine_db_password_url. #}
+[%- set db_url = "postgresql://affine:" ~ affine_db_password_url ~ "@" ~ host.data.postgres_lxc_ip ~ ":5432/affine" -%]
+services:
+  affine-redis:
+    container_name: affine-redis
+    image: redis:7.4.9
+    networks:
+      - affine
+    volumes:
+      - affine-redis:/data
+    restart: unless-stopped
+
+  # One-shot prisma migration job. AFFiNE ships this as a separate container and gates the
+  # server on it completing, because the server does not migrate on boot. It also generates
+  # config/private.key on first run (only if absent -- it never touches config.json).
+  affine-migration:
+    container_name: affine-migration
+    image: [[ app.image ]]:[[ app.version ]]
+    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    depends_on:
+      - affine-redis
+    networks:
+      - affine
+    volumes:
+      - [[ host.data.docker_volumes_base ]]/affine/config:/root/.affine/config
+      - affine-storage:/root/.affine/storage
+    environment:
+      DATABASE_URL: [[ db_url ]]
+      REDIS_SERVER_HOST: affine-redis
+      AFFINE_INDEXER_ENABLED: "false"
+    restart: "no"
+
+  affine:
+    container_name: affine
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      affine-redis:
+        condition: service_started
+      affine-migration:
+        condition: service_completed_successfully
+    # Pin the DNS upstream, same as portainer. AFFiNE resolves auth.dv.zone at runtime: its
+    # OIDC provider is discovery-based, so it fetches the issuer's
+    # /.well-known/openid-configuration at startup and again on every token exchange. Without
+    # this it snapshots whatever /etc/resolv.conf held at container-create time, which is racy
+    # and silently leaves OAuth unregistered until a restart.
+    dns:
+      - [[ host.data.dns_ip ]]
+    networks:
+      - caddy-internal
+      - affine
+    volumes:
+      - [[ host.data.docker_volumes_base ]]/affine/config:/root/.affine/config
+      - affine-storage:/root/.affine/storage
+    environment:
+      # Only used to build the URLs AFFiNE emits (links, OAuth redirects) -- unlike Outline's
+      # FORCE_HTTPS these don't enforce a redirect, so there's no loop behind caddy's http hop.
+      AFFINE_SERVER_EXTERNAL_URL: https://[[ app.domain ]]
+      AFFINE_SERVER_HOST: [[ app.domain ]]
+      AFFINE_SERVER_HTTPS: "true"
+      # The full-text indexer needs a separate search backend that we don't run.
+      AFFINE_INDEXER_ENABLED: "false"
+      DATABASE_URL: [[ db_url ]]
+      REDIS_SERVER_HOST: affine-redis
+      # OIDC is configured in config.json (mounted above), not here -- AFFiNE exposes no
+      # env vars for OAuth providers.
+      #
+      # Dedicated Mailgun SMTP user. Port 465 is AFFiNE's default and means implicit TLS,
+      # so there's no STARTTLS flag to set (Outline uses 587 because it has one).
+      MAILER_HOST: smtp.eu.mailgun.org
+      MAILER_PORT: 465
+      MAILER_USER: [[ affine_smtp_username ]]
+      MAILER_PASSWORD: [[ affine_smtp_password ]]
+      MAILER_SENDER: AFFiNE <affine@[[ host.data.domain ]]>
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3010}}"
+      # No `import secure`: AFFiNE gates itself with native OIDC against Authelia, and a
+      # blanket forward-auth would double-gate and break the OAuth callback.
+      homepage.group: Office
+      homepage.name: AFFiNE
+      homepage.icon: affine
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 1020
+    expose:
+      - 3010
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  affine:
+    driver: bridge
+[[ vol.top_level_volumes(app) ]]

@@ -21,7 +21,7 @@ Status legend:
 - ✅ **Outline** — Team knowledge base / wiki with a fast collaborative editor, real-time editing, and slick search. Great for structured, shared documentation.
   - Repo: https://github.com/outline/outline
   - Website: https://www.getoutline.com
-- ⬜ **AFFiNE** — Next-gen "Notion + Miro" workspace combining docs, whiteboards, and databases in one canvas. Privacy-first and open source (self-host under MIT).
+- ✅ **AFFiNE** — Next-gen "Notion + Miro" workspace combining docs, whiteboards, and databases in one canvas. Privacy-first and open source (self-host under MIT).
   - Repo: https://github.com/toeverything/AFFiNE
   - Website: https://affine.pro
 - ⬜ **Memos** — Lightweight, self-hosted note-taking tool built for quick capture, Markdown-first with a Twitter-like timeline of thoughts.

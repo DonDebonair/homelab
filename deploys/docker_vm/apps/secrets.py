@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from op_secrets import SecretString
 
 miniflux_db_password = SecretString("op://Homelab/PostgreSQL Miniflux user/password")
@@ -42,6 +44,16 @@ outline_smtp_password = SecretString("op://Homelab/Outline secrets/SMTP/password
 # Redirect URI registered in Notion: https://outline.dv.zone/api/notion.callback
 outline_notion_client_id = SecretString("op://Homelab/Outline secrets/Notion connection/client id")
 outline_notion_client_secret = SecretString("op://Homelab/Outline secrets/Notion connection/client secret")
+
+# AFFiNE. Same rules as Outline above: the DB ref must match
+# deploys/postgres_lxc/databases/secrets.py, and the OIDC secret is the plaintext behind the
+# `affine` client's pbkdf2 hash in deploys/docker_vm/proxies/vars.py. Unlike Outline's, this
+# secret is rendered into config.json rather than an env var -- AFFiNE has no OIDC env vars.
+# SMTP is a dedicated Mailgun user for AFFiNE.
+affine_db_password = SecretString("op://Homelab/PostgreSQL AFFiNE user/password")
+affine_oidc_client_secret = SecretString("op://Homelab/AFFiNE OIDC client/password")
+affine_smtp_username = SecretString("op://Homelab/AFFiNE secrets/SMTP/username")
+affine_smtp_password = SecretString("op://Homelab/AFFiNE secrets/SMTP/password")
 
 # homepage Tautulli widget access token (Tautulli API key). Carried over from
 # the NAS deploy; still valid because the /config volume is migrated intact.
@@ -107,3 +119,16 @@ unifi_controller_homepage_username = SecretString("op://Homelab/UniFi Controller
 unifi_controller_homepage_password = SecretString("op://Homelab/UniFi Controller/Homepage/password")
 
 SecretString.populate_cache_sync()
+
+# AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our
+# generated passwords (commands/secrets.py) may contain ':' '?' '=' '$' ';' ',' -- all legal in
+# a Postgres password but not in a URL's userinfo, where an unescaped ':' makes prisma read the
+# rest as a port and die with P1013 "invalid port number". So percent-encode it, safe="" so
+# nothing is left unescaped. Apps that take discrete host/user/password settings (paperless) or
+# whose driver is lenient (outline) interpolate the password raw and don't need this.
+#
+# str() is load-bearing here, and this has to sit after populate_cache_sync() to work:
+# SecretString only expands via __str__, so passing the object straight to quote() -- or to
+# jinja's |urlencode in the template -- would encode the literal op:// reference instead of the
+# password, with no error. Same class of bug as the str.join gotcha.
+affine_db_password_url = quote(str(affine_db_password), safe="")
