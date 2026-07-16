@@ -8,5 +8,6 @@ nocodb_password = SecretString("op://Homelab/PostgreSQL NocoDB user/password")
 n8n_password = SecretString("op://Homelab/PostgreSQL n8n user/password")
 paperless_password = SecretString("op://Homelab/PostgreSQL Paperless user/password")
 outline_password = SecretString("op://Homelab/PostgreSQL Outline user/password")
+affine_password = SecretString("op://Homelab/PostgreSQL AFFiNE user/password")
 
 SecretString.populate_cache_sync()

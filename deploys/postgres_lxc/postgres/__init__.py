@@ -55,6 +55,15 @@ def setup_postgres():
         packages=[f"postgresql-{version}"],
         _sudo=True,
     )
+    # pgvector ships outside the server package (AFFiNE's copilot module needs the `vector`
+    # extension). Unlike pgcrypto it is not a *trusted* extension, so a plain database owner
+    # cannot CREATE EXTENSION it -- databases/__init__.py does that as the postgres superuser.
+    # Versioned to match the server: the extension is built against a specific major.
+    apt.packages(
+        name=f"Install pgvector for PostgreSQL {version}",
+        packages=[f"postgresql-{version}-pgvector"],
+        _sudo=True,
+    )
     # The versioned package never creates a cluster: on Debian that is done by the unversioned
     # `postgresql` metapackage's postinst, which we deliberately don't install (see above). So
     # create it here. This only fires when bootstrapping a fresh host — on a major upgrade
