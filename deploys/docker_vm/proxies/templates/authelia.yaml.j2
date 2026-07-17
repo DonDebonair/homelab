@@ -32,7 +32,7 @@ services:
       dns.[[ host.data.domain ]]: "[[ host.data.internal_reverse_proxy_ip ]]"
 
   redis:
-    image: redis:7.4.9
+    image: redis:8.8.0
     networks:
       - authelia
     restart: unless-stopped
