@@ -27,12 +27,51 @@ Status legend:
 - ⬜ **Memos** — Lightweight, self-hosted note-taking tool built for quick capture, Markdown-first with a Twitter-like timeline of thoughts.
   - Repo: https://github.com/usememos/memos
   - Website: https://www.usememos.com
+- ⬜ **SiYuan** — Privacy-first personal knowledge management app with block-level references, a built-in database, and Markdown storage (TypeScript + Go).
+  - Repo: https://github.com/siyuan-note/siyuan
+  - Website: https://b3log.org/siyuan/en/
+- ⬜ **AppFlowy** — Open-source Notion alternative: projects, wikis, and teams with AI, without giving up control of your data.
+  - Repo: https://github.com/AppFlowy-IO/AppFlowy
+  - Website: https://appflowy.io
+- ⬜ **Colanode** — Local-first Slack + Notion alternative in one workspace: chat, notes, files, wiki, and project management.
+  - Repo: https://github.com/colanode/colanode
+  - Website: https://colanode.com
+- ⬜ **any-sync-bundle** — Prepackaged all-in-one self-hosted sync server for [Anytype](https://anytype.io), merging the official sync modules into a single binary.
+  - Repo: https://github.com/grishy/any-sync-bundle
+  - Website: https://tech.anytype.io/how-to/self-hosting
+- ⬜ **Ideon** — Self-hosted project cockpit on an infinite canvas: notes, Git repos, files, and to-dos laid out and linked together.
+  - Repo: https://github.com/3xpyth0n/ideon
+  - Website: https://www.theideon.com
 
 ## Project & Task Management
 
 - ⬜ **Plane** — Open-source project management (Jira / Linear / Monday / ClickUp alternative) with issues, cycles, and modules.
   - Repo: https://github.com/makeplane/plane
   - Website: https://plane.so
+- ⬜ **Vikunja** — Self-hostable to-do and task manager ("the task manager you actually own") with list, gantt, table, and kanban views.
+  - Repo: https://github.com/go-vikunja/vikunja
+  - Website: https://vikunja.io
+- ⬜ **Planka** — Kanban-style project mastering tool for everyone; realtime collaborative Trello alternative.
+  - Repo: https://github.com/plankanban/planka
+  - Website: https://planka.app
+- ⬜ **Wekan** — Long-running open-source kanban board built with Meteor; MIT-licensed and heavily translated.
+  - Repo: https://github.com/wekan/wekan
+  - Website: https://wekan.fi
+- ⬜ **Kan** — Minimal, frills-free open-source Trello alternative with Trello board import.
+  - Repo: https://github.com/kanbn/kan
+  - Website: https://kan.bn
+- ⬜ **Fizzy** — 37signals' take on kanban ("as it should be"): a fast Rails app for tracking bugs, ideas, and small projects, with webhooks.
+  - Repo: https://github.com/basecamp/fizzy
+  - Website: https://www.fizzy.do
+- ⬜ **Kaneo** — Open-source project management with kanban/list views, assignments, priorities, labels, and time tracking — no config sprawl.
+  - Repo: https://github.com/usekaneo/kaneo
+  - Website: https://kaneo.app
+- ⬜ **Kanba** — Lightweight open-source kanban project management tool for modern teams (React + Supabase).
+  - Repo: https://github.com/Kanba-co/kanba
+  - Website: https://www.kanba.co
+- ⬜ **tududi** — Calm, GTD-style system for organizing life and work: areas → projects → tasks, plus notes and CalDAV sync.
+  - Repo: https://github.com/chrisvel/tududi
+  - Website: https://tududi.com
 
 ## Databases & Spreadsheets
 
@@ -42,6 +81,9 @@ Status legend:
 - ⬜ **Grist** — Modern relational spreadsheet that blends the flexibility of a spreadsheet with the structure of a database.
   - Repo: https://github.com/gristlabs/grist-core
   - Website: https://www.getgrist.com
+- ⬜ **Apache Superset** — Data visualization and exploration platform: SQL lab, rich charts, and dashboards over any SQL database.
+  - Repo: https://github.com/apache/superset
+  - Website: https://superset.apache.org
 
 ## Design
 
@@ -54,6 +96,18 @@ Status legend:
 - ⬜ **Monica** — Personal CRM to remember everything about your friends, family, and business relationships.
   - Repo: https://github.com/monicahq/monica
   - Website: https://www.monicahq.com
+
+## Home & Personal Finance
+
+- ⬜ **Wallos** — Personal subscription tracker: visualize recurring expenses, manage a budget, and get reminders before payments hit.
+  - Repo: https://github.com/ellite/Wallos
+  - Website: https://wallosapp.com
+
+## Recipes & Meal Planning
+
+- ⬜ **Tandoor Recipes** — Recipe manager with meal planning, shopping lists, and recipe import from the web.
+  - Repo: https://github.com/TandoorRecipes/recipes
+  - Website: https://tandoor.dev
 
 ## Social Media
 
@@ -71,6 +125,7 @@ Status legend:
   - Website: https://linkwarden.app
 - ⬜ **linkding** — Minimal, fast, easy-to-set-up bookmark manager designed for Docker.
   - Repo: https://github.com/sissbruecker/linkding
+  - Website: https://linkding.link/
 - ⬜ **ArchiveBox** — Self-hosted web archiving: takes URLs / browser history / bookmarks and saves HTML, JS, PDFs, media, and more.
   - Repo: https://github.com/ArchiveBox/ArchiveBox
   - Website: https://archivebox.io
@@ -132,6 +187,9 @@ Status legend:
 - ⬜ **Kopia** — Cross-platform backup tool with fast incremental backups, client-side end-to-end encryption, compression, and dedup.
   - Repo: https://github.com/kopia/kopia
   - Website: https://kopia.io
+- ⬜ **Portabase** — Database backup & restore for PostgreSQL, MySQL, MariaDB, SQLite, MongoDB, Redis, and Docker volumes; server + agent, S3/local/GDrive targets.
+  - Repo: https://github.com/Portabase/portabase
+  - Website: https://portabase.io
 
 ## Monitoring & Observability
 
