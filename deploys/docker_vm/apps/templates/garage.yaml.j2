@@ -6,6 +6,9 @@ services:
     networks:
       - caddy-internal
       - garage
+      # Prometheus scrapes garage:3903/metrics over this bridge (see the `garage` job
+      # in deploys/docker_vm/monitoring/templates/prometheus-config.yml.j2).
+      - monitoring
     volumes:[[ vol.service_volumes(app) ]]
     expose:
       - 3900
@@ -54,4 +57,6 @@ networks:
     external: true
   garage:
     driver: bridge
+  monitoring:
+    external: true
 [[ vol.top_level_volumes(app) ]]

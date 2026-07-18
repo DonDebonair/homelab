@@ -39,6 +39,17 @@ scrape_configs:
         regex: (.*)
         replacement: snmp-exporter:9116
         target_label: __address__
+  - job_name: 'garage'
+    scrape_interval: 15s
+    # Garage exposes Prometheus metrics on its admin API port (3903). /metrics is
+    # unauthenticated here (no metrics_token in garage.toml) -- same as every other
+    # target on the internal bridge. Reached over the `monitoring` network, which the
+    # garage container joins for this (deploys/docker_vm/apps/templates/garage.yaml.j2).
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['garage:3903']
+        labels:
+          instance: garage
   - job_name: 'cadvisor'
     scrape_interval: 5s
     static_configs:
