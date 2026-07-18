@@ -6,7 +6,7 @@ services:
   # deliberately NOT published on a host port.
   forgejo-runner-dind:
     container_name: forgejo-runner-dind
-    image: docker:29.6.1-dind
+    image: docker:29.6.2-dind
     privileged: true
     restart: unless-stopped
     # --dns pins the Technitium resolver for the containers dind spawns (the CI
