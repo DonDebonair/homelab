@@ -1,0 +1,104 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  mongo:
+    container_name: any-sync-mongo
+    image: mongo:8.0.26
+    command:
+      - "--replSet"
+      - "rs0"
+      - "--port"
+      - "27017"
+    networks:
+      - any-sync
+    volumes:
+      - any-sync-mongo-data:/data
+    # any-sync requires a MongoDB replica set. This healthcheck doubles as one-time init:
+    # it idempotently rs.initiate()s rs0 (the member host must match how the bundle's
+    # MONGO_URI reaches it -- the compose-scoped name `mongo`), then reports healthy.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          test $$(mongosh --quiet --host localhost:27017 --eval "try { rs.initiate({_id:'rs0', members:[{_id:0, host:'mongo:27017'}]}).ok } catch (e) { rs.status().ok }") -eq 1
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    container_name: any-sync-redis
+    # Official Redis instead of the deprecated redis-stack-server. Redis 8 bundles the
+    # former Redis Stack modules into core, so RedisBloom (BF.*, which any-sync needs) is
+    # built in -- no --loadmodule needed. Same image the rest of the repo pins.
+    image: redis:8.8.0
+    command:
+      - "redis-server"
+      - "--port"
+      - "6379"
+      - "--dir"
+      - "/data/"
+      - "--appendonly"
+      - "yes"
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "noeviction"
+      - "--protected-mode"
+      - "no"
+    networks:
+      - any-sync
+    volumes:
+      - any-sync-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "localhost", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  any-sync-bundle:
+    container_name: any-sync-bundle
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - any-sync
+      # Joined only to reach Garage's S3 API at garage:3900 (a bridge container can't reach
+      # the macvlan s3.dv.zone). Caddy ignores it -- no caddy_* labels.
+      - caddy-internal
+    ports:
+      # any-sync protocol, published on the docker_vm host. Advertised to clients via
+      # EXTERNAL_ADDRS below. Internet access additionally needs a router forward of these
+      # to 192.168.50.10 + the public DNS record anytype-sync.dv.zone.
+      - 33010:33010
+      - 33020:33020/udp
+    volumes:
+      - any-sync-data:/data
+    environment:
+      # INIT_* values are consumed only on FIRST start and baked into /data config; changing
+      # them later means editing the config in the volume, not just the env.
+      ANY_SYNC_BUNDLE_INIT_EXTERNAL_ADDRS: "192.168.50.10,anytype-sync.dv.zone"
+      ANY_SYNC_BUNDLE_INIT_MONGO_URI: "mongodb://mongo:27017/?replicaSet=rs0"
+      ANY_SYNC_BUNDLE_INIT_REDIS_URI: "redis://redis:6379/"
+      # S3 blob storage = Garage (path-style; region is Garage's s3_region, not us-east-1).
+      ANY_SYNC_BUNDLE_INIT_S3_BUCKET: "anytype-data"
+      ANY_SYNC_BUNDLE_INIT_S3_ENDPOINT: "http://garage:3900"
+      ANY_SYNC_BUNDLE_INIT_S3_FORCE_PATH_STYLE: "true"
+      ANY_SYNC_BUNDLE_INIT_S3_REGION: "garage"
+      # Per-space quota. Kept modest since Garage advertises ~30 GiB total (10 GiB here).
+      ANY_SYNC_BUNDLE_INIT_FILENODE_DEFAULT_LIMIT: "10737418240"
+      AWS_ACCESS_KEY_ID: [[ any_sync_s3_access_key ]]
+      AWS_SECRET_ACCESS_KEY: [[ any_sync_s3_secret_key ]]
+    restart: unless-stopped
+
+networks:
+  any-sync:
+    driver: bridge
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

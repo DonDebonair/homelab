@@ -416,4 +416,23 @@ apps = [
         # bind-mount content change -> restart garage when the rendered config changes.
         templates=[TemplateFile(src="garage.toml", dest="garage/garage.toml", restart_on_change=True)],
     ),
+    ComposeApp(
+        name="any-sync-bundle",
+        image="ghcr.io/grishy/any-sync-bundle",
+        # `-minimal` variant: external MongoDB/Redis (the sidecars in the template below)
+        # rather than the AIO image's embedded ones. Blob storage is our Garage.
+        version="1.4.3-2026-04-21-minimal",
+        # No domain: the any-sync protocol is raw TCP 33010 (DRPC) + UDP 33020 (QUIC), not
+        # HTTP, so it isn't proxied by Caddy -- the ports are published on the host instead.
+        volumes=[
+            # Mongo spaces DB / ACL and the bundle's own network identity + generated
+            # client-config.yml are high-recovery-cost -> external so `down -v` can't wipe
+            # them. Redis holds appendonly coordination state (also external). Actual blob
+            # data lives in Garage, not here. All three are hand-mounted per-service in the
+            # template; listed here so vol.top_level_volumes() declares them.
+            NamedVolume(name="any-sync-mongo-data", mount_path="/data", external=True),
+            NamedVolume(name="any-sync-redis-data", mount_path="/data", external=True),
+            NamedVolume(name="any-sync-data", mount_path="/data", external=True),
+        ],
+    ),
 ]

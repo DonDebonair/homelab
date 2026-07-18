@@ -125,6 +125,13 @@ unifi_controller_homepage_password = SecretString("op://Homelab/UniFi Controller
 garage_rpc_secret = SecretString("op://Homelab/Garage/rpc secret")
 garage_admin_token = SecretString("op://Homelab/Garage/admin token")
 
+# any-sync-bundle's S3 credentials -- a dedicated Garage key (`any-sync`) with RW on the
+# `anytype-data` bucket. Passed to the bundle as the standard AWS_ACCESS_KEY_ID /
+# AWS_SECRET_ACCESS_KEY env vars. The key ID is a Garage identifier (GK...), the secret is
+# the sensitive half; both live in the one 1Password item.
+any_sync_s3_access_key = SecretString("op://Homelab/Anytype secrets/Garage S3/access key id")
+any_sync_s3_secret_key = SecretString("op://Homelab/Anytype secrets/Garage S3/secret access key")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our

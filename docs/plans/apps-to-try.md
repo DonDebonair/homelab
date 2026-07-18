@@ -36,7 +36,7 @@ Status legend:
 - ⬜ **Colanode** — Local-first Slack + Notion alternative in one workspace: chat, notes, files, wiki, and project management.
   - Repo: https://github.com/colanode/colanode
   - Website: https://colanode.com
-- ⬜ **any-sync-bundle** — Prepackaged all-in-one self-hosted sync server for [Anytype](https://anytype.io), merging the official sync modules into a single binary.
+- ✅ **any-sync-bundle** — Prepackaged all-in-one self-hosted sync server for [Anytype](https://anytype.io), merging the official sync modules into a single binary.
   - Repo: https://github.com/grishy/any-sync-bundle
   - Website: https://tech.anytype.io/how-to/self-hosting
 - ⬜ **Ideon** — Self-hosted project cockpit on an infinite canvas: notes, Git repos, files, and to-dos laid out and linked together.
