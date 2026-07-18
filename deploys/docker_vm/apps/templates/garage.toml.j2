@@ -1,0 +1,32 @@
+# Rendered by pyinfra (deploys/docker_vm/apps) -- do not edit on the host.
+# Single-node Garage: one replica, metadata + block data both on the docker_vm NVMe.
+# NOTE: this template is rendered with double-square-bracket Jinja delimiters, which
+# collide with TOML array-of-tables headers -- keep to single [table] headers only, and
+# do not write a double-square-bracket sequence anywhere (Jinja would parse it).
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "[[ garage_rpc_secret ]]"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+# Path-style is used (s3.dv.zone/<bucket>); root_domain enables vhost-style too if a
+# wildcard is ever added.
+root_domain = ".s3.dv.zone"
+
+[s3_web]
+# Static website hosting is configured but not proxied/DNS'd yet (needs a *.web.dv.zone
+# wildcard). Harmless to leave bound.
+bind_addr = "[::]:3902"
+root_domain = ".web.dv.zone"
+index = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "[[ garage_admin_token ]]"

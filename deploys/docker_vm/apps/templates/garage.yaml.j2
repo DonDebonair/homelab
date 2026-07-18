@@ -1,0 +1,57 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  garage:
+    container_name: garage
+    image: [[ app.image ]]:[[ app.version ]]
+    networks:
+      - caddy-internal
+      - garage
+    volumes:[[ vol.service_volumes(app) ]]
+    expose:
+      - 3900
+      - 3901
+      - 3902
+      - 3903
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3900}}"
+      # No `import secure`: S3 clients authenticate with AWS SigV4, so an Authelia
+      # forward-auth redirect would break every request (cf. the qbittorrent ^/api note).
+    restart: unless-stopped
+
+  garage-webui:
+    container_name: garage-webui
+    # Secondary image (the single-image ComposeApp can't express a sidecar), pinned inline.
+    image: khairul169/garage-webui:1.1.0
+    depends_on:
+      - garage
+    networks:
+      - caddy-internal
+      - garage
+    volumes:
+      - [[ host.data.docker_volumes_base ]]/garage/garage.toml:/etc/garage.toml:ro
+    environment:
+      API_BASE_URL: http://garage:3903
+      API_ADMIN_KEY: [[ garage_admin_token ]]
+      S3_ENDPOINT_URL: http://garage:3900
+      S3_REGION: garage
+    labels:
+      caddy_internal: garage.[[ host.data.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3909}}"
+      # garage-webui has no native SSO -- gate it with the shared Authelia forward-auth.
+      caddy_internal.import: secure *
+      homepage.group: Admin
+      homepage.name: Garage
+      homepage.icon: garage
+      homepage.href: https://garage.[[ host.data.domain ]]
+      homepage.weight: 3100
+    expose:
+      - 3909
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+  garage:
+    driver: bridge
+[[ vol.top_level_volumes(app) ]]

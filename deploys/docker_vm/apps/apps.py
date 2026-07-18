@@ -392,4 +392,28 @@ apps = [
             ),
         ],
     ),
+    ComposeApp(
+        name="garage",
+        image="dxflrs/garage",
+        version="v2.3.0",
+        # S3 API endpoint (path-style: s3.dv.zone/<bucket>). The garage-webui admin
+        # console is a sidecar at garage.dv.zone -- see templates/garage.yaml.j2.
+        domain="s3.dv.zone",
+        volumes=[
+            # Metadata (lmdb index) and block data both on the docker_vm NVMe. External
+            # so `down -v` can't wipe the object store -- highest recovery cost.
+            NamedVolume(name="garage-meta", mount_path="/var/lib/garage/meta", external=True),
+            NamedVolume(name="garage-data", mount_path="/var/lib/garage/data", external=True),
+            # Rendered config, bind-mounted read-only at Garage's default path. Absolute
+            # source -> unmanaged (no mkdir); the TemplateFile below writes it.
+            BindMount(
+                source=f"{docker_volumes_base}/garage/garage.toml",
+                mount_path="/etc/garage.toml",
+                read_only=True,
+            ),
+        ],
+        # Garage reads garage.toml only at startup, and `compose up -d` won't recreate on a
+        # bind-mount content change -> restart garage when the rendered config changes.
+        templates=[TemplateFile(src="garage.toml", dest="garage/garage.toml", restart_on_change=True)],
+    ),
 ]

@@ -181,6 +181,9 @@ Status legend:
   - Repo: https://github.com/diced/zipline
 - ⬜ **Slink** — Self-hosted image sharing service.
   - Repo: https://github.com/andrii-kryvoviaz/slink
+- ✅ **Garage** — Lightweight, self-hosted S3-compatible distributed object storage designed for geo-distributed, resilient clusters on commodity hardware.
+  - Repo: https://github.com/deuxfleurs-org/garage
+  - Website: https://garagehq.deuxfleurs.fr/
 
 ## Backup
 

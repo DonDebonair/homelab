@@ -118,6 +118,13 @@ forgejo_runner_uuid = "c3a69254-f967-4158-8779-fed50a8239e0"
 unifi_controller_homepage_username = SecretString("op://Homelab/UniFi Controller/Homepage/username")
 unifi_controller_homepage_password = SecretString("op://Homelab/UniFi Controller/Homepage/password")
 
+# Garage (single-node S3 object store). `rpc secret` is the 32-byte-hex cluster RPC
+# key (openssl rand -hex 32); on a single node it still must be set. `admin token` is
+# the bearer token for Garage's admin API -- the garage-webui sidecar authenticates to
+# it with the same value via API_ADMIN_KEY. Both are rendered into garage.toml.
+garage_rpc_secret = SecretString("op://Homelab/Garage/rpc secret")
+garage_admin_token = SecretString("op://Homelab/Garage/admin token")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our
