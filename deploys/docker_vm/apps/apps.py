@@ -341,7 +341,7 @@ apps = [
     ComposeApp(
         name="forgejo-runner",
         image="code.forgejo.org/forgejo/runner",
-        version="12.13.0",
+        version="12.13.1",
         volumes=[
             # Runner cache/state. External so `down -v` can't wipe it.
             NamedVolume(name="forgejo-runner-data", mount_path="/data", external=True),
