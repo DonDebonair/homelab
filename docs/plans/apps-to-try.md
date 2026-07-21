@@ -134,7 +134,7 @@ Status legend:
 
 - ⬜ **Grimmory** — Independent community fork of Booklore; personal ebook/book library management.
   - Repo: https://github.com/grimmory-tools/grimmory
-- ⬜ **BookOrbit** — Self-hosted reading space / personal book library manager.
+- ✅ **BookOrbit** — Self-hosted reading space / personal book library manager.
   - Repo: https://github.com/bookorbit/bookorbit
 
 ## Media & Entertainment
