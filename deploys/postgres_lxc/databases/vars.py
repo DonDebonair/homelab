@@ -30,4 +30,13 @@ databases = [
         password=str(secrets.affine_password),
         extensions=["vector", "pgcrypto"],
     ),
+    # BookOrbit's external-DB docs require these four extensions; `vector` isn't trusted, so
+    # the `bookorbit` role can't create it -- create_extensions() runs as the superuser and
+    # makes all four up front rather than booting a half-migrated server.
+    PostgresDBConfig(
+        name="bookorbit",
+        user="bookorbit",
+        password=str(secrets.bookorbit_password),
+        extensions=["uuid-ossp", "pg_trgm", "unaccent", "vector"],
+    ),
 ]

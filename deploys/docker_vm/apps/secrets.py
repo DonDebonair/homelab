@@ -132,6 +132,15 @@ garage_admin_token = SecretString("op://Homelab/Garage/admin token")
 any_sync_s3_access_key = SecretString("op://Homelab/Anytype secrets/Garage S3/access key id")
 any_sync_s3_secret_key = SecretString("op://Homelab/Anytype secrets/Garage S3/secret access key")
 
+# BookOrbit. DB ref matches the postgres_lxc side (cmd.py db add-db bookorbit --display-name
+# BookOrbit provisions the role with the same item). JWT_SECRET signs login tokens;
+# SETUP_BOOTSTRAP_TOKEN gates first-run admin creation. OIDC is configured in BookOrbit's UI
+# (client `bookorbit` in proxies/vars.py), so -- like CWA/Shelfmark -- its secret is not an
+# env var here.
+bookorbit_db_password = SecretString("op://Homelab/PostgreSQL BookOrbit user/password")
+bookorbit_jwt_secret = SecretString("op://Homelab/BookOrbit secrets/JWT secret")
+bookorbit_bootstrap_token = SecretString("op://Homelab/BookOrbit secrets/bootstrap token")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our
@@ -146,3 +155,8 @@ SecretString.populate_cache_sync()
 # jinja's |urlencode in the template -- would encode the literal op:// reference instead of the
 # password, with no error. Same class of bug as the str.join gotcha.
 affine_db_password_url = quote(str(affine_db_password), safe="")
+
+# BookOrbit is a Node app that parses DATABASE_URL strictly as a URL -- same P1013-class risk
+# as AFFiNE, so percent-encode the password (safe="" leaves nothing unescaped). str() is
+# load-bearing and must run after populate_cache_sync(); see affine_db_password_url above.
+bookorbit_db_password_url = quote(str(bookorbit_db_password), safe="")

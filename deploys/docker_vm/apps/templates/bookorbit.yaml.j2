@@ -1,0 +1,64 @@
+[%- import '_volumes.j2' as vol with context -%]
+{# The password is percent-encoded in secrets.py, not here: jinja's |urlencode would
+   silently encode the op:// reference rather than the secret. See bookorbit_db_password_url. #}
+[%- set db_url = "postgresql://bookorbit:" ~ bookorbit_db_password_url ~ "@" ~ host.data.postgres_lxc_ip ~ ":5432/bookorbit?sslmode=disable" -%]
+services:
+  bookorbit:
+    container_name: bookorbit
+    image: [[ app.image ]]:[[ app.version ]]
+    # Pin the DNS upstream, same as affine/portainer. BookOrbit does OIDC discovery from
+    # the server: it fetches auth.dv.zone's /.well-known/openid-configuration at runtime.
+    # Without this it snapshots whatever /etc/resolv.conf held at container-create time,
+    # which is racy and can leave OIDC unresolvable until a restart.
+    dns:
+      - [[ host.data.dns_ip ]]
+    networks:
+      - caddy-internal
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      NODE_ENV: production
+      # External Postgres on the postgres_lxc (bundled Postgres removed). Node parses this
+      # strictly as a URL -- password is percent-encoded in secrets.py.
+      DATABASE_URL: [[ db_url ]]
+      # Both are required. Behind the single reverse proxy they're the same public URL.
+      APP_URL: https://[[ app.domain ]]
+      CLIENT_URL: https://[[ app.domain ]]
+      # Signs login tokens; gates first-run admin creation.
+      JWT_SECRET: [[ bookorbit_jwt_secret ]]
+      SETUP_BOOTSTRAP_TOKEN: [[ bookorbit_bootstrap_token ]]
+      # /books is the NAS entertainment share over NFS (maps by numeric id). Run as the
+      # docker_vm docker user (2000) / NAS `users` group (100) -- matching
+      # qbittorrent/sabnzbd/cwa -- so writes to the shared tree work.
+      PUID: [[ host.data.docker_uid ]]
+      PGID: 100
+      # OIDC issuer auth.dv.zone resolves to a private address (internal Caddy), so allow
+      # discovery on private networks. OIDC itself is configured once in BookOrbit's UI
+      # (Settings -> OIDC / SSO) against the `bookorbit` Authelia client -- nothing here.
+      OIDC_ALLOW_LOCAL_ISSUERS: "true"
+      # Scope the in-app folder picker to the media subtree so the books/manga/audiobooks
+      # dirs are all selectable without exposing the whole entertainment share.
+      LIBRARY_BROWSE_ROOT: /books/media
+      # Book Dock staging/ingest -> the watched bind mount (see apps.py). Other containers
+      # copy books here for BookOrbit to stage and finalize into a library.
+      BOOK_DOCK_PATH: /ingest
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3000}}"
+      # No `import secure`: BookOrbit gates itself with native OIDC against Authelia
+      # (client `bookorbit` in proxies/vars.py; provider set up once in its admin UI).
+      # A blanket forward-auth would double-gate and break the OAuth callback.
+      homepage.group: Entertainment
+      homepage.name: BookOrbit
+      # dashboard-icons only ships bookorbit as png/webp (no svg), so pin the ext.
+      homepage.icon: bookorbit.png
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 340
+    expose:
+      - 3000
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

@@ -23,6 +23,20 @@ ENTERTAINMENT_NFS = NfsVolume(
     external=True,
 )
 
+# Same external `entertainment` docker volume as above, mounted at /books for BookOrbit
+# (external volumes are global by name; the helper dedupes creation, so this shares the
+# one volume the download clients use). Mounting the whole share -- not just
+# media/books -- means later book-type libraries (manga, audiobooks) under
+# /volume1/entertainment/media/ need no new mount. BookOrbit's library dir is
+# /books/media/books; LIBRARY_BROWSE_ROOT scopes the in-app picker to /books/media.
+ENTERTAINMENT_NFS_BOOKS = NfsVolume(
+    name="entertainment",
+    mount_path="/books",
+    server=nas_ip,
+    path="/volume1/entertainment",
+    external=True,
+)
+
 apps = [
     ComposeApp(
         name="homepage",
@@ -433,6 +447,29 @@ apps = [
             NamedVolume(name="any-sync-mongo-data", mount_path="/data", external=True),
             NamedVolume(name="any-sync-redis-data", mount_path="/data", external=True),
             NamedVolume(name="any-sync-data", mount_path="/data", external=True),
+        ],
+    ),
+    ComposeApp(
+        name="bookorbit",
+        # Self-hosted book/manga/audiobook library manager (bookorbit.app). Uses the
+        # shared postgres_lxc instead of the bundled Postgres. Pinned stable (no
+        # :latest); bump the version field and redeploy.
+        image="ghcr.io/bookorbit/bookorbit",
+        # Container tags drop the `v` that the git releases use (git v2.3.0 -> image
+        # 2.3.0); `v2.3.0` is a "manifest unknown" pull error.
+        version="2.3.0",
+        domain="bookorbit.dv.zone",
+        volumes=[
+            # App config/state (the DB is external on postgres_lxc). Non-trivial
+            # recovery cost, so external=True keeps `down -v` from wiping it.
+            NamedVolume(name="bookorbit-data", mount_path="/data", external=True),
+            # Whole NAS entertainment share at /books (see ENTERTAINMENT_NFS_BOOKS).
+            ENTERTAINMENT_NFS_BOOKS,
+            # Book Dock ingest drop-zone (BOOK_DOCK_PATH=/ingest in the template).
+            # BookOrbit watches it, so other containers can copy books in for it to
+            # stage/finalize. Its own local bind -- NOT cwa/ingest, which CWA
+            # consumes and deletes.
+            BindMount(source="bookorbit/ingest", mount_path="/ingest"),
         ],
     ),
 ]
