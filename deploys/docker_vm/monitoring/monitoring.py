@@ -67,7 +67,7 @@ apps = [
         image="grafana/grafana",
         # Bumped from the NAS's 11.1.1 to the current latest stable; the Postgres
         # schema auto-migrates on first start.
-        version="13.1.0",
+        version="13.1.1",
         domain="grafana.dv.zone",
         volumes=[
             # Plugins/renders only -- users/datasources and hand-built dashboards
