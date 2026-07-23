@@ -29,7 +29,7 @@ services:
       SETUP_BOOTSTRAP_TOKEN: [[ bookorbit_bootstrap_token ]]
       # /books is the NAS entertainment share over NFS (maps by numeric id). Run as the
       # docker_vm docker user (2000) / NAS `users` group (100) -- matching
-      # qbittorrent/sabnzbd/cwa -- so writes to the shared tree work.
+      # qbittorrent/sabnzbd -- so writes to the shared tree work.
       PUID: [[ host.data.docker_uid ]]
       PGID: 100
       # OIDC issuer auth.dv.zone resolves to a private address (internal Caddy), so allow

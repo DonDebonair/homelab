@@ -6,14 +6,15 @@ services:
     volumes:[[ vol.service_volumes(app) ]]
     environment:
       TZ: Europe/Amsterdam
-      # PUID 2000 / PGID 100 matches CWA (see cwa.yaml.j2): Shelfmark writes
-      # completed downloads into CWA's ingest bind and CWA (same uid) ingests +
-      # removes them, so ownership must line up.
+      # PUID 2000 / PGID 100 matches BookOrbit (see bookorbit.yaml.j2): Shelfmark
+      # writes completed downloads into BookOrbit's ingest bind and BookOrbit
+      # (same uid) stages + finalizes them, so ownership must line up.
       PUID: [[ host.data.docker_uid ]]
       PGID: 100
-      # Where completed downloads are written. Points at the CWA ingest bind
-      # (mounted at /cwa-book-ingest below) so books flow into CWA's auto-ingest.
-      INGEST_DIR: /cwa-book-ingest
+      # Where completed downloads are written. Points at BookOrbit's Book Dock
+      # ingest bind (mounted at /ingest below) so books flow into BookOrbit's
+      # ingest (replacing CWA).
+      INGEST_DIR: /ingest
       # OIDC is configured once in Shelfmark's UI (Settings -> Security -> OIDC)
       # and persisted on the /config volume -- nothing here. To make OIDC the
       # sole gate after it's verified, uncomment (see docs/plans/shelfmark.md):

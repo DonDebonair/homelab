@@ -85,10 +85,6 @@ sabnzbd_api_token = SecretString("op://Homelab/SABnzbd/api token")
 # Forgejo (gitea widget): a read-only token (repository/issue/notification) for homepage.
 forgejo_api_token_homepage = SecretString("op://Homelab/Forgejo/api token homepage")
 
-# Calibre-Web (calibreweb widget): dedicated read-only CWA user, basic auth.
-cwa_widget_username = SecretString("op://Homelab/CWA Homepage user/username")
-cwa_widget_password = SecretString("op://Homelab/CWA Homepage user/password")
-
 # Synology DiskStation (diskstation widget, static entry in services.yaml): a
 # dedicated DSM admin user, provisioned in code by the NAS users deploy
 # (deploys/nas/users) and added to `administrators`. 2FA is disabled for it by
@@ -135,7 +131,7 @@ any_sync_s3_secret_key = SecretString("op://Homelab/Anytype secrets/Garage S3/se
 # BookOrbit. DB ref matches the postgres_lxc side (cmd.py db add-db bookorbit --display-name
 # BookOrbit provisions the role with the same item). JWT_SECRET signs login tokens;
 # SETUP_BOOTSTRAP_TOKEN gates first-run admin creation. OIDC is configured in BookOrbit's UI
-# (client `bookorbit` in proxies/vars.py), so -- like CWA/Shelfmark -- its secret is not an
+# (client `bookorbit` in proxies/vars.py), so -- like Shelfmark -- its secret is not an
 # env var here.
 bookorbit_db_password = SecretString("op://Homelab/PostgreSQL BookOrbit user/password")
 bookorbit_jwt_secret = SecretString("op://Homelab/BookOrbit secrets/JWT secret")

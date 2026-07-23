@@ -169,7 +169,7 @@ apps = [
             NamedVolume(name="pinchflat-config", mount_path="/config", external=True),
             # The YouTube library lives on the NAS under
             # /volume1/entertainment/media/youtube -- a subdir of the same
-            # entertainment tree qbittorrent/sabnzbd/cwa mount, so the existing
+            # entertainment tree qbittorrent/sabnzbd mount, so the existing
             # dockervm (uid 2000) ACL already covers it. Plex serves these files,
             # so pinchflat writes them as 2000:100 (see the template's `user:`).
             NfsVolume(
@@ -177,35 +177,6 @@ apps = [
                 mount_path="/downloads",
                 server=nas_ip,
                 path="/volume1/entertainment/media/youtube",
-            ),
-        ],
-    ),
-    ComposeApp(
-        name="cwa",
-        # Calibre-Web-Automated. Pinned stable (no :latest); bump via the version
-        # field and redeploy.
-        image="crocodilestick/calibre-web-automated",
-        version="v4.0.6",
-        domain="books.dv.zone",
-        volumes=[
-            # App settings + app.db (users, ingest history, per-user shelves).
-            # High recovery cost, so external=True keeps `down -v` from wiping it.
-            # Migrated from the NAS bind dir (/volume2/docker/cwa/config).
-            NamedVolume(name="cwa-config", mount_path="/config", external=True),
-            # Ingest/watch dir -- transient (files are removed after CWA processes
-            # them). Local bind so books can be dropped on the host fs (and shared
-            # with cwa-dl once it lands here too). Resolves to
-            # /srv/docker/volumes/cwa/ingest.
-            BindMount(source="cwa/ingest", mount_path="/cwa-book-ingest"),
-            # The calibre library lives on the NAS under /volume1/entertainment --
-            # the same share qbittorrent/sabnzbd mount -- so the existing dockervm
-            # (uid 2000) ACL already covers it. metadata.db is SQLite on a network
-            # share, so the template sets NETWORK_SHARE_MODE=true to disable WAL.
-            NfsVolume(
-                name="cwa-library",
-                mount_path="/calibre-library",
-                server=nas_ip,
-                path="/volume1/entertainment/calibre-library",
             ),
         ],
     ),
@@ -226,10 +197,10 @@ apps = [
             # `down -v` from wiping it.
             NamedVolume(name="shelfmark-config", mount_path="/config", external=True),
             # Downloads land here (INGEST_DIR in the template) -- the SAME bind
-            # CWA watches (/srv/docker/volumes/cwa/ingest), so completed books
-            # flow straight into CWA's auto-ingest. Reuses cwa's dir; the helper
-            # creates it idempotently.
-            BindMount(source="cwa/ingest", mount_path="/cwa-book-ingest"),
+            # BookOrbit's Book Dock watches (/srv/docker/volumes/bookorbit/ingest),
+            # so completed books flow straight into BookOrbit's ingest (replacing
+            # CWA). Reuses bookorbit's dir; the helper creates it idempotently.
+            BindMount(source="bookorbit/ingest", mount_path="/ingest"),
         ],
     ),
     ComposeApp(
@@ -467,8 +438,8 @@ apps = [
             ENTERTAINMENT_NFS_BOOKS,
             # Book Dock ingest drop-zone (BOOK_DOCK_PATH=/ingest in the template).
             # BookOrbit watches it, so other containers can copy books in for it to
-            # stage/finalize. Its own local bind -- NOT cwa/ingest, which CWA
-            # consumes and deletes.
+            # stage/finalize -- Shelfmark writes completed downloads here (its
+            # INGEST_DIR points at this same bind).
             BindMount(source="bookorbit/ingest", mount_path="/ingest"),
         ],
     ),

@@ -100,15 +100,6 @@ oidc_clients = [
         "pkce_challenge_method": "S256",
     },
     {
-        "id": "calibre-web",
-        "name": "Calibre-Web",
-        "secret_hash": "$pbkdf2-sha512$310000$HAPgXIvROofQuncuxdjbew$5oU3XRQU55YmiMmswtfQNGRHpYFuUf/KJakViMwQhvhBq/i2vBXdaTjWLKErheW9kYtIOwuA2EKreTBD0HfAXQ",
-        "policy": "two_factor",
-        "redirect_uris": ["https://books.dv.zone/login/generic/authorized"],
-        "scopes": ["openid", "groups", "email", "profile"],
-        "auth_method": "client_secret_basic",
-    },
-    {
         "id": "shelfmark",
         "name": "Shelfmark",
         "secret_hash": "$pbkdf2-sha512$310000$Mua8d671XktJKSVkjFFqjQ$LbUQprrlqe9uSVBxvT0ozVmVzbUvTh4nDnzKDGDTGBemhpto6aSJf1kQ1ts1z/fRcPe7WYLVoQFOE5Ga3fUTgw",
