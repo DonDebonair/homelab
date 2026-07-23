@@ -19,6 +19,9 @@ services:
       # and persisted on the /config volume -- nothing here. To make OIDC the
       # sole gate after it's verified, uncomment (see docs/plans/shelfmark.md):
       # DISABLE_LOCAL_AUTH: "true"
+      HIDE_LOCAL_AUTH: "true"    # Hide the local login form
+      DISABLE_LOCAL_AUTH: "true" # Disable username/password login
+      OIDC_AUTO_REDIRECT: "true"
     networks:
       - caddy-internal
     labels:
