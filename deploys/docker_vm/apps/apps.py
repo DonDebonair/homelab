@@ -351,7 +351,7 @@ apps = [
     ComposeApp(
         name="affine",
         image="ghcr.io/toeverything/affine",
-        version="0.27.2",
+        version="0.27.3",
         domain="affine.dv.zone",
         volumes=[
             # Holds the templated config.json plus private.key, which the migration job
