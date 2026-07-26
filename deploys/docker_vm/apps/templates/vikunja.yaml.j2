@@ -1,0 +1,96 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  # One-shot ownership fix for the files volume. The vikunja image is FROM scratch with
+  # USER 1000 and contains no /app/vikunja/files dir, so docker has no ownership to copy
+  # into a fresh named volume -- it comes up root:root and uid 1000 gets EACCES on every
+  # attachment upload (verified on this host). Upstream papers over this with a host
+  # `chown 1000 files`; `user:` on the server can't fix it (only 0:0 could write, which
+  # would run vikunja as root). So chown the volume as root first, then start the server
+  # unprivileged. Idempotent and re-runs in milliseconds on every `compose up -d`.
+  vikunja-init:
+    container_name: vikunja-init
+    image: busybox:1.38.0
+    user: "0:0"
+    command: ["chown", "-R", "1000:1000", "/app/vikunja/files"]
+    volumes:
+      - vikunja-files:/app/vikunja/files
+    restart: "no"
+
+  vikunja:
+    container_name: vikunja
+    image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      vikunja-init:
+        condition: service_completed_successfully
+    # Pin the DNS upstream, same as affine/bookorbit/portainer. Vikunja resolves
+    # auth.dv.zone from the server: its OIDC provider is discovery-based, so it fetches the
+    # issuer's /.well-known/openid-configuration at runtime. Without this it snapshots
+    # whatever /etc/resolv.conf held at container-create time, which is racy and can leave
+    # OIDC login broken until a restart.
+    dns:
+      - [[ host.data.dns_ip ]]
+    networks:
+      - caddy-internal
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      # Used for the links Vikunja emits and for API<->frontend communication.
+      VIKUNJA_SERVICE_PUBLICURL: https://[[ app.domain ]]/
+      # Signs JWTs and API tokens. Pinned (not left to Vikunja's random per-startup
+      # default), otherwise every restart invalidates all sessions and API tokens.
+      VIKUNJA_SERVICE_SECRET: "[[ vikunja_service_secret ]]"
+      VIKUNJA_SERVICE_TIMEZONE: Europe/Amsterdam
+      # OIDC-only instance: no self-registration and no local login (below), so the login
+      # page offers just the Authelia button. Break-glass: flip LOCAL_ENABLED and redeploy.
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: "false"
+      # Caddy terminates TLS and forwards over http, so the peer address is caddy's bridge
+      # IP. Take the client IP from X-Forwarded-For instead, trusted only from the
+      # caddy-internal subnet -- otherwise logins/rate limits are all attributed to caddy.
+      VIKUNJA_SERVICE_IPEXTRACTIONMETHOD: xff
+      VIKUNJA_SERVICE_TRUSTEDPROXIES: 172.101.0.0/16
+      # Shared postgres_lxc. Discrete settings rather than a DSN: Vikunja builds the
+      # connection string itself and escapes the password, so it's passed raw here (see
+      # the note in secrets.py). Quoted because generated passwords may start with a
+      # character that isn't valid at the head of a plain YAML scalar (e.g. `!`, `?`).
+      VIKUNJA_DATABASE_TYPE: postgres
+      VIKUNJA_DATABASE_HOST: [[ host.data.postgres_lxc_ip ]]
+      VIKUNJA_DATABASE_DATABASE: vikunja
+      VIKUNJA_DATABASE_USER: vikunja
+      VIKUNJA_DATABASE_PASSWORD: "[[ vikunja_db_password ]]"
+      VIKUNJA_DATABASE_SSLMODE: disable
+      # Task attachments + avatars -> the chowned vikunja-files volume above.
+      VIKUNJA_FILES_BASEPATH: /app/vikunja/files
+      # SSO via Authelia. The provider key is load-bearing: Vikunja's callback path is
+      # <publicurl>/auth/openid/<provider key>, and the URI registered for the `vikunja`
+      # client in proxies/vars.py ends in /authelia -- so the key must stay `authelia`.
+      # AUTHURL is the issuer; endpoints come from OIDC discovery against it. The `email`
+      # claim is required (user creation fails without it) and the client's
+      # `claims_policy: default` puts it in the ID token, which is where Vikunja reads
+      # claims -- so no FORCEUSERINFO needed.
+      VIKUNJA_AUTH_LOCAL_ENABLED: "false"
+      VIKUNJA_AUTH_OPENID_ENABLED: "true"
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_NAME: Authelia
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_AUTHURL: https://auth.[[ host.data.domain ]]
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_LOGOUTURL: https://auth.[[ host.data.domain ]]/logout
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_CLIENTID: vikunja
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_CLIENTSECRET: "[[ vikunja_oidc_client_secret ]]"
+      # `groups` is only needed for the vikunja_scope team-provisioning feature, which we
+      # don't use -- so request just the three standard scopes.
+      VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHELIA_SCOPE: "openid profile email"
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 3456}}"
+      # No `import secure`: Vikunja gates itself with native OIDC against Authelia, and a
+      # blanket forward-auth would double-gate and break the OAuth callback.
+      homepage.group: Office
+      homepage.name: Vikunja
+      homepage.icon: vikunja
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 1030
+    expose:
+      - 3456
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

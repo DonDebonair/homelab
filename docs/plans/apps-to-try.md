@@ -48,7 +48,7 @@ Status legend:
 - ⬜ **Plane** — Open-source project management (Jira / Linear / Monday / ClickUp alternative) with issues, cycles, and modules.
   - Repo: https://github.com/makeplane/plane
   - Website: https://plane.so
-- ⬜ **Vikunja** — Self-hostable to-do and task manager ("the task manager you actually own") with list, gantt, table, and kanban views.
+- ✅ **Vikunja** — Self-hostable to-do and task manager ("the task manager you actually own") with list, gantt, table, and kanban views.
   - Repo: https://github.com/go-vikunja/vikunja
   - Website: https://vikunja.io
 - ⬜ **Planka** — Kanban-style project mastering tool for everyone; realtime collaborative Trello alternative.

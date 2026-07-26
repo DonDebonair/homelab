@@ -138,4 +138,14 @@ oidc_clients = [
         "auth_method": "client_secret_post",
         "claims_policy": "default",
     },
+    {
+        "id": "vikunja",
+        "name": "Vikunja",
+        "secret_hash": "$pbkdf2-sha512$310000$sDZmbI0RQsh5z5nTem.NMQ$cwBNB6395EDrtdviILJvfmNemELzKP8x219BeOjNNfUgv.Rv61pd.cs33NoPItzdu./fFGkF17gWUY0lm9MRsw",
+        "policy": "two_factor",
+        "redirect_uris": ["https://vikunja.dv.zone/auth/openid/authelia"],
+        "scopes": ["openid", "groups", "email", "profile"],
+        "auth_method": "client_secret_basic",
+        "claims_policy": "default",
+    },
 ]

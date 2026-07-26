@@ -39,4 +39,5 @@ databases = [
         password=str(secrets.bookorbit_password),
         extensions=["uuid-ossp", "pg_trgm", "unaccent", "vector"],
     ),
+    PostgresDBConfig(name="vikunja", user="vikunja", password=str(secrets.vikunja_password)),
 ]

@@ -443,4 +443,23 @@ apps = [
             BindMount(source="bookorbit/ingest", mount_path="/ingest"),
         ],
     ),
+    ComposeApp(
+        name="vikunja",
+        # To-do / task manager (list, gantt, table, kanban). Single unified image serving
+        # both API and SPA on :3456 -- the old split vikunja/api + vikunja/frontend images
+        # are deprecated. Uses the shared postgres_lxc; native OIDC against Authelia
+        # (client `vikunja` in proxies/vars.py). LAN-only via caddy-internal.
+        image="vikunja/vikunja",
+        version="2.4.0",
+        domain="vikunja.dv.zone",
+        volumes=[
+            # Task attachments + user avatars (files.basepath) -- high recovery cost, so
+            # external=True keeps `down -v` from wiping them. The image is FROM scratch with
+            # USER 1000 and has no /app/vikunja/files dir for docker to copy ownership from,
+            # so a fresh volume comes up root:root and uid 1000 cannot write to it. The
+            # one-shot `vikunja-init` service in the template chowns it before the server
+            # starts; see docs/plans/vikunja.md.
+            NamedVolume(name="vikunja-files", mount_path="/app/vikunja/files", external=True),
+        ],
+    ),
 ]

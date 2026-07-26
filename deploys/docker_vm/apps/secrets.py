@@ -137,6 +137,17 @@ bookorbit_db_password = SecretString("op://Homelab/PostgreSQL BookOrbit user/pas
 bookorbit_jwt_secret = SecretString("op://Homelab/BookOrbit secrets/JWT secret")
 bookorbit_bootstrap_token = SecretString("op://Homelab/BookOrbit secrets/bootstrap token")
 
+# Vikunja. The DB ref matches the postgres_lxc side, and the OIDC secret is the plaintext
+# behind the `vikunja` client's pbkdf2 hash in deploys/docker_vm/proxies/vars.py. Unlike
+# AFFiNE/BookOrbit the DB password is NOT percent-encoded here: Vikunja takes discrete
+# host/user/password settings and builds the connection string itself, url.PathEscape-ing
+# the password (pkg/db/db.go) -- pre-encoding it would double-escape and fail auth.
+# `service secret` signs JWTs and API tokens; it MUST be pinned, because Vikunja otherwise
+# generates a random one at every startup and so invalidates all sessions on each restart.
+vikunja_db_password = SecretString("op://Homelab/PostgreSQL Vikunja user/password")
+vikunja_oidc_client_secret = SecretString("op://Homelab/Vikunja OIDC client/password")
+vikunja_service_secret = SecretString("op://Homelab/Vikunja secrets/service secret")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our
