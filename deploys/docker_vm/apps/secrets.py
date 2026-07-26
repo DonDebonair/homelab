@@ -147,6 +147,12 @@ bookorbit_bootstrap_token = SecretString("op://Homelab/BookOrbit secrets/bootstr
 vikunja_db_password = SecretString("op://Homelab/PostgreSQL Vikunja user/password")
 vikunja_oidc_client_secret = SecretString("op://Homelab/Vikunja OIDC client/password")
 vikunja_service_secret = SecretString("op://Homelab/Vikunja secrets/service secret")
+# homepage widget token. Vikunja's CLI has no token subcommand, so this one is created by hand
+# in Settings -> API Tokens with read-only Projects + Tasks permissions (the only two endpoints
+# the widget calls). NOTE: Vikunja API tokens have a MANDATORY expiry (`expires_at` is not-null
+# in pkg/models/api_tokens.go) -- when it lapses the widget just shows an error, so it has to be
+# reissued and re-pasted into 1Password.
+vikunja_api_token = SecretString("op://Homelab/Vikunja secrets/api token")
 
 SecretString.populate_cache_sync()
 

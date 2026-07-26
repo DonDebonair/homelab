@@ -195,8 +195,12 @@ No new facts/operations, so **no `pyinfra-testing` cases** are needed. No DNS wo
 
 ## Follow-ups / out of scope
 
-- **Homepage widget** (`type: vikunja`, `version: 2`, `enableTaskList`): needs an API token
-  generated in Vikunja's UI after first login + a 1Password item; small separate change.
+- ~~**Homepage widget**~~ — **done 2026-07-26.** `homepage.widget.*` labels on the vikunja
+  service, `version: 2` (the `/api/v1/tasks` endpoint), fetched container-direct at
+  `http://vikunja:3456` since homepage shares `caddy-internal` and has no `dns:` override. The
+  token is `op://Homelab/Vikunja secrets/api token`, created by hand in Settings -> API Tokens
+  with read-only Projects + Tasks (Vikunja's CLI has no token subcommand). **It has a mandatory
+  expiry** — when it lapses the widget errors until a fresh token is pasted into 1Password.
 - **Mailer** (Mailgun SMTP user) — enables reminders, mention e-mails, task-due notifications.
 - **CalDAV** (`service.enablecaldav`, on by default) authenticates with a *local* username +
   password, which OIDC-only users don't have — so it is effectively unusable in this setup.
