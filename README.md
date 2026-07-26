@@ -68,6 +68,9 @@ All pyinfra commands should be run through `uv`.
 - `uv run pyinfra inventory.py deploy.py -y`: Run the pyinfra deploy to configure the homelab. Optionally, you can
   deploy only specific hosts or groups of hosts, e.g. `uv run pyinfra inventory.py deploy.py -y --limit postgres_lxc`
   to only deploy the Postgres LXC.
-  You can also specify a particular deploy to run,
-  e.g. `uv run pyinfra inventory.py deploys.docker_vm.users -y --limit docker_vm` to only run the users deploy for the
-  Docker VM.
+  You can also specify a particular deploy to run. The target must be the **`@deploy`-decorated
+  function**, not the package that holds it — pointing pyinfra at the package itself fails with
+  `TypeError: 'module' object is not callable`. E.g.
+  `uv run pyinfra inventory.py deploys.docker_vm.users.users -y --limit docker_vm` to only run the
+  users deploy for the Docker VM, or `deploys.docker_vm.apps.setup_apps` for just the Docker apps.
+  Look up the entry function in the deploy's `__init__.py`.

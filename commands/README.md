@@ -49,7 +49,7 @@ The generated password lands in `op://Homelab/PostgreSQL <display> user/password
 is exactly the reference the new `secrets.py` line resolves at deploy time. Apply it with:
 
 ```bash
-uv run pyinfra inventory.py deploys.postgres_lxc.databases -y --limit postgres_lxc
+uv run pyinfra inventory.py deploys.postgres_lxc.databases.databases_and_users -y --limit postgres_lxc
 ```
 
 > Note: the pyinfra `PostgresDBConfig` model has no `extensions` field, so (unlike the
@@ -90,7 +90,7 @@ uv run python cmd.py oidc add-client <name> <redirect_url> \
 Apply it by re-rendering the Authelia config on the Docker VM:
 
 ```bash
-uv run pyinfra inventory.py deploys.docker_vm.proxies -y --limit docker_vm
+uv run pyinfra inventory.py deploys.docker_vm.proxies.setup_caddy_proxies -y --limit docker_vm
 ```
 
 Example (matching the existing Technitium client):

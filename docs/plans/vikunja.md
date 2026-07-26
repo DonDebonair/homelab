@@ -169,11 +169,13 @@ No new facts/operations, so **no `pyinfra-testing` cases** are needed. No DNS wo
 ## Order of operations
 
 1. Create the `Vikunja secrets / service secret` 1Password item (blocking).
-2. Apply the DB: `uv run pyinfra inventory.py deploys.postgres_lxc.databases -y --limit postgres_lxc`.
-3. Apply Authelia: `uv run pyinfra inventory.py deploys.docker_vm.proxies -y --limit docker_vm`
+2. Apply the DB:
+   `uv run pyinfra inventory.py deploys.postgres_lxc.databases.databases_and_users -y --limit postgres_lxc`.
+3. Apply Authelia:
+   `uv run pyinfra inventory.py deploys.docker_vm.proxies.setup_caddy_proxies -y --limit docker_vm`
    (the rendered `configuration.yml` is `restart_on_change`, so Authelia restarts itself).
 4. Write the three code changes above.
-5. Deploy the app: `uv run pyinfra inventory.py deploys.docker_vm.apps -y --limit docker_vm`.
+5. Deploy the app: `uv run pyinfra inventory.py deploys.docker_vm.apps.setup_apps -y --limit docker_vm`.
 6. Verify (below), then commit to `main` ([[feedback_trunk_based]]) — push only if asked.
 
 ## Verification
