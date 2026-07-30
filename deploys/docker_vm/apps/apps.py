@@ -128,7 +128,7 @@ apps = [
         # Enterprise Edition (free tier) -- matches the NAS instance so the
         # migrated /data volume (users, OIDC login config, EE license) stays valid.
         image="portainer/portainer-ee",
-        version="2.43.0",
+        version="2.44.0",
         domain="docker.dv.zone",
         volumes=[
             # Portainer's state: local admin user, OIDC login config, EE license,
