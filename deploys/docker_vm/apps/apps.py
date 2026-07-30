@@ -429,7 +429,7 @@ apps = [
         # Container tags drop the `v` that the git releases use (git v2.3.0 -> image
         # 2.3.0); `v2.3.0` is a "manifest unknown" pull error.
         version="2.3.0",
-        domain="bookorbit.dv.zone",
+        domain="books.dv.zone",
         volumes=[
             # App config/state (the DB is external on postgres_lxc). Non-trivial
             # recovery cost, so external=True keeps `down -v` from wiping it.

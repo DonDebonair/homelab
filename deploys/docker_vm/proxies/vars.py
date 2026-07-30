@@ -133,7 +133,7 @@ oidc_clients = [
         "name": "BookOrbit",
         "secret_hash": "$pbkdf2-sha512$310000$Tsk5h3BOqXUupTTmHINQCg$yAoK2jU4euvoby6GS8Qanw2f6WvP.JQONAB5kpGnojA6gs4lpNIS6Vg/6WNszTjCWtWM21m5lzgJZiXUfV8khQ",
         "policy": "two_factor",
-        "redirect_uris": ["https://bookorbit.dv.zone/oauth2-callback"],
+        "redirect_uris": ["https://books.dv.zone/oauth2-callback"],
         "scopes": ["openid", "groups", "email", "profile"],
         "auth_method": "client_secret_post",
         "claims_policy": "default",
