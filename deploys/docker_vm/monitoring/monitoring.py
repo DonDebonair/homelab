@@ -40,7 +40,7 @@ apps = [
     ComposeApp(
         name="prometheus",
         image="prom/prometheus",
-        version="v3.13.1",
+        version="v3.13.2",
         domain="prometheus.dv.zone",
         volumes=[
             # Old NAS TSDB isn't migrated, but the metrics gathered here going
