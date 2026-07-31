@@ -4,7 +4,8 @@ from pyinfra.facts.server import LinuxName
 from deploys.common.debian import common_debian_setup
 from deploys.common.node_exporter import setup_node_exporter
 from deploys.docker_vm import users as docker_vm_users, docker_setup, setup_caddy_proxies, setup_apps, \
-    setup_guest_agent, setup_macvlan_shim, setup_samba, setup_monitoring, setup_loki_log_driver
+    setup_guest_agent, setup_macvlan_shim, setup_samba, setup_monitoring, setup_loki_log_driver, \
+    setup_docker_prune
 from deploys.dns import setup_technitium_dns
 from deploys.nas import docker_setup as nas_docker_setup, setup_docker_apps as nas_setup_docker_apps, \
     networking, setup_users as nas_setup_users
@@ -64,4 +65,5 @@ if "docker_vm" in host.groups:
     setup_monitoring()
     # Flip the daemon's default log driver to Loki only after Loki is up.
     setup_loki_log_driver()
+    setup_docker_prune()
     setup_guest_agent()

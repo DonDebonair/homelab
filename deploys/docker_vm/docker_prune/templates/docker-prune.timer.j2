@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly Docker image and build cache prune
+
+[Timer]
+OnCalendar={{ on_calendar }}
+# Run on next boot if the VM was down when the timer was due, so a host that is
+# off at the scheduled hour still gets cleaned up rather than silently skipping.
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

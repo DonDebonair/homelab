@@ -32,6 +32,12 @@ def setup_caddy_proxies():
         path=build_dir,
         tags=[f"caddy-custom:{vars.caddy_version}"],
         build_args={"CADDY_VERSION": vars.caddy_version},
+        # Exempts this image from the weekly `docker image prune -a`
+        # (deploys/docker_vm/docker_prune). Unlike every other image here it is
+        # built locally, so a prune would leave nothing to re-pull and the
+        # reverse proxy could not start until the next deploy rebuilt it. The
+        # matching prune filter reads the same group_data value.
+        labels=host.data.docker_prune_keep_label,
     )
     docker.network(
         name="Create caddy-internal network",

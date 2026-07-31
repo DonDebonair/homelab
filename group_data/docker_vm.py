@@ -42,6 +42,29 @@ macvlan_shim_ip = "192.168.50.11"
 # internal name (e.g. auth.dv.zone -> .21) resolves to one of them.
 macvlan_shim_routes = [internal_reverse_proxy_ip, external_reverse_proxy_ip, dns_ip]
 
+# Weekly `docker image prune -a` housekeeping (deploys/docker_vm/docker_prune).
+# Renovate bumps pinned image tags steadily and each bump strands the previous,
+# still-tagged image with no container referencing it -- which dangling-only
+# pruning never reaches.
+docker_prune_on_calendar = "Sun 04:00"
+# Grace period before an unreferenced image is eligible. NOTE: Docker's `until`
+# filter reads the image's *build* time from its metadata, not when we pulled it,
+# so this does not shield a just-pulled image of an older upstream build. It only
+# delays reaping recently-built tags.
+docker_prune_until = "168h"
+# Images carrying this label are never pruned. Set on caddy-custom, which is
+# built locally (docker.build) and so has no registry to re-pull from; losing it
+# would leave the reverse proxy for the whole homelab unable to start.
+#
+# Single source of truth for both ends of that contract: deploys/docker_vm/proxies
+# stamps this onto the image at build time, and deploys/docker_vm/docker_prune
+# renders it into the systemd unit's `--filter label!=...`. They must agree --
+# if they drifted apart the filter would quietly stop matching and caddy-custom
+# would be pruned, with no error to show for it. Exactly one pair: the prune
+# module unpacks it as such, so adding a second entry fails loudly rather than
+# silently dropping one.
+docker_prune_keep_label = {"homelab.prune": "never"}
+
 extra_proxied_domains = [
     {"domain": "tv.dv.zone",       "port": 8989},
     {"domain": "movies.dv.zone",   "port": 8310},

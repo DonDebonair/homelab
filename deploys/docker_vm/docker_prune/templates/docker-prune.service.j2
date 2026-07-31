@@ -1,0 +1,26 @@
+[Unit]
+Description=Prune unused Docker images and build cache
+Documentation=https://docs.docker.com/reference/cli/docker/image/prune/
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# `-a` is the point: it reaches images that are still *tagged* but referenced by
+# no container -- what a Renovate version bump strands. Plain `docker image
+# prune` only removes dangling (untagged) layers and never touches these.
+#
+# `until` is a grace buffer, NOT the safety valve it looks like: Docker reads it
+# from the image's *build* timestamp in its metadata, not from when we pulled
+# it, so a freshly pulled image of an older upstream build is eligible straight
+# away. What actually protects an image is a container referencing it (stopped
+# counts) or the {{ keep_label }} label.
+ExecStart=/usr/bin/docker image prune -af --filter until={{ until }} --filter label!={{ keep_label }}
+# Build cache is accounted separately by `docker system df` but lives under
+# overlay2 too. Modest here, but every custom Caddy rebuild adds to it.
+ExecStart=/usr/bin/docker builder prune -af --filter until={{ until }}
+# NOTE: there is deliberately no volume prune here. This host keeps app state
+# (databases, configs) in named volumes, none of which carry a protective label,
+# so an automated `docker volume prune` would delete the state of any app whose
+# container happens to be absent when the timer fires. Volumes are pruned by
+# hand, after looking at what is about to go.
