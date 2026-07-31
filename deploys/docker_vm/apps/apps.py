@@ -209,7 +209,7 @@ apps = [
         # sctx/overseerr install. Keeps Overseerr's /api/v1 surface and the
         # /app/config layout. Pinned stable; bump the version field and redeploy.
         image="ghcr.io/seerr-team/seerr",
-        version="v3.3.0",
+        version="v3.4.1",
         domain="requests.dv.zone",
         volumes=[
             # settings.json + the SQLite db (db.sqlite3) holding request history,
