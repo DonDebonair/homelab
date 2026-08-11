@@ -66,7 +66,7 @@ apps = [
     ComposeApp(
         name="whoami",
         image="traefik/whoami",
-        version="v1.11.0",
+        version="v1.12.0",
     ),
     ComposeApp(
         name="miniflux",
