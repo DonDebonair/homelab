@@ -42,6 +42,9 @@ Status legend:
 - ⬜ **Ideon** — Self-hosted project cockpit on an infinite canvas: notes, Git repos, files, and to-dos laid out and linked together.
   - Repo: https://github.com/3xpyth0n/ideon
   - Website: https://www.theideon.com
+- ⬜ **Macro** — Unified workspace for teams — email, chat, docs, tasks, agents, calls, and CRM — @-linked together with a shared AI memory. Fully open source (AGPLv3), SolidJS + Rust; heavyweight (42 services).
+  - Repo: https://github.com/macro-inc/macro
+  - Website: https://macro.com
 
 ## Project & Task Management
 
@@ -84,6 +87,9 @@ Status legend:
 - ⬜ **Apache Superset** — Data visualization and exploration platform: SQL lab, rich charts, and dashboards over any SQL database.
   - Repo: https://github.com/apache/superset
   - Website: https://superset.apache.org
+- ⬜ **Metabase** — Easy-to-use open-source BI and embedded analytics tool that lets everyone query and chart data without SQL.
+  - Repo: https://github.com/metabase/metabase
+  - Website: https://www.metabase.com
 
 ## Design
 
@@ -142,7 +148,7 @@ Status legend:
 - ⬜ **Ombi** — Media request and management for Plex / Emby / Jellyfin; lets users request movies and TV shows.
   - Repo: https://github.com/Ombi-app/Ombi
   - Website: https://ombi.io
-- ⬜ **Seerr** — Open-source media request and discovery manager for Jellyfin, Plex, and Emby.
+- ✅ **Seerr** — Open-source media request and discovery manager for Jellyfin, Plex, and Emby (Overseerr/Jellyseerr successor). Live at `requests.dv.zone`.
   - Repo: https://github.com/seerr-team/seerr
 - ⬜ **Bazarr** — Companion to Sonarr and Radarr that manages and downloads subtitles based on your requirements.
   - Repo: https://github.com/morpheus65535/bazarr
@@ -154,6 +160,9 @@ Status legend:
   - Repo: https://github.com/dmunozv04/iSponsorBlockTV
 - ⬜ **epicgames-freegames-node** — Automated Epic Games Store free-game claiming tool.
   - Repo: https://github.com/claabs/epicgames-freegames-node
+- ⬜ **Yamtrack** — Self-hosted media tracker for movies, TV, anime, manga, games, books, comics, and board games; imports from Trakt/MAL/AniList and auto-tracks via Jellyfin/Plex/Emby, with OIDC login and Apprise notifications.
+  - Repo: https://github.com/FuzzyGrim/Yamtrack
+  - Website: https://fuzzygrim.github.io/Yamtrack/
 
 ## Photos
 
@@ -184,6 +193,8 @@ Status legend:
 - ✅ **Garage** — Lightweight, self-hosted S3-compatible distributed object storage designed for geo-distributed, resilient clusters on commodity hardware.
   - Repo: https://github.com/deuxfleurs-org/garage
   - Website: https://garagehq.deuxfleurs.fr/
+- ✅ **garage-webui** — Web console for Garage: manage buckets, keys, and cluster layout instead of shelling into the `garage` CLI. Deployed alongside Garage at `garage.dv.zone`.
+  - Repo: https://github.com/khairul169/garage-webui
 
 ## Backup
 
