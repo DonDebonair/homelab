@@ -31,7 +31,7 @@ services:
     # Official Redis instead of the deprecated redis-stack-server. Redis 8 bundles the
     # former Redis Stack modules into core, so RedisBloom (BF.*, which any-sync needs) is
     # built in -- no --loadmodule needed. Same image the rest of the repo pins.
-    image: redis:8.8.1
+    image: redis:8.10.0
     command:
       - "redis-server"
       - "--port"
