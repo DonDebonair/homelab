@@ -283,7 +283,7 @@ apps = [
     ComposeApp(
         name="paperless",
         image="ghcr.io/paperless-ngx/paperless-ngx",
-        version="2.20.15",
+        version="3.0.5",
         domain="docs.dv.zone",
         volumes=[
             # Documents (media) and the search index/ML models (data) are the
