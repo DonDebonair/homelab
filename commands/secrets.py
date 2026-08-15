@@ -4,7 +4,15 @@ import string
 from passlib.hash import pbkdf2_sha512
 
 # Special characters safe to embed in a Postgres password.
-SPECIAL_CHARS = "!$()?=^_;:,.-"
+#
+# `$` is deliberately excluded. Generated passwords get rendered into docker compose files,
+# and compose interpolates `$VAR` / `${VAR}` in the file itself before creating the container:
+# a literal `$` is silently swallowed and the app receives a mangled value, with nothing but a
+# "variable is not set" warning to show for it. Escaping it as `$$` per call site was the
+# alternative, but it only has to be forgotten once -- and jinja's `|replace` can't do it,
+# because a SecretString expands only via __str__ (it would rewrite the op:// reference
+# instead). Keeping `$` out of the alphabet entirely removes the failure mode.
+SPECIAL_CHARS = "!()?=^_;:,.-"
 
 # Authelia hashes OIDC client secrets with pbkdf2-sha512 at 310000 rounds; matching
 # that rounds value makes generated hashes indistinguishable from Authelia's own output.
