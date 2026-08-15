@@ -1,0 +1,100 @@
+[%- import '_volumes.j2' as vol with context -%]
+services:
+  romm:
+    container_name: romm
+    image: [[ app.image ]]:[[ app.version ]]
+    # Pin the DNS upstream, same as affine/vikunja/bookorbit/portainer. RomM does OIDC
+    # discovery from the server: authlib fetches auth.dv.zone's
+    # /.well-known/openid-configuration at runtime. Without this the container snapshots
+    # whatever /etc/resolv.conf held at create time, which is racy and can leave OIDC login
+    # broken until a restart.
+    dns:
+      - [[ host.data.dns_ip ]]
+    networks:
+      - caddy-internal
+    # No `user:`. The image runs as root by default (it drops nginx to its own `romm` user
+    # itself) and upstream documents no PUID/non-root story; the NAS exports the library with
+    # no_root_squash, so uid 0 can read and write it. Running as 2000:100 instead would need
+    # chown-init containers for both /romm and /redis-data -- the embedded valkey could
+    # otherwise not write its snapshot -- for a cosmetic ownership gain. See docs/plans/romm.md.
+    volumes:[[ vol.service_volumes(app) ]]
+    environment:
+      TZ: Europe/Amsterdam
+      # Public URL: used for the links RomM generates (QR codes, invite links) and required by
+      # OIDC, which refuses to redirect to a plain-HTTP base URL.
+      ROMM_BASE_URL: https://[[ app.domain ]]
+      # Signs session and refresh tokens. Pinned rather than left to the init script's
+      # per-start random fallback, which would invalidate every session on each restart.
+      ROMM_AUTH_SECRET_KEY: "[[ romm_auth_secret_key ]]"
+      # Caddy terminates TLS, so mark the session/CSRF cookies Secure, and allow only the
+      # public origin to call the API cross-origin (the default allows any).
+      ROMM_SESSION_SECURE_COOKIE: "true"
+      ROMM_CORS_ALLOWED_ORIGINS: https://[[ app.domain ]]
+      # Shared postgres_lxc rather than the bundled MariaDB. Discrete settings rather than a
+      # DSN: RomM builds the URL with SQLAlchemy's URL.create(), which escapes the password
+      # itself, so it's passed raw here (see the note in secrets.py). Quoted because generated
+      # passwords may start with a character that isn't valid at the head of a plain YAML
+      # scalar (e.g. `!`, `?`). DB_PORT is not optional: it defaults to 3306 whatever the
+      # driver is, so the Postgres port has to be spelled out.
+      ROMM_DB_DRIVER: postgresql
+      DB_HOST: [[ host.data.postgres_lxc_ip ]]
+      DB_PORT: "5432"
+      DB_NAME: romm
+      DB_USER: romm
+      DB_PASSWD: "[[ romm_db_password ]]"
+      # Metadata providers. IGDB (a Twitch developer app) is the scanner's main source for
+      # titles/descriptions/artwork, SteamGridDB backs the manual "search cover" button, and
+      # RetroAchievements supplies achievement progress -- that one is hash-matched, so it only
+      # fills in after a scan that hashes the files.
+      IGDB_CLIENT_ID: "[[ romm_igdb_client_id ]]"
+      IGDB_CLIENT_SECRET: "[[ romm_igdb_client_secret ]]"
+      STEAMGRIDDB_API_KEY: "[[ romm_steamgriddb_api_key ]]"
+      RETROACHIEVEMENTS_API_KEY: "[[ romm_retroachievements_api_key ]]"
+      # SSO via Authelia. The callback path is fixed at <base>/api/oauth/openid and must match
+      # the URI registered for the `romm` client in proxies/vars.py exactly (scheme, host,
+      # path, no trailing slash). SERVER_APPLICATION_URL is the issuer; the endpoints come from
+      # OIDC discovery against it. RomM reads `email`, `email_verified` and `preferred_username`
+      # out of the ID token and hard-fails without any of them, which is why that client carries
+      # `claims_policy: default`. OIDC_CLAIM_ROLES is deliberately unset: the moment it is set,
+      # RomM rejects every user whose claim matches none of the mapped groups. Admin comes from
+      # the setup-wizard account instead, matched by e-mail on the first OIDC login.
+      OIDC_ENABLED: "true"
+      OIDC_PROVIDER: authelia
+      OIDC_CLIENT_ID: romm
+      OIDC_CLIENT_SECRET: "[[ romm_oidc_client_secret ]]"
+      OIDC_REDIRECT_URI: https://[[ app.domain ]]/api/oauth/openid
+      OIDC_SERVER_APPLICATION_URL: https://auth.[[ host.data.domain ]]
+      # Signing out of RomM ends the Authelia session too.
+      OIDC_RP_INITIATED_LOGOUT: "true"
+      OIDC_END_SESSION_ENDPOINT: https://auth.[[ host.data.domain ]]/logout
+      # Scans run on a schedule, NOT on filesystem events: RomM's watcher is inotify-based
+      # (watchfiles on /romm/library), and inotify never sees writes made on the NFS *server* --
+      # ROMs dropped onto the NAS from anywhere else would go unnoticed. Cron defaults: rescan
+      # 03:00, orphaned-resource cleanup 05:00, RetroAchievements progress sync 04:00.
+      ENABLE_RESCAN_ON_FILESYSTEM_CHANGE: "false"
+      ENABLE_SCHEDULED_RESCAN: "true"
+      ENABLE_SCHEDULED_CLEANUP_ORPHANED_RESOURCES: "true"
+      ENABLE_SCHEDULED_RETROACHIEVEMENTS_PROGRESS_SYNC: "true"
+    labels:
+      caddy_internal: [[ app.domain ]]
+      caddy_internal.reverse_proxy: "{{upstreams 8080}}"
+      # No `import secure`: RomM gates itself with native OIDC against Authelia, and a blanket
+      # forward-auth would double-gate and break the OAuth callback.
+      homepage.group: Entertainment
+      homepage.name: RomM
+      homepage.icon: romm
+      homepage.href: https://[[ app.domain ]]
+      homepage.weight: 350
+      # Widget: platform / ROM counts plus saves and states. Fetched container-direct (like the
+      # vikunja widget) since homepage shares caddy-internal and has no dns: override. RomM's
+      # /api/stats needs no authentication, so the widget takes no key.
+      homepage.widget.type: romm
+      homepage.widget.url: http://romm:8080
+    expose:
+      - 8080
+    restart: unless-stopped
+
+networks:
+  caddy-internal:
+    external: true
+[[ vol.top_level_volumes(app) ]]

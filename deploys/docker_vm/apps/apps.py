@@ -37,6 +37,20 @@ ENTERTAINMENT_NFS_BOOKS = NfsVolume(
     external=True,
 )
 
+# RomM's ROM library: the `emulation` subtree of the NAS entertainment share, already laid out
+# as RomM "Structure A" (roms/{platform}/, with the platform dirs named after RomM slugs).
+# Deliberately NOT the shared ENTERTAINMENT_NFS volume above: that exports the share *root*,
+# where RomM would find no roms/ dir, fall back to Structure B, and read media/, torrents/ and
+# usenet/ as platform folders. Project-scoped (not external) like pinchflat-downloads, which
+# mounts the media/youtube subdir of the same tree -- the NAS `dockervm` (uid 2000) ACL already
+# covers this subtree, and the export is no_root_squash so the root-running container can write.
+ROMM_LIBRARY_NFS = NfsVolume(
+    name="romm-library",
+    mount_path="/romm/library",
+    server=nas_ip,
+    path="/volume1/entertainment/media/emulation",
+)
+
 apps = [
     ComposeApp(
         name="homepage",
@@ -460,6 +474,34 @@ apps = [
             # one-shot `vikunja-init` service in the template chowns it before the server
             # starts; see docs/plans/vikunja.md.
             NamedVolume(name="vikunja-files", mount_path="/app/vikunja/files", external=True),
+        ],
+    ),
+    ComposeApp(
+        name="romm",
+        # Retro game library manager + in-browser player. Uses the shared postgres_lxc
+        # (ROMM_DB_DRIVER=postgresql) instead of the bundled MariaDB, and the image's own
+        # embedded valkey instead of a redis sidecar. Native OIDC against Authelia (client
+        # `romm` in proxies/vars.py). The `full` image, not `-slim`: slim drops the bundled
+        # EmulatorJS cores, and in-browser play is the point. See docs/plans/romm.md.
+        image="rommapp/romm",
+        version="5.1.0",
+        domain="romm.dv.zone",
+        volumes=[
+            # resources/ (fetched covers, screenshots, manuals), assets/ (user saves, save
+            # states, in-app screenshots -- irreplaceable), config/config.yml and cache/zips.
+            # Mounted at the *parent* /romm on purpose: the image declares VOLUME ["/romm"] so
+            # its subdirs stay on one device and RomM's cross-directory os.link() doesn't hit
+            # EXDEV. external=True keeps `down -v` from wiping the saves. config.yml is written
+            # by RomM itself (Library -> Library Management edits that same file), so it is
+            # deliberately not a TemplateFile -- a rendered one would fight the UI every deploy.
+            NamedVolume(name="romm-data", mount_path="/romm", external=True),
+            # The embedded valkey's snapshot: sessions, the RQ task queue and cached provider
+            # metadata. All rebuildable (losing it logs everyone out and drops in-flight scans),
+            # so a plain project-scoped volume, mirroring paperless-redis / outline-redis.
+            NamedVolume(name="romm-redis", mount_path="/redis-data"),
+            # NAS ROM library at /romm/library (see ROMM_LIBRARY_NFS above). Nests under the
+            # /romm volume; docker orders mounts by path depth, so the deeper NFS mount wins.
+            ROMM_LIBRARY_NFS,
         ],
     ),
 ]

@@ -148,4 +148,14 @@ oidc_clients = [
         "auth_method": "client_secret_basic",
         "claims_policy": "default",
     },
+    {
+        "id": "romm",
+        "name": "RomM",
+        "secret_hash": "$pbkdf2-sha512$310000$LeUco5TyPkfoHcO417r3Hg$IS4StXFE/S.agF8FxF6BTd4ZeDKlroBpCo5.MB.93vgS3luIAgXNHOD.kE8u1OEuBX50WYBdmA304M1TMoPyfQ",
+        "policy": "two_factor",
+        "redirect_uris": ["https://romm.dv.zone/api/oauth/openid"],
+        "scopes": ["openid", "groups", "email", "profile"],
+        "auth_method": "client_secret_basic",
+        "claims_policy": "default",
+    },
 ]

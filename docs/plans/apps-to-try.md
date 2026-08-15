@@ -153,7 +153,7 @@ Status legend:
 - ⬜ **Bazarr** — Companion to Sonarr and Radarr that manages and downloads subtitles based on your requirements.
   - Repo: https://github.com/morpheus65535/bazarr
   - Website: https://www.bazarr.media
-- ⬜ **RomM** — Beautiful, powerful, self-hosted ROM manager and player for retro game collections.
+- ✅ **RomM** — Beautiful, powerful, self-hosted ROM manager and player for retro game collections. Live at `romm.dv.zone`.
   - Repo: https://github.com/rommapp/romm
   - Website: https://romm.app
 - ⬜ **iSponsorBlockTV** — SponsorBlock client for YouTube TV clients; skips sponsor segments automatically.

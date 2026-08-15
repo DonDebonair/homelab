@@ -11,5 +11,6 @@ outline_password = SecretString("op://Homelab/PostgreSQL Outline user/password")
 affine_password = SecretString("op://Homelab/PostgreSQL AFFiNE user/password")
 bookorbit_password = SecretString("op://Homelab/PostgreSQL BookOrbit user/password")
 vikunja_password = SecretString("op://Homelab/PostgreSQL Vikunja user/password")
+romm_password = SecretString("op://Homelab/PostgreSQL RomM user/password")
 
 SecretString.populate_cache_sync()

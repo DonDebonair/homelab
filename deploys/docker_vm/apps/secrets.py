@@ -154,6 +154,24 @@ vikunja_service_secret = SecretString("op://Homelab/Vikunja secrets/service secr
 # reissued and re-pasted into 1Password.
 vikunja_api_token = SecretString("op://Homelab/Vikunja secrets/api token")
 
+# RomM. The DB ref matches the postgres_lxc side, and the OIDC secret is the plaintext behind
+# the `romm` client's pbkdf2 hash in deploys/docker_vm/proxies/vars.py. Like Vikunja (and unlike
+# AFFiNE/BookOrbit) the DB password is NOT percent-encoded: RomM takes discrete DB_* settings and
+# builds the URL with SQLAlchemy's URL.create() (backend/config/config_manager.py), which escapes
+# the password itself -- pre-encoding it here would double-escape and fail auth.
+# `auth secret key` signs session/refresh tokens; it MUST be pinned, because the image's init
+# script otherwise generates a random one on every start and so invalidates all sessions.
+# The rest are metadata-provider credentials: IGDB (a Twitch developer app) supplies titles,
+# descriptions and artwork, SteamGridDB alternative cover art, RetroAchievements achievement
+# progress.
+romm_db_password = SecretString("op://Homelab/PostgreSQL RomM user/password")
+romm_oidc_client_secret = SecretString("op://Homelab/RomM OIDC client/password")
+romm_auth_secret_key = SecretString("op://Homelab/RomM secrets/auth secret key")
+romm_igdb_client_id = SecretString("op://Homelab/RomM secrets/IGDB/client id")
+romm_igdb_client_secret = SecretString("op://Homelab/RomM secrets/IGDB/client secret")
+romm_steamgriddb_api_key = SecretString("op://Homelab/RomM secrets/SteamGridDB/api key")
+romm_retroachievements_api_key = SecretString("op://Homelab/RomM secrets/RetroAchievements/api key")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our

@@ -40,4 +40,5 @@ databases = [
         extensions=["uuid-ossp", "pg_trgm", "unaccent", "vector"],
     ),
     PostgresDBConfig(name="vikunja", user="vikunja", password=str(secrets.vikunja_password)),
+    PostgresDBConfig(name="romm", user="romm", password=str(secrets.romm_password)),
 ]
