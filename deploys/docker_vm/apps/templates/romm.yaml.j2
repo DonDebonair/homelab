@@ -1,8 +1,38 @@
 [%- import '_volumes.j2' as vol with context -%]
 services:
+  # One-shot ownership fix for the local volumes, so the server below can run as the NAS-facing
+  # docker user instead of root. The image ships /romm and /redis-data owned by its own built-in
+  # `romm` user (1000), and anything the container created while it ran as root is 0:0 -- neither
+  # is writable by uid 2000. Idempotent, re-runs in milliseconds on every `compose up -d`.
+  #
+  # The subdirs are chowned INDIVIDUALLY and `chown -R /romm` is deliberately avoided: in the
+  # main service /romm/library is the NAS NFS mount, and that export is no_root_squash, so a
+  # recursive chown from a root container would rewrite ownership across the entire ROM library
+  # on the NAS. This service doesn't mount the library at all, which is the first line of
+  # defence -- keeping the paths explicit is the second.
+  romm-init:
+    container_name: romm-init
+    image: busybox:1.38.0
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /romm/assets /romm/config /romm/resources /romm/cache
+        && chown [[ host.data.docker_uid ]]:100 /romm
+        && chown -R [[ host.data.docker_uid ]]:100
+        /romm/assets /romm/config /romm/resources /romm/cache /redis-data
+    volumes:
+      - romm-data:/romm
+      - romm-redis:/redis-data
+    restart: "no"
+
   romm:
     container_name: romm
     image: [[ app.image ]]:[[ app.version ]]
+    depends_on:
+      romm-init:
+        condition: service_completed_successfully
     # Pin the DNS upstream, same as affine/vikunja/bookorbit/portainer. RomM does OIDC
     # discovery from the server: authlib fetches auth.dv.zone's
     # /.well-known/openid-configuration at runtime. Without this the container snapshots
@@ -12,11 +42,17 @@ services:
       - [[ host.data.dns_ip ]]
     networks:
       - caddy-internal
-    # No `user:`. The image runs as root by default (it drops nginx to its own `romm` user
-    # itself) and upstream documents no PUID/non-root story; the NAS exports the library with
-    # no_root_squash, so uid 0 can read and write it. Running as 2000:100 instead would need
-    # chown-init containers for both /romm and /redis-data -- the embedded valkey could
-    # otherwise not write its snapshot -- for a cosmetic ownership gain. See docs/plans/romm.md.
+    # Run as the NAS-facing docker user (2000) / NAS `users` group (100), like qbittorrent,
+    # sabnzbd, bookorbit and pinchflat. This is load-bearing, not cosmetic: RomM serves ROM
+    # downloads and the in-browser player through nginx, and its init script drops nginx to the
+    # image's built-in `romm` user (uid 1000) whenever the container is root -- while the Python
+    # backend keeps running as root. Access to the library is decided by the NAS's Synology ACL
+    # (the 0777 mode bits over NFS are cosmetic), which grants uid 2000 and root-via-
+    # no_root_squash but not 1000, so as root the scan works and every download 403s with
+    # "Permission denied" from nginx. Verified in place: uid 2000 reads the library, 1000 does
+    # not. Safe for the rest of the stack -- nginx's pid and every *_temp_path live under /tmp
+    # and its logs go to /dev/stdout|stderr, so it needs nothing root-owned.
+    user: "[[ host.data.docker_uid ]]:100"
     volumes:[[ vol.service_volumes(app) ]]
     environment:
       TZ: Europe/Amsterdam

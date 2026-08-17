@@ -33,7 +33,8 @@ lives on the NAS and comes in over NFS, like the *arr/qbittorrent/BookOrbit stac
 - **Metadata providers: IGDB + SteamGridDB + RetroAchievements.** All three are API-key based
   and need 1Password items (below). Hasheous (`HASHEOUS_API_ENABLED`, no account needed) is
   deliberately **not** enabled — see follow-ups.
-- **Runs as root (image default).** See "Container user" below.
+- **Runs as `2000:100`**, the NAS-facing docker identity — not root, and not the image default.
+  See "Container user" below.
 
 ## Already done (uncommitted, present in the working tree)
 
@@ -75,19 +76,38 @@ external volume the download clients use: that one exports the share *root*, and
 Synology's `@eaDir` sidecar folders and `@SynoResource` files are already in RomM's **default**
 `exclude.roms.*` lists, so they need no config either.
 
-## Container user
+## Container user: `2000:100`, not root
 
-The RomM image creates a `romm` user (1000:1000) but sets no `USER`, so it **runs as root** and
-its init script drops nginx to `romm` itself (`nginx -g 'user romm;'` when `EUID == 0`). Upstream
-documents no `PUID`/`PGID` or non-root story at all, so root is the only tested path — and it
-works here because the NAS exports `/volume1/entertainment` to `192.168.50.0/24` with
-**`no_root_squash`**, so uid 0 has full access to the library.
+> **Revised 2026-08-15, after deployment.** This section originally ran the container as root
+> and dismissed `user: 2000:100` as a cosmetic gain. That was wrong, and it broke every
+> download — see "Downloads 403 as root" in the deployment notes.
 
-Trade-off accepted: anything RomM *writes* to the share (UI uploads, deletions, `gamelist.xml`
-exports) lands as `root:root` rather than the `2000:100` the other containers use. The share is
-`0777`, so nothing else breaks; fixing the ownership would mean running as `2000:100`, which in
-turn needs chown-init containers (à la `vikunja-init`) for both `/romm` *and* `/redis-data` —
-the embedded valkey would otherwise fail to write its snapshot — for a cosmetic gain. Rejected.
+The image creates a `romm` user (1000:1000) but sets no `USER`, so left alone it runs as root.
+The catch: RomM does not serve ROM downloads (nor the in-browser player's ROM fetch) from
+Python — the backend hands off to **nginx**, and the init script drops nginx to the image's own
+`romm` user (`nginx -g 'user romm;'`) precisely *because* the container is root. So the process
+that opens the ROM file is uid 1000 no matter what the container itself runs as.
+
+Access to the library is decided by the NAS's **Synology ACL**, not the mode bits (the
+`-rwxrwxrwx` seen over NFS is cosmetic). Measured inside the container: uid 0 reads (only thanks
+to the export's `no_root_squash`), uid 2000 reads (the `dockervm` ACL entry), uid 1000 does
+not — and neither does 1026, the files' nominal owner.
+
+So the container runs as **`2000:100`**, the identity qbittorrent / sabnzbd / bookorbit /
+pinchflat already use, which also gives anything RomM writes to the share the right ownership.
+Two supporting facts verified before switching:
+
+- nginx is fine unprivileged: its pid and every `*_temp_path` sit under `/tmp`, and its logs go
+  to `/dev/stdout` / `/dev/stderr`, so it needs nothing from the root-owned `/var/cache/nginx`
+  or `/var/log/nginx`. With `EUID != 0` the init runs plain `nginx` and skips the drop entirely.
+- The volumes need a one-shot chown first — `/romm` and `/redis-data` ship owned by 1000, and
+  whatever the root-era container wrote is `0:0` — so the template gains a `romm-init` service
+  on the `vikunja-init` pattern.
+
+**`romm-init` must never `chown -R /romm`.** In the main service `/romm/library` is the NFS
+mount, and with `no_root_squash` a recursive chown from a root container would rewrite ownership
+across the entire ROM library on the NAS. It chowns the four subdirs explicitly, and does not
+mount the library at all.
 
 ## Storage: one external volume at `/romm`
 
@@ -373,6 +393,22 @@ no superuser `extensions=[...]` entry is needed — plus both `*_trgm` GIN index
 mounted `nfs4` with the six platform dirs; and `https://romm.dv.zone/api/heartbeat` reporting
 5.1.0 with `OIDC.ENABLED=true`, provider `authelia`, and IGDB/SteamGridDB/RetroAchievements all
 enabled. No `ROMM_AUTH_SECRET_KEY not set` warning, so sessions survive restarts.
+
+### Downloads 403 as root (found during the first scan)
+
+With the container running as root — the plan's original call — the scan, hashing and metadata
+all worked, but **every ROM download and in-browser play failed**:
+
+```text
+open() "/romm/library/roms/genesis/....gen" failed (13: Permission denied)
+request: "GET /api/roms/1073/content/....gen", referrer: "https://romm.dv.zone/rom/1073/ejs"
+```
+
+RomM serves ROM content through nginx, which its init script drops to uid 1000, and the NAS ACL
+grants only uid 2000 (plus root via `no_root_squash`). Fixed by running as `2000:100` with the
+`romm-init` chown one-shot; see the revised "Container user" section for the measurements and
+for why `chown -R /romm` would be dangerous. Applied after the first scan finished, since the
+switch recreates the container and RomM's scan is an in-memory RQ job.
 
 Still to do by hand, in the browser: the setup wizard (admin account, **with your Authelia
 e-mail**), then the OIDC login, then the first library scan.
