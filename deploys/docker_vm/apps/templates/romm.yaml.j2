@@ -92,6 +92,12 @@ services:
       IGDB_CLIENT_SECRET: "[[ romm_igdb_client_secret ]]"
       STEAMGRIDDB_API_KEY: "[[ romm_steamgriddb_api_key ]]"
       RETROACHIEVEMENTS_API_KEY: "[[ romm_retroachievements_api_key ]]"
+      # Hasheous matches by file hash rather than filename and proxies IGDB data, so it picks up
+      # ROMs whose names IGDB can't parse. Free and account-less -- no key, just the flag. It's
+      # already in RomM's default scan.priority.metadata order (after igdb/moby/ss/ra/launchbox),
+      # so there's nothing to add to config.yml; matches only fill in on a rescan, and only an
+      # UNMATCHED or COMPLETE scan revisits ROMs that are already in the DB.
+      HASHEOUS_API_ENABLED: "true"
       # SSO via Authelia. The callback path is fixed at <base>/api/oauth/openid and must match
       # the URI registered for the `romm` client in proxies/vars.py exactly (scheme, host,
       # path, no trailing slash). SERVER_APPLICATION_URL is the issuer; the endpoints come from

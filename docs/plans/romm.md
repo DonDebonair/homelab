@@ -30,9 +30,9 @@ lives on the NAS and comes in over NFS, like the *arr/qbittorrent/BookOrbit stac
   one that starts as Admin — so a local account has to exist first, and keeping local login on
   is the break-glass path. `DISABLE_USERPASS_LOGIN=true` is a deliberate follow-up, not part of
   this deploy.
-- **Metadata providers: IGDB + SteamGridDB + RetroAchievements.** All three are API-key based
-  and need 1Password items (below). Hasheous (`HASHEOUS_API_ENABLED`, no account needed) is
-  deliberately **not** enabled — see follow-ups.
+- **Metadata providers: IGDB + SteamGridDB + RetroAchievements**, all three API-key based and
+  needing 1Password items (below). **Hasheous added 2026-08-18** (`HASHEOUS_API_ENABLED=true`,
+  no account or key) — it was initially left out, then enabled once the library was in.
 - **Runs as `2000:100`**, the NAS-facing docker identity — not root, and not the image default.
   See "Container user" below.
 
@@ -415,9 +415,11 @@ e-mail**), then the OIDC login, then the first library scan.
 
 ## Follow-ups / out of scope
 
-- **Hasheous** (`HASHEOUS_API_ENABLED=true`) — free, no account, hash-based matching that
-  proxies IGDB data; a good complement to IGDB for files whose names don't match cleanly. One
-  env var whenever you want it.
+- ~~**Hasheous**~~ — **done 2026-08-18.** `HASHEOUS_API_ENABLED=true`, no account or key. Free
+  hash-based matching that proxies IGDB data, so it catches ROMs whose filenames IGDB can't
+  parse. It already sits in RomM's default `scan.priority.metadata` order, so `config.yml`
+  needed no change. Existing entries only pick it up on a rescan — and only an **UNMATCHED** or
+  COMPLETE scan revisits ROMs already in the DB, since a normal scan skips them.
 - **`DISABLE_USERPASS_LOGIN=true`** — lock out local accounts once OIDC admin login is proven.
   Optionally `OIDC_AUTOLOGIN=true` to skip the login page entirely.
 - **BIOS/firmware** — `bios/{platform}/` alongside `roms/` in the same `emulation` dir; needed
