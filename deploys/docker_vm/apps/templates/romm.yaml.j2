@@ -56,6 +56,12 @@ services:
     volumes:[[ vol.service_volumes(app) ]]
     environment:
       TZ: Europe/Amsterdam
+      # uid 2000 has no passwd entry in the image, so HOME defaults to `/`, which it cannot
+      # write. Gunicorn's optional control socket falls back to $HOME/.gunicorn/gunicorn.ctl and
+      # logs `Permission denied: '/.gunicorn'` at every start; nothing in RomM uses that socket,
+      # but point HOME at the dir the image already uses for nginx/gunicorn pids and temp files
+      # so this -- and anything else that defaults to $HOME -- has somewhere writable to go.
+      HOME: /tmp
       # Public URL: used for the links RomM generates (QR codes, invite links) and required by
       # OIDC, which refuses to redirect to a plain-HTTP base URL.
       ROMM_BASE_URL: https://[[ app.domain ]]
