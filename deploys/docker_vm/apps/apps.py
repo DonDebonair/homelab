@@ -265,7 +265,7 @@ apps = [
         name="nocodb",
         image="nocodb/nocodb",
         # NocoDB uses calver; pin the current :latest (also what the NAS runs).
-        version="2026.08.0",
+        version="2026.08.1",
         domain="nocodb.dv.zone",
         volumes=[
             # /usr/app/data holds uploaded attachments + local tool state (the
