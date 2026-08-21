@@ -1,0 +1,22 @@
+{
+  "args": [
+    "pbs",
+    "pbs",
+    "pbs.dv.zone",
+    "synology",
+    "pve@pbs!backup",
+    "s3cr3t"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEStorages": {}
+  },
+  "commands": [
+    {
+      "raw": "pvesm add pbs pbs --server pbs.dv.zone --datastore synology --username 'pve@pbs!backup' --password s3cr3t --content backup",
+      "masked": "pvesm add pbs pbs --server pbs.dv.zone --datastore synology --username 'pve@pbs!backup' --password '*MASKED*' --content backup"
+    }
+  ]
+}

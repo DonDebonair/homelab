@@ -348,6 +348,11 @@ def _norm_csv(value: str | None) -> str | None:
     return ",".join(sorted(part for part in value.split(",") if part))
 
 
+# Storage properties PVE marks `fixed => 1` (see PVE::Storage::PBSPlugin::options):
+# they can only be given at creation time, never with `pvesm set`.
+FIXED_STORAGE_FIELDS = frozenset({"server", "datastore"})
+
+
 @operation()
 def storage(
         storage_id: str,
@@ -356,7 +361,7 @@ def storage(
         datastore: str,
         username: str,
         password: str,
-        fingerprint: str,
+        fingerprint: str | None = None,
         content: str = "backup",
         present: bool = True,
 ):
@@ -368,6 +373,9 @@ def storage(
     it is set on creation only and left untouched when reconciling an existing
     storage (mirrors ``pbs.user``'s password handling).
 
+    Changing a field in ``FIXED_STORAGE_FIELDS`` re-creates the storage, since
+    ``pvesm set`` refuses to change it.
+
     Args:
         storage_id: The PVE storage id, e.g. ``pbs``
         storage_type: The storage type, e.g. ``pbs``
@@ -375,7 +383,10 @@ def storage(
         datastore: The PBS datastore name
         username: Auth id, e.g. ``pve@pbs!backup``
         password: The PBS token secret
-        fingerprint: PBS TLS certificate fingerprint
+        fingerprint: PBS TLS certificate fingerprint to pin. Leave ``None`` to
+            verify the certificate against the system CA store instead (the
+            right choice for a publicly-trusted cert, whose fingerprint
+            changes on every renewal); an existing pin is then removed.
         content: Allowed content types (``backup`` for PBS)
         present: Whether the storage should exist (True) or not (False)
     """
@@ -383,18 +394,21 @@ def storage(
     storage_info = storages.get(storage_id) if storages else None
     is_present = storage_info is not None
 
-    if not present and is_present:
-        yield StringCommand("pvesm", "remove", QuoteString(storage_id))
-    elif present and not is_present:
-        yield StringCommand(
+    def add_command() -> StringCommand:
+        return StringCommand(
             "pvesm", "add", QuoteString(storage_type), QuoteString(storage_id),
             "--server", QuoteString(server),
             "--datastore", QuoteString(datastore),
             "--username", QuoteString(username),
             "--password", QuoteString(HiddenValue(str(password))),
-            "--fingerprint", QuoteString(fingerprint),
+            *(("--fingerprint", QuoteString(fingerprint)) if fingerprint else ()),
             "--content", QuoteString(content),
         )
+
+    if not present and is_present:
+        yield StringCommand("pvesm", "remove", QuoteString(storage_id))
+    elif present and not is_present:
+        yield add_command()
     elif present and is_present:
         # Reconcile non-secret fields; password is not diffable (see docstring).
         desired = {
@@ -408,9 +422,22 @@ def storage(
         if not changed:
             host.noop(f"Storage '{storage_id}' already exists with the same configuration.")
             return
+        if any(key in FIXED_STORAGE_FIELDS for key in changed):
+            # `pvesm set` rejects these ("can't change value of fixed parameter"),
+            # so converge by re-creating the storage. Removing a storage only
+            # deregisters it from PVE -- the backups it points at are untouched.
+            yield StringCommand("pvesm", "remove", QuoteString(storage_id))
+            yield add_command()
+            return
         cmd: list[str | QuoteString] = ["pvesm", "set", QuoteString(storage_id)]
+        # A field cleared to None is unset with --delete; passing an empty value
+        # would leave the old one in place.
+        cleared = sorted(key for key, value in changed.items() if value is None)
         for key, value in changed.items():
-            cmd.extend([f"--{key}", QuoteString(value)])
+            if value is not None:
+                cmd.extend([f"--{key}", QuoteString(value)])
+        if cleared:
+            cmd.extend(["--delete", QuoteString(",".join(cleared))])
         yield StringCommand(*cmd)
     else:
         host.noop(f"Storage '{storage_id}' does not exist and 'present' is False.")

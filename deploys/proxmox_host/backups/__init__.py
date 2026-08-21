@@ -12,11 +12,10 @@ def configure_backups():
         name="Register the PBS datastore as PVE storage",
         storage_id=host.data.pbs_backup_storage_id,
         storage_type="pbs",
-        server=host.data.pbs_ip,
+        server=host.data.pbs_backup_server,
         datastore=host.data.pbs_backup_datastore,
         username=host.data.pbs_backup_token_id,
         password=str(secrets.token_secret),
-        fingerprint=host.data.pbs_fingerprint,
         _sudo=True,
     )
     pve.backup_job(

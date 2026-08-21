@@ -1,0 +1,29 @@
+{
+  "args": [
+    "pbs",
+    "pbs",
+    "pbs.dv.zone",
+    "synology",
+    "pve@pbs!backup",
+    "s3cr3t"
+  ],
+  "kwargs": {
+    "present": true
+  },
+  "facts": {
+    "pve.PVEStorages": {
+      "pbs": {
+        "storage": "pbs",
+        "type": "pbs",
+        "content": "backup",
+        "server": "pbs.dv.zone",
+        "datastore": "synology",
+        "username": "pve@pbs!backup",
+        "fingerprint": null,
+        "disabled": false
+      }
+    }
+  },
+  "commands": [],
+  "noop_description": "Storage 'pbs' already exists with the same configuration."
+}
