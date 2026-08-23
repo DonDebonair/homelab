@@ -23,7 +23,8 @@ PALSERVER_SH = f"{SERVER_DIR}/PalServer.sh"
 # Where the server reads its runtime configuration. The engine generates this on first boot by
 # copying DefaultPalWorldSettings.ini; we write it ourselves instead, so the settings are
 # declarative rather than whatever the last person edited by hand.
-CONFIG_DIR = f"{SERVER_DIR}/Pal/Saved/Config/LinuxServer"
+SAVED_DIR = f"{SERVER_DIR}/Pal/Saved"
+CONFIG_DIR = f"{SAVED_DIR}/Config/LinuxServer"
 SETTINGS_FILE = f"{CONFIG_DIR}/PalWorldSettings.ini"
 
 RCON_SCRIPT = f"{BIN_DIR}/palworld-rcon"

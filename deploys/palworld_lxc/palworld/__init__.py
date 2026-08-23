@@ -7,8 +7,9 @@ from pyinfra.operations import apt, files, server, systemd
 
 from deploys.palworld_lxc.palworld import secrets
 from deploys.palworld_lxc.palworld.vars import (
-    BIN_DIR, CONFIG_DIR, HOME_DIR, PALSERVER_SH, PALWORLD_APP_ID, RCON_SCRIPT, SERVER_DIR,
-    SERVICE_GROUP, SERVICE_USER, SETTINGS_FILE, STEAMCMD_DIR, STEAMCMD_SH, STEAMCMD_TARBALL,
+    BIN_DIR, CONFIG_DIR, HOME_DIR, PALSERVER_SH, PALWORLD_APP_ID, RCON_SCRIPT, SAVED_DIR,
+    SERVER_DIR, SERVICE_GROUP, SERVICE_USER, SETTINGS_FILE, STEAMCMD_DIR, STEAMCMD_SH,
+    STEAMCMD_TARBALL,
 )
 
 templates_dir = Path(__file__).resolve().parent / "templates"
@@ -67,7 +68,18 @@ def setup_palworld_server():
         create_home=True,
         _sudo=True,
     )
-    for directory in (HOME_DIR, STEAMCMD_DIR, SERVER_DIR, BIN_DIR, CONFIG_DIR):
+    # Every level of the Pal/Saved chain is listed explicitly rather than relying on the leaf to
+    # pull its parents into being. files.directory shells out to `mkdir -p`, which creates missing
+    # *parents* as root and applies user/group only to the final component -- so creating just
+    # CONFIG_DIR leaves Pal/Saved owned by root. The server can still write its config (the leaf is
+    # its own), but the engine creates SaveGames/ and Logs/ inside Saved/ at runtime, and it cannot
+    # mkdir in a root-owned directory. The failure is silent and vicious: the server starts, binds
+    # the port, answers RCON and completes the UDP handshake, but never creates a world, so clients
+    # sit on an endless black screen and nothing whatsoever appears in the server log.
+    for directory in (
+        HOME_DIR, STEAMCMD_DIR, SERVER_DIR, BIN_DIR,
+        f"{SERVER_DIR}/Pal", SAVED_DIR, f"{SAVED_DIR}/Config", CONFIG_DIR,
+    ):
         files.directory(
             name=f"Ensure {directory} exists",
             path=directory,
