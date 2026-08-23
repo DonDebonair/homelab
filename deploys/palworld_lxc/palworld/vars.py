@@ -27,4 +27,9 @@ SAVED_DIR = f"{SERVER_DIR}/Pal/Saved"
 CONFIG_DIR = f"{SAVED_DIR}/Config/LinuxServer"
 SETTINGS_FILE = f"{CONFIG_DIR}/PalWorldSettings.ini"
 
+# The engine snapshots the world into <world>/backup/world/<timestamp>/ roughly every 30s while
+# anyone is online, and never prunes them. See the prune timer in this package.
+SAVEGAMES_DIR = f"{SAVED_DIR}/SaveGames"
+
 RCON_SCRIPT = f"{BIN_DIR}/palworld-rcon"
+PRUNE_SCRIPT = f"{BIN_DIR}/palworld-prune-saves"

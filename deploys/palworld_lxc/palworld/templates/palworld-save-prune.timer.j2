@@ -1,0 +1,12 @@
+[Unit]
+Description=Prune old Palworld world-save snapshots
+
+[Timer]
+OnCalendar={{ on_calendar }}
+# Persistent so a host that was down over a scheduled run still tidies up on the next boot --
+# unlike the restart timer, catching up here is useful rather than pointless.
+Persistent=true
+RandomizedDelaySec=2m
+
+[Install]
+WantedBy=timers.target

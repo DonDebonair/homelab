@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""
+Prune the Palworld engine's own world-save snapshots. MANAGED BY PYINFRA.
+
+The server writes a complete snapshot into <world>/backup/world/<timestamp>/ roughly every 30
+seconds while anyone is online, and never deletes one. On a fresh world that is invisible; on a
+developed one Level.sav is tens of megabytes and the directory grows by gigabytes per day of play.
+
+Keeps the newest KEEP snapshots per world and removes the rest. Snapshot directories are named
+`YYYY.MM.DD-HH.MM.SS`, so a lexical sort is a chronological sort.
+"""
+
+import shutil
+import sys
+from pathlib import Path
+
+SAVEGAMES = Path("{{ savegames_dir }}")
+KEEP = {{ keep }}
+
+
+def main() -> None:
+    if KEEP < 1:
+        sys.exit("refusing to run with keep < 1: that would delete every snapshot")
+    if not SAVEGAMES.is_dir():
+        print(f"{SAVEGAMES} does not exist yet, nothing to prune")
+        return
+
+    removed_total = 0
+    for world_backup in sorted(SAVEGAMES.glob("**/backup/world")):
+        if not world_backup.is_dir():
+            continue
+        snapshots = sorted(
+            (path for path in world_backup.iterdir() if path.is_dir()), key=lambda path: path.name
+        )
+        stale = snapshots[:-KEEP]
+        for path in stale:
+            shutil.rmtree(path)
+        removed_total += len(stale)
+        print(f"{world_backup}: {len(snapshots)} snapshot(s), removed {len(stale)}, "
+              f"kept {len(snapshots) - len(stale)}")
+
+    print(f"pruned {removed_total} snapshot(s), keeping the newest {KEEP} per world")
+
+
+if __name__ == "__main__":
+    main()

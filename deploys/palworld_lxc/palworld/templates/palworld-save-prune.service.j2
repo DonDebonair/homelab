@@ -1,0 +1,10 @@
+[Unit]
+Description=Prune old Palworld world-save snapshots
+
+[Service]
+Type=oneshot
+# Runs as the service account, not root: it only ever deletes inside the server's own save tree,
+# and nothing here needs more than the account that wrote those files in the first place.
+User={{ service_user }}
+Group={{ service_group }}
+ExecStart={{ prune_script }}

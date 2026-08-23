@@ -7,9 +7,9 @@ from pyinfra.operations import apt, files, server, systemd
 
 from deploys.palworld_lxc.palworld import secrets
 from deploys.palworld_lxc.palworld.vars import (
-    BIN_DIR, CONFIG_DIR, HOME_DIR, PALSERVER_SH, PALWORLD_APP_ID, RCON_SCRIPT, SAVED_DIR,
-    SERVER_DIR, SERVICE_GROUP, SERVICE_USER, SETTINGS_FILE, STEAMCMD_DIR, STEAMCMD_SH,
-    STEAMCMD_TARBALL,
+    BIN_DIR, CONFIG_DIR, HOME_DIR, PALSERVER_SH, PALWORLD_APP_ID, PRUNE_SCRIPT, RCON_SCRIPT,
+    SAVED_DIR, SAVEGAMES_DIR, SERVER_DIR, SERVICE_GROUP, SERVICE_USER, SETTINGS_FILE,
+    STEAMCMD_DIR, STEAMCMD_SH, STEAMCMD_TARBALL,
 )
 
 templates_dir = Path(__file__).resolve().parent / "templates"
@@ -140,6 +140,17 @@ def setup_palworld_server():
         mode="750",
         _sudo=True,
     )
+    prune = files.template(
+        name="Install the palworld-prune-saves helper",
+        src=str(templates_dir / "palworld-prune-saves.j2"),
+        dest=PRUNE_SCRIPT,
+        savegames_dir=SAVEGAMES_DIR,
+        keep=host.data.palworld_save_backup_keep,
+        user=SERVICE_USER,
+        group=SERVICE_GROUP,
+        mode="750",
+        _sudo=True,
+    )
     settings = files.template(
         name="Configure the Palworld server",
         src=str(templates_dir / "PalWorldSettings.ini.j2"),
@@ -186,14 +197,34 @@ def setup_palworld_server():
         on_calendar=host.data.palworld_restart_on_calendar,
         _sudo=True,
     )
-    units_changed = (
+    prune_service = files.template(
+        name="Install the palworld-save-prune systemd unit",
+        src=str(templates_dir / "palworld-save-prune.service.j2"),
+        dest="/etc/systemd/system/palworld-save-prune.service",
+        service_user=SERVICE_USER,
+        service_group=SERVICE_GROUP,
+        prune_script=PRUNE_SCRIPT,
+        _sudo=True,
+    )
+    prune_timer = files.template(
+        name="Install the palworld-save-prune systemd timer",
+        src=str(templates_dir / "palworld-save-prune.timer.j2"),
+        dest="/etc/systemd/system/palworld-save-prune.timer",
+        on_calendar=host.data.palworld_save_prune_on_calendar,
+        _sudo=True,
+    )
+    # Two different questions. Any unit file changing needs a daemon-reload; only the *game's* own
+    # unit changing justifies bouncing a live server. Folding the timers into the restart condition
+    # would mean adding or retuning a housekeeping timer kicks everyone out of the world.
+    any_unit_changed = (
         lambda: service.did_change() or restart_service.did_change() or restart_timer.did_change()
+        or prune_service.did_change() or prune_timer.did_change()
     )
     server.shell(
         name="Reload systemd after writing palworld units",
         commands=["systemctl daemon-reload"],
         _sudo=True,
-        _if=units_changed,
+        _if=any_unit_changed,
     )
     systemd.service(
         name="Enable and start the Palworld server",
@@ -209,11 +240,20 @@ def setup_palworld_server():
         name="Restart the Palworld server to apply configuration changes",
         commands=["systemctl restart palworld.service"],
         _sudo=True,
-        _if=lambda: settings.did_change() or rcon.did_change() or units_changed(),
+        # Only the settings the game reads at startup, the ExecStop helper, and the game's own unit.
+        # Not the prune script or the timers -- none of those are read by the running server.
+        _if=lambda: settings.did_change() or rcon.did_change() or service.did_change(),
     )
     systemd.service(
         name="Enable the nightly Palworld restart timer",
         service="palworld-restart.timer",
+        running=True,
+        enabled=True,
+        _sudo=True,
+    )
+    systemd.service(
+        name="Enable the Palworld save-prune timer",
+        service="palworld-save-prune.timer",
         running=True,
         enabled=True,
         _sudo=True,

@@ -14,3 +14,15 @@ palworld_rcon_port = 25575
 # The server leaks memory for as long as a world stays loaded, so it gets restarted nightly.
 # Zone is explicit because the container's clock is UTC; systemd >= 252 accepts it inline.
 palworld_restart_on_calendar = "*-*-* 05:00:00 Europe/Amsterdam"
+
+# The engine writes a full world snapshot every ~30s while a player is online and never removes
+# one, so the save directory grows without bound. Level.sav is tens of KB for a fresh world but
+# routinely 20-60 MB once bases are built, which at ~120 snapshots per hour of play is GB/day.
+#
+# Keeping 48 bounds the worst case at roughly 48 x 60 MB ~= 3 GB on a 32 GB rootfs, and still
+# leaves ~25 minutes of play to roll back through. Anything longer-horizon is what the nightly
+# vzdump to PBS is for -- these snapshots are for "undo the last few minutes", not for archival.
+palworld_save_backup_keep = 48
+# Every 15 minutes rather than hourly: the prune is a directory listing, and a longer interval
+# just means more snapshots piled up between runs.
+palworld_save_prune_on_calendar = "*:0/15"
