@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""
+Minimal Source-RCON client for the Palworld dedicated server. MANAGED BY PYINFRA.
+
+Exists because the server does not persist the world on SIGTERM: a plain `systemctl stop`
+throws away everything since the last autosave. `--graceful-stop` issues Save followed by
+Shutdown over RCON, so a restart costs nothing.
+
+The admin password is read out of PalWorldSettings.ini rather than kept in a second file --
+Palworld uses AdminPassword as the RCON password, so there is exactly one copy of the secret
+on this host.
+
+Usage:
+  palworld-rcon Info                      run one RCON command, print the reply
+  palworld-rcon ShowPlayers
+  palworld-rcon --graceful-stop [SECONDS] save, announce, shut down, wait for exit
+"""
+
+import re
+import socket
+import struct
+import sys
+import time
+
+SETTINGS = "{{ settings_file }}"
+HOST = "127.0.0.1"
+PORT = {{ rcon_port }}
+
+SERVERDATA_AUTH = 3
+SERVERDATA_AUTH_RESPONSE = 2
+SERVERDATA_EXECCOMMAND = 2
+
+
+def admin_password() -> str:
+    match = re.search(r'AdminPassword="([^"]*)"', open(SETTINGS).read())
+    if not match or not match.group(1):
+        sys.exit(f"no AdminPassword set in {SETTINGS}")
+    return match.group(1)
+
+
+def _recv_exactly(sock: socket.socket, count: int) -> bytes:
+    buf = b""
+    while len(buf) < count:
+        chunk = sock.recv(count - len(buf))
+        if not chunk:
+            raise ConnectionError("connection closed mid-packet")
+        buf += chunk
+    return buf
+
+
+def _send(sock: socket.socket, req_id: int, packet_type: int, body: str) -> None:
+    payload = struct.pack("<ii", req_id, packet_type) + body.encode("utf-8") + b"\x00\x00"
+    sock.sendall(struct.pack("<i", len(payload)) + payload)
+
+
+def _receive(sock: socket.socket) -> tuple[int, int, str]:
+    size = struct.unpack("<i", _recv_exactly(sock, 4))[0]
+    data = _recv_exactly(sock, size)
+    req_id, packet_type = struct.unpack("<ii", data[:8])
+    return req_id, packet_type, data[8:-2].decode("utf-8", "replace")
+
+
+class Rcon:
+    def __init__(self, timeout: float = 10.0):
+        self.sock = socket.create_connection((HOST, PORT), timeout=timeout)
+        _send(self.sock, 1, SERVERDATA_AUTH, admin_password())
+        # Some servers emit an empty RESPONSE_VALUE before the auth result; read until the
+        # auth response arrives. A request id of -1 means the password was rejected.
+        while True:
+            req_id, packet_type, _ = _receive(self.sock)
+            if packet_type == SERVERDATA_AUTH_RESPONSE:
+                if req_id == -1:
+                    raise PermissionError("RCON authentication failed")
+                return
+
+    def command(self, text: str) -> str:
+        _send(self.sock, 2, SERVERDATA_EXECCOMMAND, text)
+        return _receive(self.sock)[2]
+
+    def close(self) -> None:
+        self.sock.close()
+
+
+def port_is_open() -> bool:
+    try:
+        socket.create_connection((HOST, PORT), timeout=2).close()
+        return True
+    except OSError:
+        return False
+
+
+def graceful_stop(seconds: int) -> None:
+    rcon = Rcon()
+    print(rcon.command("Save").strip())
+    # Palworld splits RCON arguments on spaces, so the shutdown message must be a single
+    # token -- underscores are the community convention and render fine in the client.
+    print(rcon.command(f"Shutdown {seconds} Server_restarting_now").strip())
+    rcon.close()
+    deadline = time.monotonic() + seconds + 60
+    while time.monotonic() < deadline:
+        if not port_is_open():
+            print("server has shut down")
+            return
+        time.sleep(2)
+    print("server still up after shutdown window; leaving it to systemd", file=sys.stderr)
+    sys.exit(1)
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    if not args:
+        sys.exit(__doc__)
+    if args[0] == "--graceful-stop":
+        graceful_stop(int(args[1]) if len(args) > 1 else 15)
+        return
+    rcon = Rcon()
+    print(rcon.command(" ".join(args)).strip())
+    rcon.close()
+
+
+if __name__ == "__main__":
+    main()

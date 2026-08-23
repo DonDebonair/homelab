@@ -22,6 +22,9 @@ scrape_configs:
       - targets: ['[[ host.data.postgres_lxc_ip ]]:9100']
         labels:
           instance: postgres_lxc
+      - targets: ['[[ host.data.palworld_lxc_ip ]]:9100']
+        labels:
+          instance: palworld_lxc
   - job_name: 'snmp'
     scrape_interval: 5s
     static_configs:

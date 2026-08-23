@@ -1,0 +1,13 @@
+[Unit]
+Description=Nightly restart of the Palworld dedicated server
+
+[Timer]
+# The container's clock is UTC, so the zone is named explicitly -- otherwise "05:00" drifts an
+# hour against local time every time DST flips, and lands mid-evening for nobody's benefit.
+OnCalendar={{ on_calendar }}
+# No Persistent=true: a restart that was missed while the host was down is pointless, the
+# server just started anyway.
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

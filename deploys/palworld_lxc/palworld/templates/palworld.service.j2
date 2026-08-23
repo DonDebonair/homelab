@@ -1,0 +1,44 @@
+[Unit]
+Description=Palworld dedicated server
+Documentation=https://docs.palworldgame.com/settings-and-operation/arguments/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ service_user }}
+Group={{ service_group }}
+WorkingDirectory={{ server_dir }}
+
+# Keep the game current. Steam ships server patches often and clients auto-update, so an
+# out-of-date server silently stops accepting connections ("version mismatch"). The leading
+# '-' means a Steam outage delays nobody: the server still starts on the build it has.
+ExecStartPre=-{{ steamcmd_sh }} +force_install_dir {{ server_dir }} +login anonymous +app_update {{ app_id }} +quit
+
+# Upstream's PalServer.sh wrapper, not the binary directly: it copies steamclient.so into
+# Pal/Binaries/Linux on first run, and staying on the supported entrypoint means a future
+# update to that setup logic comes along for free. It does not exec, so MainPID is the shell;
+# systemd's default KillMode=control-group still reaches the game underneath it.
+#
+# -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS are Pocketpair's documented
+# multi-core options. NumberOfWorkerThreadsServer is deliberately left unset: the docs say
+# leaving it alone performs better on v1.0+.
+ExecStart={{ server_dir }}/PalServer.sh -port={{ game_port }} -players={{ max_players }} -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
+
+# The server does not save on SIGTERM, so stop it over RCON first. '-' so that a broken RCON
+# still falls through to systemd's own kill rather than wedging the unit in 'deactivating'.
+ExecStop=-{{ rcon_script }} --graceful-stop 15
+TimeoutStopSec=180
+
+Restart=on-failure
+RestartSec=15
+
+# The world lives under {{ server_dir }}/Pal/Saved; everything else on the host is off limits.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths={{ home_dir }}
+
+[Install]
+WantedBy=multi-user.target

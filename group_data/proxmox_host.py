@@ -20,8 +20,11 @@ pbs_backup_datastore = "synology"
 pbs_backup_token_id = "pve@pbs!backup"
 
 postgres_lxc_vmid = 100  # created by deploys/proxmox_host/lxcs
+palworld_lxc_vmid = 101  # created by deploys/proxmox_host/lxcs
 docker_vm_vmid = 200  # the docker_vm is created manually in PVE
-backup_vmids = [postgres_lxc_vmid, docker_vm_vmid]
+# The Palworld container is in here for its save data: the world is the only thing
+# on it that can't be re-downloaded from Steam.
+backup_vmids = [postgres_lxc_vmid, palworld_lxc_vmid, docker_vm_vmid]
 backup_schedule = "02:00"
 backup_mode = "snapshot"
 backup_prune = "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=2"

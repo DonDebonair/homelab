@@ -12,6 +12,7 @@ from deploys.nas import docker_setup as nas_docker_setup, setup_docker_apps as n
 from deploys.proxmox_host import prepare_proxmox_host, users_and_groups, setup_lxc_containers, setup_networking, \
     setup_vms, configure_backups
 from deploys.postgres_lxc import users as postgres_users, setup_postgres, databases_and_users
+from deploys.palworld_lxc import users as palworld_users, setup_palworld_server
 from deploys.pbs_vm import prepare_pbs, users as pbs_vm_users, configure_datastore, configure_backup_access
 
 
@@ -37,6 +38,9 @@ if "proxmox_host" in host.groups:
 if "postgres_lxc" in host.groups:
     postgres_users()
 
+if "palworld_lxc" in host.groups:
+    palworld_users()
+
 if "docker_vm" in host.groups:
     docker_vm_users()
 
@@ -54,6 +58,10 @@ if "postgres_lxc" in host.groups:
     setup_postgres()
     databases_and_users()
     setup_node_exporter()
+
+if "palworld_lxc" in host.groups:
+    setup_node_exporter()
+    setup_palworld_server()
 
 if "docker_vm" in host.groups:
     docker_setup()

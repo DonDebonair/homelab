@@ -164,6 +164,13 @@ Status legend:
   - Repo: https://github.com/FuzzyGrim/Yamtrack
   - Website: https://fuzzygrim.github.io/Yamtrack/
 
+## Game Servers
+
+- ✅ **Palworld Dedicated Server** — Official dedicated server for Palworld, so a private world stays up for friends to join at any time (Linux/SteamCMD; commonly run via the community `palworld-server-docker` image).
+  - Docs: https://docs.palworldgame.com/getting-started/about-server
+  - Docker image: https://github.com/thijsvanloef/palworld-server-docker
+  - Live on its own LXC 101 (`palworld`, 192.168.1.42), v1.0.3.101283 under systemd, password-protected and unlisted.
+
 ## Photos
 
 - ⬜ **Immich** — High-performance self-hosted photo and video management solution (Google Photos alternative) with mobile apps and ML features.

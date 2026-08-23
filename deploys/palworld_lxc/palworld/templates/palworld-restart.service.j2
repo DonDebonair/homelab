@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly restart of the Palworld dedicated server
+Documentation=https://docs.palworldgame.com/getting-started/requirements/
+
+[Service]
+Type=oneshot
+# The server process leaks memory for as long as a world stays loaded and only gives it back
+# on restart, so this is maintenance, not a workaround for a crash. Going through systemctl
+# means the unit's RCON ExecStop runs, i.e. the world is saved and players get a warning.
+ExecStart=/usr/bin/systemctl restart palworld.service
