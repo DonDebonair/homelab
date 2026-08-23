@@ -30,9 +30,14 @@ def setup_lxc_containers():
         swap=2048,
         cores=2,
         networks=[
-            # ip6 is static because setting it as dhcp causes the container to loose its ipv4 address after while
+            # ip6 is manual (i.e. no autoconfiguration) because setting it to dhcp causes the container
+            # to loose its ipv4 address after a while
             # see: https://forum.proxmox.com/threads/debian-lxc-container-not-getting-an-ip.65719/
-            PVEContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="static", firewall=True)
+            # NB: this used to read ip6="static", which pct rejects ("value does not look like a valid
+            # ipv6 network configuration") -- it only accepts an address, auto, dhcp or manual. It went
+            # unnoticed because the op no-ops while the container exists; it would have failed the day
+            # this container had to be recreated.
+            PVEContainerNetworkInterface(name="eth0", bridge="vmbr0", ip="dhcp", ip6="manual", firewall=True)
         ],
         rootfs="vm-pool:8",
         features=PVEContainerFeatures(nesting=True),
