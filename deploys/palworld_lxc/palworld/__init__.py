@@ -182,6 +182,7 @@ def setup_palworld_server():
         app_id=PALWORLD_APP_ID,
         game_port=host.data.palworld_game_port,
         max_players=host.data.palworld_max_players,
+        community_server=host.data.palworld_community_server,
         _sudo=True,
     )
     restart_service = files.template(

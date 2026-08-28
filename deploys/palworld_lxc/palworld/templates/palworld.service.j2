@@ -23,7 +23,11 @@ ExecStartPre=-{{ steamcmd_sh }} +force_install_dir {{ server_dir }} +login anony
 # -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS are Pocketpair's documented
 # multi-core options. NumberOfWorkerThreadsServer is deliberately left unset: the docs say
 # leaving it alone performs better on v1.0+.
-ExecStart={{ server_dir }}/PalServer.sh -port={{ game_port }} -players={{ max_players }} -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
+#
+# -publiclobby lists the server in the in-game community browser. Consoles cannot connect by IP,
+# so without it a PS5 or Xbox player has no way in at all. publicip/publicport are left to
+# autodetection, which is what the docs recommend; set them only if the listing misbehaves.
+ExecStart={{ server_dir }}/PalServer.sh -port={{ game_port }} -players={{ max_players }}{% if community_server %} -publiclobby{% endif %} -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
 
 # The server does not save on SIGTERM, so stop it over RCON first. '-' so that a broken RCON
 # still falls through to systemd's own kill rather than wedging the unit in 'deactivating'.

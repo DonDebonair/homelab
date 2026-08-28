@@ -6,6 +6,13 @@ palworld_server_name = "Catgirl & Dandy's Palworld Server"
 palworld_server_description = "Private server - ask Daan for the password"
 palworld_max_players = 32
 
+# Publish the server in the in-game community browser (`-publiclobby`). This is not a nicety:
+# PS5 and Xbox clients have no direct-IP connect at all, so the community list is the *only* way a
+# console player can reach a dedicated server. The trade-off is that the server becomes publicly
+# visible and will attract join attempts from strangers -- ServerPassword is what actually gates
+# entry, so it must stay set. Console players search the list by the exact ServerName.
+palworld_community_server = True
+
 # UDP 8211 is the only port the router forwards; RCON is LAN-only (the server has no setting to
 # bind it to loopback, so it listens on all interfaces -- do not forward it).
 palworld_game_port = 8211
