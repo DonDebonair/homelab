@@ -35,7 +35,7 @@ def setup_loki_log_driver():
     """
     docker.plugin(
         name="Install Loki Docker log driver plugin",
-        plugin="grafana/loki-docker-driver:3.7.2-amd64",
+        plugin="grafana/loki-docker-driver:3.7.7-amd64",
         alias="loki",
         present=True,
         enabled=True,
