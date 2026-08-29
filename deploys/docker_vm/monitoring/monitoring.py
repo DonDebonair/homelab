@@ -25,7 +25,7 @@ apps = [
     ComposeApp(
         name="loki",
         image="grafana/loki",
-        version="3.7.6",
+        version="3.7.7",
         volumes=[
             # Old NAS chunks aren't migrated, but the logs accumulated here going
             # forward matter -> external=True keeps `down -v` from wiping them.
