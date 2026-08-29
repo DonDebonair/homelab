@@ -282,7 +282,7 @@ apps = [
         # Pin the exact version the NAS runs (was the floating :latest) so n8n's
         # startup DB migrations are a no-op against the carried-over DB. Bump as a
         # separate, isolated change afterwards.
-        version="2.36.3",
+        version="2.37.4",
         domain="n8n.dv.zone",
         volumes=[
             # The ~/.n8n dir. Beyond logs/custom-nodes, it holds `config` -- the
