@@ -157,7 +157,7 @@ apps = [
     ComposeApp(
         name="tautulli",
         image="tautulli/tautulli",
-        version="v2.17.2",
+        version="v2.18.1",
         domain="tautulli.dv.zone",
         volumes=[
             # tautulli.db holds all Plex watch history + stats -- irreplaceable
