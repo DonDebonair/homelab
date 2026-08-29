@@ -484,7 +484,7 @@ apps = [
         # `romm` in proxies/vars.py). The `full` image, not `-slim`: slim drops the bundled
         # EmulatorJS cores, and in-browser play is the point. See docs/plans/romm.md.
         image="rommapp/romm",
-        version="5.1.0",
+        version="5.2.0",
         domain="romm.dv.zone",
         volumes=[
             # resources/ (fetched covers, screenshots, manuals), assets/ (user saves, save
