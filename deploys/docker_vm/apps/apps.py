@@ -202,7 +202,7 @@ apps = [
         # (USE_CF_BYPASS=true), so unlike cwa-dl there is no cloudflarebypass
         # sidecar. Pinned stable; project is frozen as of May 2026.
         image="ghcr.io/calibrain/shelfmark",
-        version="v1.3.12",
+        version="v1.3.15",
         domain="shelfmark.dv.zone",
         volumes=[
             # App config + users + sources + the request queue + the OIDC
