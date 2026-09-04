@@ -30,7 +30,7 @@ apps = [
     ComposeApp(
         name="authelia",
         image="authelia/authelia",
-        version="4.39.20",
+        version="4.39.22",
         volumes=[
             BindMount(source="authelia/config", mount_path="/config"),
             NamedVolume(name="redis-data", mount_path="/data"),
