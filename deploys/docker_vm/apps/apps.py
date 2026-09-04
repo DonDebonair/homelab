@@ -464,7 +464,7 @@ apps = [
         # are deprecated. Uses the shared postgres_lxc; native OIDC against Authelia
         # (client `vikunja` in proxies/vars.py). LAN-only via caddy-internal.
         image="vikunja/vikunja",
-        version="2.5.0",
+        version="2.6.0",
         domain="vikunja.dv.zone",
         volumes=[
             # Task attachments + user avatars (files.basepath) -- high recovery cost, so
