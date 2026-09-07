@@ -74,7 +74,7 @@ apps = [
     ComposeApp(
         name="dozzle",
         image="amir20/dozzle",
-        version="v10.9.2",
+        version="v10.10.0",
         volumes=[DOCKER_SOCKET],
     ),
     ComposeApp(
