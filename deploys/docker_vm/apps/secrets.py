@@ -172,6 +172,13 @@ romm_igdb_client_secret = SecretString("op://Homelab/RomM secrets/IGDB/client se
 romm_steamgriddb_api_key = SecretString("op://Homelab/RomM secrets/SteamGridDB/api key")
 romm_retroachievements_api_key = SecretString("op://Homelab/RomM secrets/RetroAchievements/api key")
 
+# Homepage's native auth gate (Homepage >= 2.0). The OIDC secret is the plaintext behind the
+# `homepage` client's pbkdf2 hash in deploys/docker_vm/proxies/vars.py. `auth secret` signs and
+# encrypts the session cookie (>= 32 chars; `openssl rand -base64 32`) -- rotating it only logs
+# everyone out.
+homepage_oidc_client_secret = SecretString("op://Homelab/Homepage OIDC client/password")
+homepage_auth_secret = SecretString("op://Homelab/Homepage secrets/auth secret")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our

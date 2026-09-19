@@ -88,8 +88,9 @@ services:
       homepage.weight: 1030
       # Widget: project count + tasks due in 7d / overdue / in progress, plus the next 5 tasks.
       # homepage fetches this server-side from its own container, and both it and vikunja sit on
-      # caddy-internal with no dns: override on homepage -- so go container-direct (like the
-      # grafana/prometheus widgets) instead of back out through caddy over the LAN.
+      # caddy-internal (container names resolve via Docker's embedded DNS) -- so go
+      # container-direct (like the grafana/prometheus widgets) instead of back out through caddy
+      # over the LAN.
       homepage.widget.type: vikunja
       # version 2 selects the /api/v1/tasks endpoint (Vikunja >= 1.0.0-rc4); version 1 would
       # call the removed /api/v1/tasks/all and the widget would error.

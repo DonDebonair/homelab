@@ -75,7 +75,13 @@ apps = [
         name="dozzle",
         image="amir20/dozzle",
         version="v11.1.0",
-        volumes=[DOCKER_SOCKET],
+        volumes=[
+            DOCKER_SOCKET,
+            # Dozzle persists per-user settings (and, under simple/oidc auth, its session
+            # secret) to /data. Only UI preferences today -- cheap to lose -- so a
+            # project-scoped volume is enough.
+            NamedVolume(name="dozzle-data", mount_path="/data"),
+        ],
     ),
     ComposeApp(
         name="whoami",

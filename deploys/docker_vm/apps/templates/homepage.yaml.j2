@@ -4,8 +4,28 @@ services:
     container_name: homepage
     image: [[ app.image ]]:[[ app.version ]]
     volumes:[[ vol.service_volumes(app) ]]
+    # Pin the DNS upstream, same as romm/vikunja/affine/portainer: homepage does OIDC discovery
+    # server-side against auth.dv.zone, and without this the container snapshots whatever
+    # /etc/resolv.conf held at create time, which is racy and can leave login broken until a
+    # restart. Container names (the widgets' container-direct URLs) still resolve through
+    # Docker's embedded DNS, which forwards only non-container names here.
+    dns:
+      - [[ host.data.dns_ip ]]
     environment:
       HOMEPAGE_ALLOWED_HOSTS: [[ app.domain ]]
+      # Native auth gate via Authelia OIDC. Every page and /api route needs a session except
+      # /api/healthcheck. The callback is fixed at <external url>/api/auth/callback/homepage-oidc
+      # and must match the `homepage` client's redirect_uri in proxies/vars.py. Scopes default to
+      # `openid email profile`. AUTO_LOGIN skips the sign-in page and goes straight to Authelia;
+      # /auth/signin?autologin=0 is the way back to the login page.
+      HOMEPAGE_AUTH_ENABLED: "true"
+      HOMEPAGE_AUTH_SECRET: "[[ homepage_auth_secret ]]"
+      HOMEPAGE_EXTERNAL_URL: https://[[ app.domain ]]
+      HOMEPAGE_OIDC_ISSUER: https://auth.[[ host.data.domain ]]
+      HOMEPAGE_OIDC_CLIENT_ID: homepage
+      HOMEPAGE_OIDC_CLIENT_SECRET: "[[ homepage_oidc_client_secret ]]"
+      HOMEPAGE_OIDC_NAME: Authelia
+      HOMEPAGE_OIDC_AUTO_LOGIN: "true"
     networks:
       # On both proxy networks so its widgets/site-monitors can reach apps
       # exposed on either; discovery itself is via the docker socket.
@@ -14,7 +34,8 @@ services:
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 3000}}"
-      caddy_internal.import: secure *
+      # No `import secure`: homepage gates itself with native OIDC against Authelia, and a
+      # blanket forward-auth would double-gate and break the OAuth callback.
     expose:
       - 3000
     restart: unless-stopped
