@@ -179,6 +179,10 @@ romm_retroachievements_api_key = SecretString("op://Homelab/RomM secrets/RetroAc
 homepage_oidc_client_secret = SecretString("op://Homelab/Homepage OIDC client/password")
 homepage_auth_secret = SecretString("op://Homelab/Homepage secrets/auth secret")
 
+# Dozzle's OIDC secret: the plaintext behind the `dozzle` client's pbkdf2 hash in
+# deploys/docker_vm/proxies/vars.py.
+dozzle_oidc_client_secret = SecretString("op://Homelab/Dozzle OIDC client/password")
+
 SecretString.populate_cache_sync()
 
 # AFFiNE reaches Postgres through prisma, which parses DATABASE_URL strictly as a URL. Our

@@ -4,14 +4,34 @@ services:
     container_name: dozzle
     image: [[ app.image ]]:[[ app.version ]]
     volumes:[[ vol.service_volumes(app) ]]
+    # Pin the DNS upstream, same as homepage/romm/vikunja: Dozzle does OIDC discovery
+    # server-side against auth.dv.zone, and without this the container snapshots whatever
+    # /etc/resolv.conf held at create time, which is racy and can leave login broken until a
+    # restart.
+    dns:
+      - [[ host.data.dns_ip ]]
     networks:
       - caddy-internal
     environment:
-      DOZZLE_AUTH_PROVIDER: forward-proxy
+      # Native OIDC against Authelia. Every user comes from the token (no users.yml); roles
+      # come from the custom `dozzle_roles` claim, which Authelia only releases when the
+      # `dozzle_roles` scope is requested -- hence OIDC_SCOPES (added on top of the fixed
+      # openid/profile/email). The callback is fixed at /api/auth/callback and must match the
+      # `dozzle` client's redirect_uri in proxies/vars.py.
+      DOZZLE_AUTH_PROVIDER: oidc
+      DOZZLE_AUTH_OIDC_ISSUER: https://auth.[[ host.data.domain ]]
+      DOZZLE_AUTH_OIDC_CLIENT_ID: dozzle
+      DOZZLE_AUTH_OIDC_CLIENT_SECRET: "[[ dozzle_oidc_client_secret ]]"
+      DOZZLE_AUTH_OIDC_NAME: Authelia
+      DOZZLE_AUTH_OIDC_SCOPES: dozzle_roles
+      # Authelia's discovery document has no end_session_endpoint, so point logout at it
+      # explicitly (same as RomM); signing out of Dozzle ends the Authelia session too.
+      DOZZLE_AUTH_LOGOUT_URL: https://auth.[[ host.data.domain ]]/logout
     labels:
       caddy_internal: dozzle.[[ host.data.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 8080}}"
-      caddy_internal.import: secure *
+      # No `import secure`: Dozzle gates itself with native OIDC against Authelia, and a
+      # blanket forward-auth would double-gate and break the OAuth callback.
       homepage.group: Admin
       homepage.name: Dozzle
       homepage.icon: dozzle

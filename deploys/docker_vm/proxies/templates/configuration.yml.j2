@@ -71,6 +71,15 @@ notifier:
     username: [[ authelia_smtp_username ]]
     sender: Authelia <authelia@dv.zone>
 
+# Derived user attributes, for custom OIDC claims.
+definitions:
+  user_attributes:
+    # Dozzle's oidc provider refuses a login without a roles claim. Every Authelia user gets
+    # full access -- the same as Dozzle's old forward-proxy setup, where a missing Remote-Roles
+    # header meant `all` -- so this is a constant rather than a group check.
+    dozzle_roles:
+      expression: '["all"]'
+
 identity_providers:
   oidc:
     jwks:
@@ -82,6 +91,15 @@ identity_providers:
     claims_policies:
       default:
         id_token: ['groups', 'email', 'email_verified', 'preferred_username', 'name']
+      # Dozzle: releases the custom `dozzle_roles` claim, which it only gets by requesting the
+      # `dozzle_roles` scope below (DOZZLE_AUTH_OIDC_SCOPES).
+      dozzle:
+        id_token: ['groups', 'email', 'email_verified', 'preferred_username', 'name', 'dozzle_roles']
+        custom_claims:
+          dozzle_roles: {}
+    scopes:
+      dozzle_roles:
+        claims: ['dozzle_roles']
     clients:
 [%- for c in oidc_clients %]
       - client_id: [[ c.id ]]

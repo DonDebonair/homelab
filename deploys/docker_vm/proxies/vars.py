@@ -174,8 +174,8 @@ oidc_clients = [
         "secret_hash": "$pbkdf2-sha512$310000$4DwHIOQ8x7i31vpfi9HaGw$ILTP/E6EmCL1L2pVMkPjhOgklNKQ.8zUpZsTcQzDwLujoB.6SItNGlMUXe/5KpnUzc6vurRruIq9HeF48RBBUg",
         "policy": "two_factor",
         "redirect_uris": ["https://dozzle.dv.zone/api/auth/callback"],
-        "scopes": ["openid", "groups", "email", "profile"],
+        "scopes": ["openid", "groups", "email", "profile", "dozzle_roles"],
         "auth_method": "client_secret_basic",
-        "claims_policy": "default",
+        "claims_policy": "dozzle",
     },
 ]

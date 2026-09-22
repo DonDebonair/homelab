@@ -77,9 +77,9 @@ apps = [
         version="v11.1.1",
         volumes=[
             DOCKER_SOCKET,
-            # Dozzle persists per-user settings (and, under simple/oidc auth, its session
-            # secret) to /data. Only UI preferences today -- cheap to lose -- so a
-            # project-scoped volume is enough.
+            # Required under oidc auth: Dozzle keeps its session-signing secret, each
+            # session's ID token (for logout) and per-user settings in /data. Losing it only
+            # signs everyone out and resets UI preferences, so a project-scoped volume is enough.
             NamedVolume(name="dozzle-data", mount_path="/data"),
         ],
     ),
