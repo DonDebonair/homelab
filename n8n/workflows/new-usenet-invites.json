@@ -1,0 +1,171 @@
+{
+  "active": false,
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Pushover",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Reddit": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Filter",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Reddit",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "sbXYZ6UFMaRYclaE",
+  "name": "New Usenet Invites",
+  "nodes": [
+    {
+      "id": "00757584-98f3-49a9-99b0-537ccb86bfe1",
+      "name": "Schedule Trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "position": [
+        720,
+        360
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "pTts3ZgFindOCphr",
+          "name": "Reddit account"
+        }
+      },
+      "id": "876ae5f4-6a6d-4e39-98dd-ca49c508caca",
+      "name": "Reddit",
+      "parameters": {
+        "filters": {
+          "category": "new"
+        },
+        "operation": "getAll",
+        "subreddit": "UsenetInvites"
+      },
+      "position": [
+        940,
+        360
+      ],
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1
+    },
+    {
+      "id": "f4f64ec2-5689-42fa-a79c-d31938af885a",
+      "name": "Filter",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "608af54f-fd18-4192-9316-7e976c2b4938",
+              "leftValue": "={{ $json['title'] }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "[O]"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        1160,
+        360
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2
+    },
+    {
+      "id": "2f230273-77ba-464d-8689-97dd6c2a3dea",
+      "name": "Code",
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst newRedditPostIDs = items.map(item => item.json['id']);\nconst oldRedditPostIDs = staticData.oldRedditPostIDs; \n\nif (!oldRedditPostIDs) {\n  staticData.oldRedditPostIDs = newRedditPostIDs;\n  return items;\n}\n\n\nconst actualNewRedditPostIDs = newRedditPostIDs.filter((id) => !oldRedditPostIDs.includes(id));\nconst actualNewRedditPosts = items.filter((data) => actualNewRedditPostIDs.includes(data.json['id']));\nstaticData.oldRedditPostIDs = [...actualNewRedditPostIDs, ...oldRedditPostIDs];\n\nreturn actualNewRedditPosts;"
+      },
+      "position": [
+        1380,
+        360
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "pushoverApi": {
+          "id": "5mhCckfCdzSLL9hO",
+          "name": "Pushover account"
+        }
+      },
+      "id": "e882e968-7cdb-4520-832c-c3f445855be0",
+      "name": "Pushover",
+      "parameters": {
+        "additionalFields": {
+          "title": "={{ $json.title }}",
+          "url": "={{ $json.url }}"
+        },
+        "message": "=New invite offer!",
+        "priority": 1,
+        "userKey": "={{ $env.PUSHOVER_USER_KEY }}"
+      },
+      "position": [
+        1600,
+        360
+      ],
+      "type": "n8n-nodes-base.pushover",
+      "typeVersion": 1
+    }
+  ],
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": []
+}

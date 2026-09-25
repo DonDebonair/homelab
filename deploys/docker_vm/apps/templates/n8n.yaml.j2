@@ -18,6 +18,11 @@ services:
       # The encryption key is NOT set here on purpose -- n8n reads it from the
       # migrated /home/node/.n8n/config so stored credentials stay decryptable.
       WEBHOOK_URL: https://[[ app.domain ]]/
+      # Workflows read per-instance values (e.g. the Pushover user key) via $env so
+      # they never land in the workflow JSON exported to git. n8n 2.x blocks $env
+      # by default; this is a single-user instance, so allow it.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      PUSHOVER_USER_KEY: [[ n8n_pushover_user_key ]]
     labels:
       caddy_internal: [[ app.domain ]]
       caddy_internal.reverse_proxy: "{{upstreams 5678}}"

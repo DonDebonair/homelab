@@ -1,0 +1,62 @@
+{
+  "active": true,
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Pushover",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "rfTRZLNxLOTMDLeE",
+  "name": "Error Notifier",
+  "nodes": [
+    {
+      "id": "e1",
+      "name": "Error Trigger",
+      "parameters": {},
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "pushoverApi": {
+          "id": "5mhCckfCdzSLL9hO",
+          "name": "Pushover account"
+        }
+      },
+      "id": "e2",
+      "name": "Pushover",
+      "parameters": {
+        "additionalFields": {
+          "title": "=n8n: {{ $json.workflow.name }} failed",
+          "url": "={{ $json.execution?.id ? `https://n8n.dv.zone/workflow/${$json.workflow.id}/executions/${$json.execution.id}` : `https://n8n.dv.zone/workflow/${$json.workflow.id}` }}",
+          "url_title": "Open in n8n"
+        },
+        "message": "={{ $json.execution ? `Node \"${$json.execution.lastNodeExecuted}\" failed: ${$json.execution.error?.message ?? 'unknown error'}` : `Trigger failed: ${$json.trigger?.error?.message ?? 'unknown error'}` }}",
+        "priority": 1,
+        "userKey": "={{ $env.PUSHOVER_USER_KEY }}"
+      },
+      "position": [
+        220,
+        0
+      ],
+      "type": "n8n-nodes-base.pushover",
+      "typeVersion": 1
+    }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Amsterdam"
+  },
+  "tags": []
+}

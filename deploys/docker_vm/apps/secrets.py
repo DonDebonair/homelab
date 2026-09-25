@@ -10,6 +10,9 @@ forgejo_db_password = SecretString("op://Homelab/PostgreSQL Forgejo user/passwor
 # n8n DB user on the postgres_lxc. Same ref the lxc side provisions the user with
 # (deploys/postgres_lxc/databases/secrets.py) so app and DB agree on the password.
 n8n_db_password = SecretString("op://Homelab/PostgreSQL n8n user/password")
+# Exposed to workflows as $env.PUSHOVER_USER_KEY so the key stays out of the
+# workflow JSON exported to git (cmd.py n8n export).
+n8n_pushover_user_key = SecretString("op://Homelab/n8n secrets/pushover user key")
 
 # nocodb DB user on the postgres_lxc (same ref the lxc side provisions it with).
 nocodb_db_password = SecretString("op://Homelab/PostgreSQL NocoDB user/password")

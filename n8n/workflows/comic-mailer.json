@@ -1,0 +1,334 @@
+{
+  "active": true,
+  "connections": {
+    "Download Image": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Email",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch Comic Page": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Penny Arcade: Extract Comic",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Only Comics": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fetch Comic Page",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Penny Arcade Feed": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Only Comics",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Penny Arcade: Extract Comic": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Image",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "xkcd Feed": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "xkcd: Extract Comic",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "xkcd: Extract Comic": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Image",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "id": "n6wY2CcrOHV5wUfN",
+  "name": "Comic Mailer",
+  "nodes": [
+    {
+      "id": "a1",
+      "name": "xkcd Feed",
+      "parameters": {
+        "feedUrl": "https://xkcd.com/rss.xml",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 30
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "a2",
+      "name": "xkcd: Extract Comic",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "x1",
+              "name": "source",
+              "type": "string",
+              "value": "xkcd"
+            },
+            {
+              "id": "x2",
+              "name": "title",
+              "type": "string",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "id": "x3",
+              "name": "link",
+              "type": "string",
+              "value": "={{ $json.link }}"
+            },
+            {
+              "id": "x4",
+              "name": "imageUrl",
+              "type": "string",
+              "value": "={{ $json.content.match(/src=\"([^\"]+)\"/)[1] }}"
+            },
+            {
+              "id": "x5",
+              "name": "caption",
+              "type": "string",
+              "value": "={{ ($json.content.match(/title=\"([^\"]*)\"/) || [])[1] || '' }}"
+            }
+          ]
+        },
+        "mode": "manual",
+        "options": {}
+      },
+      "position": [
+        660,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "b1",
+      "name": "Penny Arcade Feed",
+      "parameters": {
+        "feedUrl": "https://www.penny-arcade.com/feed",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 30
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        220
+      ],
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "b2",
+      "name": "Only Comics",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f1",
+              "leftValue": "={{ $json.link }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "/comic/"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        220,
+        220
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "b3",
+      "name": "Fetch Comic Page",
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "url": "={{ $json.link }}"
+      },
+      "position": [
+        440,
+        220
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "b4",
+      "name": "Penny Arcade: Extract Comic",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "source",
+              "type": "string",
+              "value": "Penny Arcade"
+            },
+            {
+              "id": "p2",
+              "name": "title",
+              "type": "string",
+              "value": "={{ $('Only Comics').item.json.title }}"
+            },
+            {
+              "id": "p3",
+              "name": "link",
+              "type": "string",
+              "value": "={{ $('Only Comics').item.json.link }}"
+            },
+            {
+              "id": "p4",
+              "name": "imageUrl",
+              "type": "string",
+              "value": "={{ $json.data.match(/property=\"og:image\" content=\"([^\"]+)\"/)[1] }}"
+            },
+            {
+              "id": "p5",
+              "name": "caption",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "mode": "manual",
+        "options": {}
+      },
+      "position": [
+        660,
+        220
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "c1",
+      "name": "Download Image",
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "outputPropertyName": "comic",
+              "responseFormat": "file"
+            }
+          }
+        },
+        "url": "={{ $json.imageUrl }}"
+      },
+      "position": [
+        880,
+        110
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "DNBpaRnjik4GKOKt",
+          "name": "Mailgun SMTP (n8n)"
+        }
+      },
+      "id": "c2",
+      "name": "Send Email",
+      "parameters": {
+        "emailFormat": "html",
+        "fromEmail": "Comic Mailer <n8n@dv.zone>",
+        "html": "=<h2><a href=\"{{ $json.link }}\">{{ $json.source }}: {{ $json.title }}</a></h2>\n<p><img src=\"cid:comic\" alt=\"{{ $json.title }}\" style=\"max-width:100%;height:auto\"></p>\n{{ $json.caption ? '<p><em>' + $json.caption + '</em></p>' : '' }}\n<p><a href=\"{{ $json.link }}\">View on {{ $json.source }}</a></p>",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "comic"
+        },
+        "subject": "=New {{ $json.source }} comic: {{ $json.title }}",
+        "toEmail": "daan@dv.email"
+      },
+      "position": [
+        1100,
+        110
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "e0c12dcd-bdcc-4e07-b6b6-5a4fda82fa4e"
+    }
+  ],
+  "settings": {
+    "errorWorkflow": "rfTRZLNxLOTMDLeE",
+    "executionOrder": "v1",
+    "timezone": "Europe/Amsterdam"
+  },
+  "tags": []
+}

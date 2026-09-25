@@ -100,11 +100,35 @@ uv run python cmd.py oidc add-client "Technitium DNS" https://dns.dv.zone/sso/ca
     --auth-method client_secret_post --pkce
 ```
 
+## `n8n export` — snapshot n8n workflows to git
+
+Unlike the commands above, this doesn't provision credentials: it pulls every
+non-archived workflow from `https://n8n.dv.zone` via the public API (key:
+`op://Homelab/n8n secrets/api key`) and writes one JSON file per workflow to
+`n8n/workflows/<slug>.json`. n8n stays the source of truth -- edit in the UI, then
+export and commit. Files of deleted/archived/renamed workflows are removed.
+
+```bash
+uv run python cmd.py n8n export [--dry-run]
+```
+
+Only `id`, `name`, `active`, `nodes`, `connections`, `settings` and `tags` are kept;
+volatile fields (`versionId`, `updatedAt`, ...) and runtime state (`staticData`,
+`pinData`) are dropped so diffs show real changes. Restore by importing the file in
+the n8n UI.
+
+**This repo is public, and workflow JSON contains every value typed into a node.**
+Never hardcode secrets or personal keys in a node -- put them in the n8n container's
+environment (`deploys/docker_vm/apps/templates/n8n.yaml.j2`, sourced from 1Password)
+and reference them as `{{ $env.NAME }}` (e.g. `$env.PUSHOVER_USER_KEY`). Credentials
+are safe: the export only contains their n8n id and name.
+
 ## Module layout
 
 | File | Responsibility |
 |------|----------------|
 | `db.py` | `db add-db` command |
+| `n8n.py` | `n8n export` command |
 | `oidc.py` | `oidc add-client` command |
 | `secrets.py` | password / client-secret generation and the Authelia pbkdf2-sha512 hash |
 | `onepassword.py` | create a 1Password item in the `Homelab` vault (with print-fallback) |
