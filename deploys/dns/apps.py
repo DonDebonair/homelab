@@ -4,7 +4,7 @@ apps = [
     ComposeApp(
         name="technitium-dns",
         image="technitium/dns-server",
-        version="15.5.0",
+        version="15.6.0",
         volumes=[
             NamedVolume(name="technitium-dns-config", mount_path="/etc/dns", external=True),
             NamedVolume(name="technitium-dns-logs", mount_path="/var/log/technitium/dns"),
