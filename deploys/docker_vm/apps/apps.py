@@ -74,7 +74,7 @@ apps = [
     ComposeApp(
         name="dozzle",
         image="amir20/dozzle",
-        version="v11.1.1",
+        version="v11.2.0",
         volumes=[
             DOCKER_SOCKET,
             # Required under oidc auth: Dozzle keeps its session-signing secret, each
