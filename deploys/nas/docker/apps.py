@@ -16,6 +16,6 @@ apps = [
     ComposeApp(
         name="portainer-agent",
         image="portainer/agent",
-        version="2.45.1",
+        version="2.45.3",
     ),
 ]
