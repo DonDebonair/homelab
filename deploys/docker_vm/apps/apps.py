@@ -446,9 +446,9 @@ apps = [
         # shared postgres_lxc instead of the bundled Postgres. Pinned stable (no
         # :latest); bump the version field and redeploy.
         image="ghcr.io/bookorbit/bookorbit",
-        # Container tags drop the `v` that the git releases use (git v2.10.0 -> image
-        # 2.10.0); `v2.10.0` is a "manifest unknown" pull error.
-        version="2.10.0",
+        # Container tags drop the `v` that the git releases use (git v3.5.0 -> image
+        # 3.5.0); `v3.5.0` is a "manifest unknown" pull error.
+        version="3.5.0",
         domain="books.dv.zone",
         volumes=[
             # App config/state (the DB is external on postgres_lxc). Non-trivial
