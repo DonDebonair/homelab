@@ -91,7 +91,7 @@ apps = [
     ComposeApp(
         name="miniflux",
         image="miniflux/miniflux",
-        version="2.3.3",
+        version="2.3.4",
         domain="rss.dv.zone",
     ),
     ComposeApp(
