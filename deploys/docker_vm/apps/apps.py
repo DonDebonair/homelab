@@ -55,7 +55,7 @@ apps = [
     ComposeApp(
         name="homepage",
         image="ghcr.io/gethomepage/homepage",
-        version="v2.4.0",
+        version="v2.7.0",
         domain="home.dv.zone",
         volumes=[
             # Config dir holds the rendered yaml below; bind-mounted so the
