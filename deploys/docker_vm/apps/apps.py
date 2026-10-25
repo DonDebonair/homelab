@@ -400,7 +400,7 @@ apps = [
     ComposeApp(
         name="garage",
         image="dxflrs/garage",
-        version="v2.4.1",
+        version="v2.5.0",
         # S3 API endpoint (path-style: s3.dv.zone/<bucket>). The garage-webui admin
         # console is a sidecar at garage.dv.zone -- see templates/garage.yaml.j2.
         domain="s3.dv.zone",
