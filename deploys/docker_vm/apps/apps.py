@@ -98,9 +98,9 @@ apps = [
         name="forgejo",
         image="codeberg.org/forgejo/forgejo",
         # Latest stable + LTS (supported to 2027-07). Upgraded from 8.0.3 in one
-        # jump -- migrations are cumulative and 16.0.6 ships the fixed migrations.
+        # jump -- migrations are cumulative and 16.0.7 ships the fixed migrations.
         # See docs/plans/forgejo-migration.md "Upgrade to v15" for the runbook.
-        version="16.0.6",
+        version="16.0.7",
         domain="git.dv.zone",
         volumes=[
             # Git repositories + LFS + gitea/conf/app.ini (SECRET_KEY,
