@@ -59,7 +59,7 @@ apps = [
     ComposeApp(
         name="cloudflared",
         image="cloudflare/cloudflared",
-        version="2026.10.3",
+        version="2026.10.5",
         volumes=[
             BindMount(
                 source="cloudflared",
