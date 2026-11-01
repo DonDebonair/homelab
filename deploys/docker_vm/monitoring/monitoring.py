@@ -89,6 +89,12 @@ apps = [
                 dest="grafana/provisioning/dashboards/dashboards-provider.yaml",
                 restart_on_change=True,
             ),
+            # Alerting provisioning is also read only at startup.
+            TemplateFile(
+                src="grafana/alerting/backup-age.yaml",
+                dest="grafana/provisioning/alerting/backup-age.yaml",
+                restart_on_change=True,
+            ),
         ],
         # Raw copies (not templates) -- the dashboard JSON has no Jinja, and
         # running it through the renderer would only risk a false hit on the

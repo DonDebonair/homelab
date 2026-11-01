@@ -13,7 +13,8 @@ from deploys.proxmox_host import prepare_proxmox_host, users_and_groups, setup_l
     setup_vms, configure_backups
 from deploys.postgres_lxc import users as postgres_users, setup_postgres, databases_and_users
 from deploys.palworld_lxc import users as palworld_users, setup_palworld_server
-from deploys.pbs_vm import prepare_pbs, users as pbs_vm_users, configure_datastore, configure_backup_access
+from deploys.pbs_vm import prepare_pbs, users as pbs_vm_users, configure_datastore, configure_backup_access, \
+    setup_backup_metrics
 
 
 if "nas" in host.groups:
@@ -50,6 +51,7 @@ if "pbs_vm" in host.groups:
     configure_datastore()
     configure_backup_access()
     setup_node_exporter()
+    setup_backup_metrics()
 
 if host.get_fact(LinuxName) == "Debian":
     common_debian_setup()

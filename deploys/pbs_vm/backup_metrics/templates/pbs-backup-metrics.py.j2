@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Write each guest's last completed PBS backup time for node-exporter's textfile collector."""
+import glob
+import os
+from datetime import datetime, timezone
+
+DATASTORE_NAME = "{{ datastore_name }}"
+DATASTORE_PATH = "{{ datastore_path }}"
+EXPECTED_VMIDS = {{ vmids }}
+OUTPUT = "/var/lib/prometheus/node-exporter/pbs_backups.prom"
+METRIC = "pbs_backup_last_success_timestamp_seconds"
+
+
+def last_success(vmid):
+    """Return the newest finished snapshot's time, or 0 when there is none.
+
+    index.json.blob is only written once a backup finishes. Reporting 0 for a guest with no
+    snapshots, or an unmounted datastore, makes the age alert fire instead of going quiet.
+    """
+    newest = 0
+    for manifest in glob.glob(f"{DATASTORE_PATH}/*/{vmid}/*/index.json.blob"):
+        name = os.path.basename(os.path.dirname(manifest))
+        try:
+            taken = datetime.strptime(name, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        newest = max(newest, int(taken.timestamp()))
+    return newest
+
+
+def main():
+    lines = [
+        f"# HELP {METRIC} Start time of the newest finished backup of a guest (0 if none).",
+        f"# TYPE {METRIC} gauge",
+    ]
+    for vmid in EXPECTED_VMIDS:
+        labels = f'datastore="{DATASTORE_NAME}",id="{vmid}"'
+        lines.append(METRIC + "{" + labels + "} " + str(last_success(vmid)))
+
+    # Written beside the target and renamed, so a scrape never sees a partial file.
+    temporary = f"{OUTPUT}.tmp"
+    with open(temporary, "w") as output:
+        output.write("\n".join(lines) + "\n")
+    os.chmod(temporary, 0o644)
+    os.replace(temporary, OUTPUT)
+
+
+if __name__ == "__main__":
+    main()

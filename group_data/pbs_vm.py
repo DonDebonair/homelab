@@ -2,9 +2,14 @@
 # Shared defaults (user, ssh_public_key, names, ...) come from group_data/all.py.
 # Add PBS-specific variables (datastores, etc.) here as the deploy grows.
 from group_data.all import domain, nas_ip
+from group_data.proxmox_host import backup_vmids as proxmox_backup_vmids
 
 hostname = "pbs"
 hostname_fqdn = f"{hostname}.{domain}"
+
+# The guests whose backups should exist in PBS. Assigned rather than just imported, because
+# pyinfra leaves imported names out of group data.
+backup_vmids = proxmox_backup_vmids
 
 # Synology iSCSI LUN used as a PBS datastore. The LUN/target (with CHAP) is
 # created on the Synology side; CHAP credentials live in 1Password (see

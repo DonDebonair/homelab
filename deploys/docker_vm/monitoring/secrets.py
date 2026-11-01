@@ -13,6 +13,10 @@ grafana_oidc_client_secret = SecretString("op://Homelab/Grafana OIDC client/pass
 grafana_widget_username = SecretString("op://Homelab/Grafana Homepage user/username")
 grafana_widget_password = SecretString("op://Homelab/Grafana Homepage user/password")
 
+# Pushover delivery for Grafana alerts. The user key is the same one n8n notifies.
+grafana_pushover_api_token = SecretString("op://Homelab/Grafana Pushover/api token")
+grafana_pushover_user_key = SecretString("op://Homelab/n8n secrets/pushover user key")
+
 # SNMPv3 credentials the snmp-exporter uses to poll the Synology NAS.
 # NB: the username field's *id* is `username` (its display label is "rouser"); the
 # 1Password SDK resolves by id, not label, so the reference must use `username`.

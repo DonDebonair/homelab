@@ -29,6 +29,9 @@ services:
       GF_DATABASE_PASSWORD: [[ grafana_db_password ]]
       GF_DATABASE_SSL_MODE: disable
       GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: true
+      # Read by the provisioned contact point in provisioning/alerting/.
+      GRAFANA_PUSHOVER_API_TOKEN: [[ grafana_pushover_api_token ]]
+      GRAFANA_PUSHOVER_USER_KEY: [[ grafana_pushover_user_key ]]
       TZ: Europe/Amsterdam
     networks:
       # caddy-internal: reverse proxy. monitoring: reach prometheus/loki by name

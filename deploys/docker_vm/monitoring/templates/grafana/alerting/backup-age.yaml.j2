@@ -1,0 +1,62 @@
+# Alert when PVE's nightly backups stop reaching PBS. The metric comes from the timer in
+# deploys/pbs_vm/backup_metrics. A rule template has to avoid `$`: Grafana expands environment
+# variables across this whole file, so `{{ .Labels.id }}` is used instead of `{{ $labels.id }}`.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: pushover
+    receivers:
+      - uid: pushover-homelab
+        type: pushover
+        # Pushover intermittently rejected resolved messages with a false "application token is
+        # invalid", and a failed one appeared to hold back the next alert until repeat_interval.
+        disableResolveMessage: true
+        settings:
+          apiToken: $GRAFANA_PUSHOVER_API_TOKEN
+          userKey: $GRAFANA_PUSHOVER_USER_KEY
+
+# This replaces Grafana's whole notification policy tree; these are the only provisioned alerts.
+policies:
+  - orgId: 1
+    receiver: pushover
+    group_by: [grafana_folder, alertname]
+    repeat_interval: 24h
+
+groups:
+  - orgId: 1
+    name: backups
+    folder: Alerts
+    interval: 5m
+    rules:
+      - uid: pbs-backup-age
+        title: PBS backup too old
+        condition: C
+        # 30h: the 02:00 job's previous success plus a day, so a missed night alerts at about 08:00.
+        for: 0s
+        # A missing metric means PBS or its exporter is down, which also needs attention.
+        noDataState: Alerting
+        execErrState: Alerting
+        annotations:
+          summary: "Guest {{ .Labels.id }}: no finished PBS backup in 30 hours, or the backup metric is missing."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            # The Prometheus datasource lives in Grafana's database, not in provisioning.
+            datasourceUid: bdtbm6juuq7swc
+            model:
+              refId: A
+              instant: true
+              expr: (time() - pbs_backup_last_success_timestamp_seconds) / 3600
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [30]
