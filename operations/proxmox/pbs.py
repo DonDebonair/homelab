@@ -143,6 +143,7 @@ def datastore(
         datastore_name: str,
         path: str,
         comment: str | None = None,
+        gc_schedule: str | None = None,
         present: bool = True,
 ):
     """
@@ -153,6 +154,9 @@ def datastore(
         datastore_name: The datastore name, e.g. ``synology``
         path: The absolute path backing the datastore, e.g. ``/mnt/synology``
         comment: Optional datastore comment (only set on creation)
+        gc_schedule: Garbage collection calendar event, e.g. ``05:00``. Applied on creation
+            and converged on an existing datastore; ``None`` leaves it unmanaged. PBS sets no
+            schedule by default, and pruning alone frees no disk space: only GC removes chunks.
         present: Whether the datastore should exist (True) or not (False)
     """
     datastores = host.get_fact(PBSDatastores, _sudo=True)
@@ -166,6 +170,8 @@ def datastore(
         cmd.extend(["create", QuoteString(datastore_name), QuoteString(path)])
         if comment:
             cmd.extend(["--comment", QuoteString(comment)])
+        if gc_schedule:
+            cmd.extend(["--gc-schedule", QuoteString(gc_schedule)])
     elif present and is_present:
         # PBS does not support relocating a datastore in place; flag a mismatch
         # rather than silently ignoring it.
@@ -174,8 +180,10 @@ def datastore(
                 f"Datastore '{datastore_name}' already exists at '{datastore_info.path}', "
                 f"which differs from the requested path '{path}'."
             )
-        host.noop(f"Datastore '{datastore_name}' already exists at '{path}'.")
-        return
+        if gc_schedule is None or datastore_info.gc_schedule == gc_schedule:
+            host.noop(f"Datastore '{datastore_name}' already exists at '{path}'.")
+            return
+        cmd.extend(["update", QuoteString(datastore_name), "--gc-schedule", QuoteString(gc_schedule)])
     else:
         host.noop(f"Datastore '{datastore_name}' does not exist and 'present' is False.")
         return

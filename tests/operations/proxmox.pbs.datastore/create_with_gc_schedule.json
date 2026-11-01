@@ -1,0 +1,16 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "gc_schedule": "05:00",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSDatastores": {}
+  },
+  "commands": [
+    "proxmox-backup-manager datastore create synology /mnt/synology --gc-schedule 05:00"
+  ]
+}

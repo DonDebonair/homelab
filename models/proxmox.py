@@ -185,6 +185,7 @@ class PBSDatastoreInfo:
     name: str
     path: str
     comment: str | None
+    gc_schedule: str | None
 
 
 # --- PVE storage & backup jobs -----------------------------------------------

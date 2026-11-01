@@ -73,5 +73,6 @@ def configure_datastore():
         name="Create the Synology PBS datastore",
         datastore_name=host.data.iscsi_datastore_name,
         path=host.data.iscsi_mount_path,
+        gc_schedule=host.data.iscsi_datastore_gc_schedule,
         _sudo=True,
     )

@@ -11,7 +11,8 @@
       "synology": {
         "name": "synology",
         "path": "/mnt/synology",
-        "comment": null
+        "comment": null,
+        "gc_schedule": null
       }
     }
   },

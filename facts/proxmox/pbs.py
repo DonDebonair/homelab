@@ -108,5 +108,6 @@ class PBSDatastores(FactBase[dict[str, PBSDatastoreInfo]]):
                 name=name,
                 path=datastore["path"],
                 comment=datastore.get("comment"),
+                gc_schedule=datastore.get("gc-schedule"),
             )
         return datastores

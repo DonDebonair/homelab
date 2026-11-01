@@ -1,0 +1,23 @@
+{
+  "args": [
+    "synology",
+    "/mnt/synology"
+  ],
+  "kwargs": {
+    "gc_schedule": "05:00",
+    "present": true
+  },
+  "facts": {
+    "pbs.PBSDatastores": {
+      "synology": {
+        "name": "synology",
+        "path": "/mnt/synology",
+        "comment": null,
+        "gc_schedule": "daily"
+      }
+    }
+  },
+  "commands": [
+    "proxmox-backup-manager datastore update synology --gc-schedule 05:00"
+  ]
+}

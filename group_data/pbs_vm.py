@@ -14,3 +14,7 @@ iscsi_target_iqn = "iqn.2000-01.com.synology:NASty.default-target.780e544d140"
 iscsi_portal_ip = nas_ip
 iscsi_mount_path = "/mnt/synology"
 iscsi_datastore_name = "synology"
+# Pruning only drops snapshot indexes; GC is what frees the chunks. It has to be scheduled
+# explicitly, and without it the datastore fills up and every backup fails. Runs after the
+# 02:00 backup job (group_data/proxmox_host.py) and its prune have finished.
+iscsi_datastore_gc_schedule = "05:00"
