@@ -5,6 +5,7 @@ services:
     image: [[ app.image ]]:[[ app.version ]]
     command:
       - '--storage.tsdb.retention.time=60d'
+      - '--storage.tsdb.retention.size=25GB'
       - '--storage.tsdb.path=/prometheus'
       - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
