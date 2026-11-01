@@ -244,7 +244,7 @@ apps = [
     ComposeApp(
         name="pgadmin",
         image="dpage/pgadmin4",
-        version="9.18",
+        version="9.19",
         domain="pgadmin.dv.zone",
         volumes=[
             # pgadmin4.db (server/connection definitions, users, prefs, saved
